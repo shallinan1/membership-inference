@@ -138,10 +138,11 @@ class ModelGenerator():
 
         input_ids_list = self.tokenizer(prompts, truncation=True, max_length=max_length).input_ids # Do NOT set padding
         filtered_input_ids = []
-        for input_ids in input_ids_list: # Check that we didn't include any pad tokens and remove long sequences
+        for prompt, input_ids in zip(prompts, input_ids_list): # Check that we didn't include any pad tokens and remove long sequences
             assert self.tokenizer.pad_token_id not in input_ids
             if len(input_ids) + max_new_tokens <= max_length:
                 filtered_input_ids.append(input_ids)
+                final_prompts.append(prompt)
 
         # Set up the sampling parameters
         stop_token_ids = list(set(extra_stop_tokens + [self.llm.get_tokenizer().eos_token_id]))
@@ -158,11 +159,9 @@ class ModelGenerator():
             sampling_params=sampling_params, 
             prompt_token_ids=filtered_input_ids)
         
-        # Filtering
         for cp, o in zip(prompts, output): # Change this if we want to do multiple sampled sequences per input
             output_str = self.tokenizer.decode(o.outputs[0].token_ids, skip_special_tokens=True).strip()
             outputs.append(output_str)
-            final_prompts.append(cp)
                         
         return final_prompts, outputs
     
