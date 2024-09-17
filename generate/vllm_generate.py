@@ -7,8 +7,7 @@ import json
 from IPython import embed
 from generate.generate_utils import *
 from vllm import LLM, SamplingParams
-from typing import List
-
+from typing import List, Tuple
 
 def load_prompts(input_file, model_name="default", prompt_col='prompt', prompt_key=None, task=None):
     print("\nLoading prompts\n")
@@ -95,7 +94,7 @@ def load_prompts(input_file, model_name="default", prompt_col='prompt', prompt_k
     return prompts
 
 class ModelGenerator():
-    def __init__(self, model: str, seed: int = 0, hf_token: str = None, vllm: bool = True):
+    def __init__(self, model: str, tokenizer: str = None, seed: int = 0, hf_token: str = None, vllm: bool = True, cache_dir: str = "../cache/"):
         print("Initializing vLLM model")
         
         set_seed(seed)
@@ -110,36 +109,58 @@ class ModelGenerator():
 
         print(f"device count {torch.cuda.device_count()}")
 
-        mmodel_save_name = model
-        if "/" in model:
-            self.model_save_name = model.split("/")[-1]
+        model_save_name = model.split("/")[-1]
 
-        self.llm = LLM(model=model, tensor_parallel_size=torch.cuda.device_count(), download_dir = args.cache_dir) # Load the model
+        self.llm = LLM(model=model, tensor_parallel_size=torch.cuda.device_count(), download_dir = cache_dir) # Load the model
         
-        if args.data_save_name is None:
-            args.data_save_name = args.save_dir.split("/")[-1]
-        prompt_key_name = f"_prompt-{args.prompt_key}" if args.prompt_key else ""
-
         # Make the tokenizer
-        tokenizer_str = tokenizer_path if tokenizer_path else model  # Pass in a cached tokenizer (speed up tokenizer)
+        tokenizer_str = tokenizer if tokenizer else model  # Pass in a cached tokenizer (speed up tokenizer)
         add_bos_token = True # Adding the bos token explicitly (Mistral, mixtral for some reason have it as false, while other models default to True)
         tokenizer = AutoTokenizer.from_pretrained(tokenizer_str, padding_side="left", trust_remote_code=True, add_bos_token=add_bos_token)
-
 
     def make_prompt_format(self):
         prompts = load_prompts(args.input_file, args.model_save_name, prompt_key=args.prompt_key, task = args.data_save_name)
         print(f"\nExample prompt (index 0): {prompts[0]}\n")
 
-    def generate_vllm(self, prompts: List[str], temperature: float = 1.0, top_p: float=0.95, sample: bool = True, max_new_tokens: int = 256, max_length: int = 2048, extra_stop_tokens: List[int] = None):
+    def generate_vllm(
+        self,
+        prompts: List[str],
+        temperature: float = 1.0,
+        top_p: float = 0.95,
+        sample: bool = True,
+        max_new_tokens: int = 256,
+        max_length: int = 2048,
+        extra_stop_tokens: List[int] = None
+    ) -> Tuple[List[str], List[str]]:
+        """
+        Generates text based on a list of input prompts using a language model with specific sampling parameters.
+
+        Args:
+            prompts (List[str]): A list of input text prompts for which to generate continuations.
+            temperature (float, optional): Controls randomness in sampling. A higher value produces more diverse outputs. 
+                                        Set to 0 for greedy decoding. Defaults to 1.0.
+            top_p (float, optional): Nucleus sampling parameter. The probability threshold for top-p sampling. Defaults to 0.95.
+            sample (bool, optional): If True, uses sampling; otherwise, sets temperature to 0 for deterministic decoding. Defaults to True.
+            max_new_tokens (int, optional): The maximum number of new tokens to generate for each input prompt. Defaults to 256.
+            max_length (int, optional): The maximum length (in tokens) of the input prompt plus the generated text. Defaults to 2048.
+            extra_stop_tokens (List[int], optional): Additional token IDs that should stop the generation. Defaults to None.
+
+        Returns:
+            Tuple[List[str], List[str]]: A tuple containing a list of final prompts after filtering and a list of generated outputs corresponding to those prompts.
+        """
+        # Convert extra stop tokens to integers if provided
         extra_stop_tokens = [int(a) for a in extra_stop_tokens] if extra_stop_tokens else []
 
         outputs, final_prompts = [], []
         print(len(prompts))
 
-        input_ids_list = self.tokenizer(prompts, truncation=True, max_length=max_length).input_ids # Do NOT set padding
+        # Tokenize prompts without padding and truncate to max_length
+        input_ids_list = self.tokenizer(prompts, truncation=True, max_length=max_length).input_ids
         filtered_input_ids = []
-        for prompt, input_ids in zip(prompts, input_ids_list): # Check that we didn't include any pad tokens and remove long sequences
-            assert self.tokenizer.pad_token_id not in input_ids
+
+        # Filter out prompts that are too long and check for padding tokens
+        for prompt, input_ids in zip(prompts, input_ids_list):
+            assert self.tokenizer.pad_token_id not in input_ids, "Padding tokens found in input_ids."
             if len(input_ids) + max_new_tokens <= max_length:
                 filtered_input_ids.append(input_ids)
                 final_prompts.append(prompt)
@@ -147,24 +168,27 @@ class ModelGenerator():
         # Set up the sampling parameters
         stop_token_ids = list(set(extra_stop_tokens + [self.llm.get_tokenizer().eos_token_id]))
         if not sample:
-            temperature = 0 # vllm will always use sampling unless temperature = 0
+            temperature = 0  # vllm will always use sampling unless temperature = 0
         sampling_params = SamplingParams(
             temperature=temperature,
             top_p=top_p,
             max_tokens=max_new_tokens,
-            stop_token_ids=stop_token_ids) # Set seed gives weird output for base model
+            stop_token_ids=stop_token_ids
+        )
 
         # Generation
         output = self.llm.generate(
             sampling_params=sampling_params, 
-            prompt_token_ids=filtered_input_ids)
+            prompt_token_ids=filtered_input_ids
+        )
         
-        for cp, o in zip(prompts, output): # Change this if we want to do multiple sampled sequences per input
+        # Decode the generated outputs
+        for o in output:
             output_str = self.tokenizer.decode(o.outputs[0].token_ids, skip_special_tokens=True).strip()
             outputs.append(output_str)
-                        
+        
         return final_prompts, outputs
-    
+
 
 
 if __name__ == "__main__":
@@ -174,8 +198,6 @@ if __name__ == "__main__":
     # Add arguments
     parser.add_argument('--vllm', action='store_true', help='Use VLM model if specified')
     parser.add_argument('--model', type=str, help='Model name for VLM')
-    parser.add_argument('--model_save_name', type=str, help='Model saving name for final output')
-    parser.add_argument('--data_save_name', type=str, default = None, help='Data saving name for final output')
     parser.add_argument('--tok_path', type=str, default=None, help='Optional separate tokenizer path')
     parser.add_argument('--max_length', type=int, default=2048, help='Maximum length for tokenization')
     parser.add_argument('--max_new_tokens', type=int, default=256, help='Maximum new tokens to generate')
@@ -196,19 +218,3 @@ if __name__ == "__main__":
     # Parse arguments
     main(parser.parse_args())
 
-    """
-    Command to run 
-
-    # Generate for Llama2-7b-chat-hf
-    CUDA_VISIBLE_DEVICES=0 python3 -m data.generate_hf \
-        --vllm \
-        --model meta-llama/Llama-2-7b-chat-hf \
-        --model_save_name llama2-7b-chat \
-        --hf_token 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 \
-        --sample \
-        --input_file data/new_book.json \
-        --max_new_tokens 164 \
-        --temperature 1.0 \
-        --top_p 0.9 \
-        --cache_dir ../cache/
-    """
