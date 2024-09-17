@@ -7,6 +7,7 @@ from nltk import sent_tokenize
 import pandas as pd
 from IPython import embed
 from tqdm import tqdm
+import re
 
 # Set up environment variables
 os.environ["HF_HOME"] = CACHE_PATH
@@ -26,18 +27,36 @@ def main(args):
     ds = load_dataset("swj0419/BookMIA")
     df = ds["train"].to_pandas()
 
+    # Jane Eyre is loaded incorrectly??
+    problematic_rows = df[df['snippet'].str.contains('\x00', regex=False)].index
+
+    # Function to clean the 'snippet' by replacing '\x00' with an empty string
+    def clean_snippet(snippet):
+        if isinstance(snippet, bytes):  # Decode if snippet is in bytes
+            snippet = snippet.decode('utf-8', errors='ignore')
+        return re.sub(r'\x14', '',re.sub(r'\x00', '', snippet))
+
+    # Replace '\x00' with regex in problematic rows
+    for idx in problematic_rows:
+        df.at[idx, 'snippet'] = clean_snippet(df.at[idx, 'snippet'])
+
     # Filter data based on snippet counts
     snippet_value_counts = df.snippet_id.value_counts()
     valid_snippet_ids = snippet_value_counts[snippet_value_counts == 100].index
     filtered_df = df[df.snippet_id.isin(valid_snippet_ids)]
 
-    # Select 5 rows with label 0 and 1
-    label_0_subset = filtered_df[filtered_df.label == 0].head(5)
-    label_1_subset = filtered_df[filtered_df.label == 1].head(5)
-
-    # Combine the two subsets
-    final_subset = pd.concat([label_0_subset, label_1_subset])
-
+    # Ensure we have both labels for the same snippet_id
+    final_subset = pd.DataFrame()  # Initialize empty DataFrame to hold the final subset
+    for snippet_id in valid_snippet_ids[:10]:
+        snippet_data = filtered_df[filtered_df.snippet_id == snippet_id]
+        label_0_data = snippet_data[snippet_data.label == 0].head(5)
+        label_1_data = snippet_data[snippet_data.label == 1].head(5)
+        if not label_0_data.empty and not label_1_data.empty:
+            # Combine the data if both labels are available
+            combined_data = pd.concat([label_0_data, label_1_data])
+            final_subset = pd.concat([final_subset, combined_data])
+    
+    print(f"Length: {len(final_subset)}")
     # Prepare to save generations
     save_folder = "tasks/bookMIA/generations"
     os.makedirs(save_folder, exist_ok=True)
@@ -47,11 +66,15 @@ def main(args):
 
     # Generate text and save to DataFrame
     task_prompt = task_prompts[args.task_prompt_idx]
-    for index, row in tqdm(final_subset.iterrows(), total=len(final_subset)):
+    for index, row in tqdm(final_subset.iterrows(), total=len(final_subset), desc="Generating"):
         snippet_sentences = sent_tokenize(row.snippet)
         # Ignore first one, since it is often partial
         if args.num_sentences == 1:
-            prompt_text = snippet_sentences[1]
+            try:
+                prompt_text = snippet_sentences[1]
+            except:
+                print("Something wrong")
+                continue
         else:
             prompt_text = " ".join(snippet_sentences[1:1 + args.num_sentences])
 
@@ -63,8 +86,10 @@ def main(args):
         final_subset.at[index, "generation"] = generation
 
     # Save DataFrame to CSV with detailed info in the filename
-    file_name = f"{args.model}_maxTokens{args.max_tokens}_numSeq{args.num_sequences}_topP{args.top_p}_numSent{args.num_sentences}_promptIdx{args.task_prompt_idx}.jsonl"
+    file_name = f"{args.model}_maxTokens{args.max_tokens}_numSeq{args.num_sequences}_topP{args.top_p}_numSent{args.num_sentences}_promptIdx{args.task_prompt_idx}_len{len(final_subset)}.jsonl"
     file_path = os.path.join(save_folder, file_name)
+    columns = [col for col in final_subset.columns if col != 'snippet'] + ['snippet']
+    final_subset = final_subset[columns]
     final_subset.to_json(file_path, index=False, lines=True, orient='records')
 
 # Argument parser setup
