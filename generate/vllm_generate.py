@@ -9,47 +9,13 @@ from generate.generate_utils import *
 from vllm import LLM, SamplingParams
 from typing import List, Tuple
 
-def load_prompts(input_file, model_name="default", prompt_col='prompt', prompt_key=None, task=None):
+def load_prompts(model_name="default", prompt_col='prompt', prompt_key=None, task=None):
     print("\nLoading prompts\n")
     lower_model_name = model_name.lower()
 
     task_prompt = 'Please write a few paragraphs for a novel starting with the following prompt: '
     task_postprompt = ''
-    if "new_book_LM" in task: # Training data for new book task
-        task_prompt = 'Please write a few paragraphs for a novel starting with the following prompt: '
-    elif "letter" in task:
-        task_prompt = ""
-    elif "fake_news" in task:
-        if "chat" not in lower_model_name and "it" not in lower_model_name and "inst" not in lower_model_name and "tulu" not in lower_model_name:
-            task_prompt = ""
-        else:
-            task_prompt = "Please write a news article based on the given headline:\n\n"
-    elif "poem" in task:
-        if "chat" not in lower_model_name and "it" not in lower_model_name and "inst" not in lower_model_name and "tulu" not in lower_model_name:
-            task_prompt = ""
-            task_postprompt = "\n"
-        else:
-            task_prompt = "Please write a poem starting with the following line: "
-    elif "speech" in task:
-        if "chat" not in lower_model_name and "it" not in lower_model_name and "inst" not in lower_model_name and "tulu" not in lower_model_name:
-            task_prompt = ""
-            task_postprompt = "\n"
-        else:
-            task_prompt = "Please write a speech starting with the following sentence: "
-    elif "ml_papers" in task:
-        if "chat" not in lower_model_name and "it" not in lower_model_name and "inst" not in lower_model_name and "tulu" not in lower_model_name:
-            task_prompt = ""
-            task_postprompt = "\n"
-        else:
-            task_prompt = "Given the following summary, please generate a full-length abstract for a scientific paper.\n\nSummary: "
-            task_postprompt = "Abstract: "
-    elif "theorem" in task:
-        if "chat" not in lower_model_name and "it" not in lower_model_name and "inst" not in lower_model_name and "tulu" not in lower_model_name:
-            task_prompt = ""
-        else:
-            task_prompt = "Please provide a proof for the following theorem:\n\n"
-    corpus = json.load(open(input_file, 'r'))
-    
+
     if "tulu" in lower_model_name: # Tulu Models, ie https://huggingface.co/allenai/tulu-2-dpo-70b
         task_postprompt = task_postprompt.lstrip()
         prompts = ["<|user|>\n" + task_prompt + ' '.join(p[prompt_col].strip().split()) + f"\n<|assistant|>\n{task_postprompt}" for p in corpus]
@@ -91,32 +57,67 @@ def load_prompts(input_file, model_name="default", prompt_col='prompt', prompt_k
             prompts = [f"{task_prompt}{' '.join(p[prompt_col].strip().split())}{task_postprompt}" for p in corpus]
     else: # Default branch (no instructions) for all other models
             prompts = [f"{task_prompt}{' '.join(p[prompt_col].strip().split())}{task_postprompt}" for p in corpus]
+    
     return prompts
 
-class ModelGenerator():
-    def __init__(self, model: str, tokenizer: str = None, seed: int = 0, hf_token: str = None, vllm: bool = True, cache_dir: str = "../cache/"):
+class ModelGenerator:
+    """
+    A class for generating text using a pre-trained language model with the vLLM library.
+
+    Args:
+        model (str): The model identifier or path to the pre-trained model.
+        tokenizer (str, optional): The tokenizer identifier or path. If None, uses the same identifier as the model. Defaults to None.
+        seed (int, optional): Random seed for reproducibility. Defaults to 0.
+        hf_token (str, optional): Hugging Face token for authentication. Required if accessing models from Hugging Face Hub. Defaults to None.
+        vllm (bool, optional): If True, uses the vLLM generation method; otherwise, raises an error since non-vLLM inference is not supported. Defaults to True.
+        cache_dir (str, optional): Directory to cache the model and tokenizer files. Defaults to "../cache/".
+
+    Attributes:
+        generate_function (function): The function used to generate text. Currently set to `generate_vllm`.
+        llm (LLM): The language model object loaded with vLLM.
+        tokenizer (AutoTokenizer): The tokenizer associated with the model for encoding and decoding text.
+    """
+
+    def __init__(
+        self,
+        model: str,
+        tokenizer: str = None,
+        seed: int = 0,
+        hf_token: str = None,
+        vllm: bool = True,
+        cache_dir: str = "../cache/"
+    ):
         print("Initializing vLLM model")
-        
-        set_seed(seed)
-        
+        set_seed(seed) # Set the random seed for reproducibility
+
+        # Determine the generation function to use
         if vllm:
             self.generate_function = self.generate_vllm
         else:
-            print("Non-vllm inference not currently spuported")
+            raise NotImplementedError("Non-vLLM inference is not currently supported.")
         
         if hf_token:
-            login(hf_token)
+            login(hf_token) # Log in to Hugging Face if a token is provided
 
-        print(f"device count {torch.cuda.device_count()}")
-
+        print(f"Device count: {torch.cuda.device_count()}")
         model_save_name = model.split("/")[-1]
 
-        self.llm = LLM(model=model, tensor_parallel_size=torch.cuda.device_count(), download_dir = cache_dir) # Load the model
+        # Load the model using the vLLM library
+        self.llm = LLM(
+            model=model,
+            tensor_parallel_size=torch.cuda.device_count(), # Install ray if > 1 GPUs
+            download_dir=cache_dir
+        )
         
-        # Make the tokenizer
-        tokenizer_str = tokenizer if tokenizer else model  # Pass in a cached tokenizer (speed up tokenizer)
-        add_bos_token = True # Adding the bos token explicitly (Mistral, mixtral for some reason have it as false, while other models default to True)
-        tokenizer = AutoTokenizer.from_pretrained(tokenizer_str, padding_side="left", trust_remote_code=True, add_bos_token=add_bos_token)
+        # Create the tokenizer
+        tokenizer_str = tokenizer if tokenizer else model  # Use a cached tokenizer for efficiency if provided
+        add_bos_token = True  # Adding the BOS token explicitly as some models have it set to False by default
+        self.tokenizer = AutoTokenizer.from_pretrained(
+            tokenizer_str,
+            padding_side="left",
+            trust_remote_code=True,
+            add_bos_token=add_bos_token
+        )
 
     def make_prompt_format(self):
         prompts = load_prompts(args.input_file, args.model_save_name, prompt_key=args.prompt_key, task = args.data_save_name)
