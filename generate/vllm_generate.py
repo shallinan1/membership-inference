@@ -5,60 +5,9 @@ import torch
 import os
 import json
 from IPython import embed
-from generate.generate_utils import *
+from generate.generate_utils import make_prompts
 from vllm import LLM, SamplingParams
 from typing import List, Tuple
-
-def load_prompts(model_name="default", prompt_col='prompt', prompt_key=None, task=None):
-    print("\nLoading prompts\n")
-    lower_model_name = model_name.lower()
-
-    task_prompt = 'Please write a few paragraphs for a novel starting with the following prompt: '
-    task_postprompt = ''
-
-    if "tulu" in lower_model_name: # Tulu Models, ie https://huggingface.co/allenai/tulu-2-dpo-70b
-        task_postprompt = task_postprompt.lstrip()
-        prompts = ["<|user|>\n" + task_prompt + ' '.join(p[prompt_col].strip().split()) + f"\n<|assistant|>\n{task_postprompt}" for p in corpus]
-    elif "olmo" in lower_model_name: # Olmo models, ie https://huggingface.co/allenai/OLMo-7B and for internal, instruction tuned variant
-        if "internal" in lower_model_name or "instruct" in lower_model_name:
-            task_postprompt = task_postprompt.lstrip()
-            prompts = ["<|user|>\n" + task_prompt + ' '.join(p[prompt_col].strip().split()) + f"\n<|assistant|>\n{task_postprompt}" for p in corpus]
-        else:
-            prompts = [f"{task_prompt}{' '.join(p[prompt_col].strip().split())}{task_postprompt}" for p in corpus]
-    elif "llama2" in lower_model_name: # LLama2 models, ie, https://huggingface.co/docs/transformers/model_doc/llama2
-        if "chat" in lower_model_name:
-            cur_instructions = llama2_chat_prompt_guide[prompt_key] if prompt_key in llama2_chat_prompt_guide else "full"
-            preprompt = LLAMA2_CHAT_PREPROMPT.substitute(instructions=cur_instructions)
-            task_postprompt = task_postprompt.lstrip()
-            prompts = [f"{preprompt}{task_prompt}{' '.join(p[prompt_col].strip().split())}{LLAMA2_CHAT_POSTPROMPT}{task_postprompt}" for p in corpus]
-        else:
-            prompts = [f"{task_prompt}{' '.join(p[prompt_col].strip().split())}{task_postprompt}" for p in corpus]
-    elif "llama3" in lower_model_name: # LLama3 models, ie, https://huggingface.co/docs/transformers/main/en/model_doc/llama3
-        if "inst" in lower_model_name:
-            cur_instructions = llama3_chat_prompt_guide[prompt_key] if prompt_key in llama3_chat_prompt_guide else "lighest"
-            preprompt = LLAMA3_INSTRUCT_PREPROMPT.substitute(instructions=cur_instructions)
-            task_postprompt = task_postprompt.lstrip()
-            prompts = [f"{preprompt}{task_prompt}{' '.join(p[prompt_col].strip().split())}{LLAMA3_INSTRUCT_POSTPROMPT}{task_postprompt}" for p in corpus]
-        else:
-            print("NOT IMPLEMENTED YET")
-            import sys; sys.exit()
-    elif "mistral" in lower_model_name or "mixtral" in lower_model_name:
-        if "inst" in lower_model_name:
-            task_postprompt = task_postprompt.lstrip()
-            prompts = [f"[INST] {task_prompt}{' '.join(p[prompt_col].strip().split())} [/INST]{task_postprompt}" for p in corpus]
-        else:
-            print("NOT IMPLEMENTED YET")
-            import sys; sys.exit()
-    elif "gemma" in lower_model_name: # Gemma models, ie https://huggingface.co/google/gemma-2b-it
-        if "it" in lower_model_name:
-            task_postprompt = "\n"+task_postprompt.lstrip()
-            prompts = [f"<start_of_turn>user\n{task_prompt}{' '.join(p[prompt_col].strip().split())}<end_of_turn>\n<start_of_turn>model{task_postprompt}" for p in corpus]
-        else:
-            prompts = [f"{task_prompt}{' '.join(p[prompt_col].strip().split())}{task_postprompt}" for p in corpus]
-    else: # Default branch (no instructions) for all other models
-            prompts = [f"{task_prompt}{' '.join(p[prompt_col].strip().split())}{task_postprompt}" for p in corpus]
-    
-    return prompts
 
 class ModelGenerator:
     """
@@ -100,7 +49,6 @@ class ModelGenerator:
             login(hf_token) # Log in to Hugging Face if a token is provided
 
         print(f"Device count: {torch.cuda.device_count()}")
-        model_save_name = model.split("/")[-1]
 
         # Load the model using the vLLM library
         self.llm = LLM(
@@ -118,10 +66,6 @@ class ModelGenerator:
             trust_remote_code=True,
             add_bos_token=add_bos_token
         )
-
-    def make_prompt_format(self):
-        prompts = load_prompts(args.input_file, args.model_save_name, prompt_key=args.prompt_key, task = args.data_save_name)
-        print(f"\nExample prompt (index 0): {prompts[0]}\n")
 
     def generate_vllm(
         self,
@@ -189,33 +133,4 @@ class ModelGenerator:
             outputs.append(output_str)
         
         return final_prompts, outputs
-
-
-
-if __name__ == "__main__":
-    # Create the parser
-    parser = argparse.ArgumentParser(description='Script to generate with vLLM')
-
-    # Add arguments
-    parser.add_argument('--vllm', action='store_true', help='Use VLM model if specified')
-    parser.add_argument('--model', type=str, help='Model name for VLM')
-    parser.add_argument('--tok_path', type=str, default=None, help='Optional separate tokenizer path')
-    parser.add_argument('--max_length', type=int, default=2048, help='Maximum length for tokenization')
-    parser.add_argument('--max_new_tokens', type=int, default=256, help='Maximum new tokens to generate')
-    parser.add_argument('--temperature', type=float, default=1.0, help='Temperature for sampling')
-    parser.add_argument('--top_p', type=float, default=1.0, help='Top-p for nucleus sampling')
-    parser.add_argument('--sample', action='store_true', help='Enable sampling mode')
-    parser.add_argument('--extra_stop_tokens', type=int, nargs='+', help='Extra stop tokens for generation')
-    parser.add_argument('--hf_token', type=str, default=None, help="Optional huggingface token for gated models")
-    parser.add_argument('--save_dir', type=str, default="data/", help="Save directory")
-    parser.add_argument('--input_file', type=str, help="Path to inputs, a .json file")
-    parser.add_argument('--seed', type=int, help="seed", default=0)
-    parser.add_argument('--cache_dir', type=str, default=None, help="Directory to save models")
-    parser.add_argument('--prompt_key', type=str, default=None, help="Key for specific prompt")
-    parser.add_argument('--min_length', type=int, default=128, help="Key for specific prompt")
-    parser.add_argument('--no_filter', action="store_true", help="Key for specific prompt")
-    parser.add_argument('--save_in_loop', action="store_true", help="Whether or not to save in the loop")
-
-    # Parse arguments
-    main(parser.parse_args())
 
