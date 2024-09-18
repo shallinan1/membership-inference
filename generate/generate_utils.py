@@ -52,8 +52,6 @@ def make_prompts(
     """
     if isinstance(prompts, str):
         prompts = [prompts]
-
-    print("\nLoading prompts\n")
     lower_model_name = model_name.lower()
 
     if "tulu" in lower_model_name: # Tulu Models, ie https://huggingface.co/allenai/tulu-2-dpo-70b
@@ -123,7 +121,7 @@ task_prompts_dict = {
             "task_preprompt": ""
         },
         {
-            "task_prompt": "Given some text from part of a novel, continue the narrative while keeping the style and context consistent:",
+            "task_prompt": "Given some text from part of a novel, continue the narrative while keeping the style and context consistent: ",
             "task_postprompt": "",
             "task_preprompt": ""
         },
@@ -141,7 +139,7 @@ task_prompts_dict = {
             "task_prompt": """You will be shown a series of passages from famous literary works. After these examples, \
 you will receive a prefix from another passage and be asked to complete it based on the \
 text of a famous work. Provide only the continuation for the last given prefix without any \
-extra commentary, formatting, or additional text.""",
+extra commentary, formatting, or additional text.\n\nComplete the prefix: """,
             "task_postprompt": "",
             "task_preprompt": ""
         }],
