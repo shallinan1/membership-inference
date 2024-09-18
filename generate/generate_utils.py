@@ -142,5 +142,38 @@ extra commentary, formatting, or additional text.""",
             "task_postprompt": "",
             "task_preprompt": ""
         }],
-    "gpt4-o-mini": 5# Can be abstracted to prompts for non-instruction tuned models
+    "gpt4-o-mini": # Can be abstracted to prompts for non-instruction tuned models
+        [{
+            "task_prompt": "Write a novel: ",
+            "task_postprompt": "",
+            "task_preprompt": ""
+        },
+        {
+            "task_prompt": "", # Blank
+            "task_postprompt": "",
+            "task_preprompt": ""
+        },
+        {
+            "task_prompt": "Given some text from part of a novel, continue the narrative while keeping the style and context consistent:",
+            "task_postprompt": "",
+            "task_preprompt": ""
+        },
+        {
+            "task_prompt": "You will be shown part of a passage from a famous novel. Please try to generate the rest of the passage as accurately as possible. Do not generate any other text.\n\n",
+            "task_postprompt": "",
+            "task_preprompt": ""
+        },
+        {
+            "task_prompt": "You will be shown part of a passage from a novel. Please try to generate the rest of the passage as accurately as possible. Do not generate any other text.\n\n",
+            "task_postprompt": "",
+            "task_preprompt": ""
+        },
+        {
+            "task_prompt": """You will be shown a series of passages from famous literary works. After these examples, \
+you will receive a prefix from another passage and be asked to complete it based on the \
+text of a famous work. Provide only the continuation for the last given prefix without any \
+extra commentary, formatting, or additional text.""",
+            "task_postprompt": "",
+            "task_preprompt": ""
+        }],
     }
