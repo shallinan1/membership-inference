@@ -1,5 +1,5 @@
 from string import Template
-from typing import List, Optional
+from typing import List, Optional, Union
 
 # LLama 2 Chat prompts
 LLAMA2_CHAT_SYS_INSTRUCTIONS_FULL="""You are a helpful, respectful and honest assistant. Always answer as helpfully as possible, while being safe. Your answers should not include any harmful, unethical, racist, sexist, toxic, dangerous, or illegal content. Please ensure that your responses are socially unbiased and positive in nature.
@@ -31,8 +31,10 @@ $instructions<|eot_id|><|start_header_id|>user<|end_header_id|>
 LLAMA3_INSTRUCT_POSTPROMPT = "<|eot_id|><|start_header_id|>assistant<|end_header_id|>"
 
 def make_prompts(
-    prompts: List[str], 
+    prompts: Union[List[str], str], 
     task_prompt: str, 
+    task_preprompt: str = "",
+    task_postprompt: str = "",
     model_name: str = "default", 
     prompt_key: Optional[str] = None, 
 ) -> List[str]:
@@ -48,10 +50,11 @@ def make_prompts(
     Returns:
         List[str]: A list of formatted prompts ready for use with the specified model.
     """
+    if isinstance(prompts, str):
+        prompts = [prompts]
+
     print("\nLoading prompts\n")
     lower_model_name = model_name.lower()
-
-    task_postprompt = ''
 
     if "tulu" in lower_model_name: # Tulu Models, ie https://huggingface.co/allenai/tulu-2-dpo-70b
         task_postprompt = task_postprompt.lstrip()
@@ -92,8 +95,8 @@ def make_prompts(
             prompts = [f"<start_of_turn>user\n{task_prompt}{' '.join(p.strip().split())}<end_of_turn>\n<start_of_turn>model{task_postprompt}" for p in prompts]
         else:
             prompts = [f"{task_prompt}{' '.join(p.strip().split())}{task_postprompt}" for p in prompts]
-    else: # Default branch (no instructions) for all other models
-            prompts = [f"{task_prompt}{' '.join(p.strip().split())}{task_postprompt}" for p in prompts]
+    else: # Default branch (no instructions) for all other models such as openai model
+            prompts = [f"{task_prompt}{task_preprompt}{p}{task_postprompt}" for p in prompts]
     return prompts
 
 # Task prompts
