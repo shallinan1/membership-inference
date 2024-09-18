@@ -1,6 +1,10 @@
 import argparse
 from user_secrets import CACHE_PATH
 import os
+# Set up environment variables
+os.environ["HF_HOME"] = CACHE_PATH
+os.environ["HF_DATASETS_PATH"] = CACHE_PATH
+
 from datasets import load_dataset
 from generate.openai_generate import get_gpt_output
 from nltk import sent_tokenize
@@ -8,10 +12,24 @@ import pandas as pd
 from IPython import embed
 from tqdm import tqdm
 import re
+from generate.vllm_generate import ModelGenerator 
 
-# Set up environment variables
-os.environ["HF_HOME"] = CACHE_PATH
-os.environ["HF_DATASETS_PATH"] = CACHE_PATH
+
+def extract_sentence_chunk(text, start_sentence, num_sentences):
+    text_sentences = sent_tokenize(text)
+    # Ignore first one, since it is often partial
+    if num_sentences == 1:
+        try:
+            prompt_text = text_sentences[args.start_sentence]
+        except:
+            print("Something wrong")
+            return None
+    else:
+        prompt_text = " ".join(text_sentences[start_sentence:start_sentence + num_sentences])
+
+    return prompt_text
+
+
 
 # Function to define the main process
 def main(args):
@@ -19,7 +37,7 @@ def main(args):
     task_prompts = [
         "Given the following sentence from a novel, continue the narrative while keeping the style and context consistent: ",
         "Write a novel: ",
-        "Continue the story: ",
+        # "Continue the story: ",
         ""
     ]
 
@@ -64,29 +82,48 @@ def main(args):
     # Add a column to save generations
     final_subset["generation"] = ""
 
+    if not args.openai:
+        # Initialize ModelGenerator
+        generator = ModelGenerator(
+            model=args.model,
+            tokenizer=args.tokenizer,
+            seed=args.seed,
+            hf_token=args.hf_token,
+            cache_dir=args.cache_dir
+        )
+
     # Generate text and save to DataFrame
     task_prompt = task_prompts[args.task_prompt_idx]
-    for index, row in tqdm(final_subset.iterrows(), total=len(final_subset), desc="Generating"):
-        snippet_sentences = sent_tokenize(row.snippet)
-        # Ignore first one, since it is often partial
-        if args.num_sentences == 1:
-            try:
-                prompt_text = snippet_sentences[1]
-            except:
-                print("Something wrong")
+
+    if args.open_ai:
+        for index, row in tqdm(final_subset.iterrows(), total=len(final_subset), desc="Generating"):
+
+            prompt_text = extract_sentence_chunk(row.snippet, args.start_sentence, args.num_sentences)
+            if prompt_text is None:
                 continue
-        else:
-            prompt_text = " ".join(snippet_sentences[1:1 + args.num_sentences])
+  
+            prompt = task_prompt + prompt_text
+            generation = get_gpt_output(prompt, model=args.model, max_tokens=args.max_tokens, n=args.num_sequences, top_p=args.top_p)
 
-        prompt = task_prompt + prompt_text
+            # Save the generation in the DataFrame
+            final_subset.at[index, "generation"] = generation
+    else:
+        passages = final_subset.row.tolist()
+        prompt_texts = [extract_sentence_chunk(text, args.start_sentence, args.num_sentences) for text in passages]
+        
+        # TODO prompt loading logic here
 
-        generation = get_gpt_output(prompt, model=args.model, max_tokens=args.max_tokens, n=args.num_sequences, top_p=args.top_p)
-
-        # Save the generation in the DataFrame
-        final_subset.at[index, "generation"] = generation
+        # Generate texts
+        final_prompts, generated_texts = generator.generate_vllm(
+            prompts=prompts,
+            temperature=args.temperature,
+            top_p=args.top_p,
+            max_new_tokens=args.max_new_tokens,
+            max_length=args.max_length
+        )
 
     # Save DataFrame to CSV with detailed info in the filename
-    file_name = f"{args.model}_maxTokens{args.max_tokens}_numSeq{args.num_sequences}_topP{args.top_p}_numSent{args.num_sentences}_promptIdx{args.task_prompt_idx}_len{len(final_subset)}.jsonl"
+    file_name = f"{args.model}_maxTokens{args.max_tokens}_numSeq{args.num_sequences}_topP{args.top_p}_numSent{args.num_sentences}_startSent{args.start_sentence}_promptIdx{args.task_prompt_idx}_len{len(final_subset)}.jsonl"
     file_path = os.path.join(save_folder, file_name)
     columns = [col for col in final_subset.columns if col != 'snippet'] + ['snippet']
     final_subset = final_subset[columns]
@@ -99,8 +136,10 @@ def parse_args():
     parser.add_argument('--num_sequences', type=int, default=1, help='Number of sequences to generate.')
     parser.add_argument('--top_p', type=float, default=0.95, help='Top-p sampling value.')
     parser.add_argument('--num_sentences', type=int, default=1, help='Number of sentences to use from the snippet.')
+    parser.add_argument('--start_sentence', type=int, default=1, help='Number of sentences to use from the snippet.')
     parser.add_argument('--task_prompt_idx', type=int, default=1, help='Index of the task prompt to use.')
     parser.add_argument('--model', type=str, default="davinci-002", help='Model to use for text generation.')
+    parser.add_argument("--openai", action="store_true")
     return parser.parse_args()
 
 if __name__ == "__main__":
