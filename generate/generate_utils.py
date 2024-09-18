@@ -95,3 +95,52 @@ def make_prompts(
     else: # Default branch (no instructions) for all other models
             prompts = [f"{task_prompt}{' '.join(p.strip().split())}{task_postprompt}" for p in prompts]
     return prompts
+
+# Task prompts
+task_prompts_dict = {
+    "davinci-002": # GPT3 style - Can be abstracted to prompts for non-instruction tuned models
+        ["Write a novel: ",
+        # "Continue the story: ", # Didn't work as well as above prompt
+        "" # Blank string 
+        ],
+    "gpt-3.5-turbo-instruct": # GPT3 instruct style
+        ["Write a novel: ",
+         "" # Blank string
+         "Given some text from part of a novel, continue the narrative while keeping the style and context consistent:"
+         ],
+    "gpt-3.5-turbo-0125": # Lates ChatGPT model
+        [{
+            "task_prompt": "Write a novel: ",
+            "task_postprompt": "",
+            "task_preprompt": ""
+        },
+        {
+            "task_prompt": "", # Blank
+            "task_postprompt": "",
+            "task_preprompt": ""
+        },
+        {
+            "task_prompt": "Given some text from part of a novel, continue the narrative while keeping the style and context consistent:",
+            "task_postprompt": "",
+            "task_preprompt": ""
+        },
+        {
+            "task_prompt": "You will be shown part of a passage from a famous novel. Please try to generate the rest of the passage as accurately as possible. Do not generate any other text.\n\n",
+            "task_postprompt": "",
+            "task_preprompt": ""
+        },
+        {
+            "task_prompt": "You will be shown part of a passage from a novel. Please try to generate the rest of the passage as accurately as possible. Do not generate any other text.\n\n",
+            "task_postprompt": "",
+            "task_preprompt": ""
+        },
+        {
+            "task_prompt": """You will be shown a series of passages from famous literary works. After these examples, \
+you will receive a prefix from another passage and be asked to complete it based on the \
+text of a famous work. Provide only the continuation for the last given prefix without any \
+extra commentary, formatting, or additional text.""",
+            "task_postprompt": "",
+            "task_preprompt": ""
+        }],
+    "gpt4-o-mini": 5# Can be abstracted to prompts for non-instruction tuned models
+    }
