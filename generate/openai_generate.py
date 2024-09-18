@@ -18,7 +18,7 @@ def get_gpt_output(query, model='davinci-002', temperature=1.0, max_tokens=256, 
                     top_p=top_p,
                     n=n
                 )
-                return response['choices'][0]['text']
+                return [r['text'] for r in response['choices']]
             else:
                 messages = [{"role": "user", "content": query}]
                 response = openai.ChatCompletion.create(
@@ -29,7 +29,7 @@ def get_gpt_output(query, model='davinci-002', temperature=1.0, max_tokens=256, 
                     top_p=top_p,
                     n=n
                 )
-                return response['choices'][0]['message']['content']
+                return [choice['message']['content'] for choice in response['choices']]
         except Exception as e:
             attempts += 1
             print(f"Service unavailable, retrying in 10 seconds ({attempts}/5): {e}")
