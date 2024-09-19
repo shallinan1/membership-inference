@@ -18,7 +18,7 @@ import datasets
 from datasets.utils.logging import disable_progress_bar
 import re
 from IPython import embed
-import logging
+from typing import List
 
 datasets.logging.set_verbosity_error()
 disable_progress_bar() # Disable filter progress bar
@@ -49,10 +49,10 @@ def find_exact_match(detokenize: Callable, doc: Document, min_ngram: int, source
                     hypothesis.add_span(matched_span)
             second_pointer += 1
 
-            print("***************************************************************************************************")
-            print(hypothesis.format_span())
-            print(f'score: {hypothesis.get_score():.4f}  avg_span_length: {hypothesis.get_avg_span_len()}')
-            print("***************************************************************************************************")
+            # print("***************************************************************************************************")
+            # print(hypothesis.format_span())
+            # print(f'score: {hypothesis.get_score():.4f}  avg_span_length: {hypothesis.get_avg_span_len()}')
+            # print("***************************************************************************************************")
 
         else:
             if second_pointer - first_pointer > min_ngram:
@@ -67,39 +67,44 @@ def find_exact_match(detokenize: Callable, doc: Document, min_ngram: int, source
     return hypothesis.export_json()
 
 
-def dj_search(generation_texts, source_docs, output_file, min_ngram, subset=None, num_cpus=1):
-    data = [{"text": g} for g in generation_texts]
+def dj_search(generation_texts_list: List[List[str]],
+              source_docs, output_file: str, min_ngram: int, 
+              subset: int = None, 
+              num_cpus: int = 1):
+    data = [[{"text": g} for g in generation_texts] for generation_texts in generation_texts_list]
     data = data[:subset] if subset is not None else data
 
     tokenize_func = lambda x: nltk.tokenize.casual.casual_tokenize(x)
     detokenize = lambda x: md.detokenize(x)
 
-    outputs = []
+    all_outputs = []
 
     # if os.path.isfile(output_file):
     #     outputs = json.load(open(output_file, 'r'))
     #     data = data[len(outputs):]
     #     print(f'resume from previous output file with {len(outputs)} items')
 
-    for t_idx, t_doc in tqdm(enumerate(data), desc='target gens', total=len(data)):
-        tokenized_text = tokenize_func(unidecode(t_doc["text"]))
-        tgt_doc = Document(f'tgt_{t_idx}', tokenized_text)
-        if len(tgt_doc.tokens) <= min_ngram:
-            continue
+    for t_idx, all_gens in tqdm(enumerate(data), desc='target gens', total=len(data)):
+        outputs = []
+        for t_doc in all_gens:
+            tokenized_text = tokenize_func(unidecode(t_doc["text"]))
+            tgt_doc = Document(f'tgt_{t_idx}', tokenized_text)
+            if len(tgt_doc.tokens) <= min_ngram:
+                continue
 
-        output = find_exact_match(detokenize, tgt_doc, min_ngram, source_docs[t_idx], num_cpus)
-        t_doc.update(output)
-        outputs.append(t_doc)
+            output = find_exact_match(detokenize, tgt_doc, min_ngram, source_docs[t_idx], num_cpus)
+            t_doc.update(output)
+            outputs.append(t_doc)
 
-        avg_coverage = np.average([x['coverage'] for x in outputs])
-        std = np.std([x['coverage'] for x in outputs])
-        avg_len = np.average([x['avg_span_len'] for x in outputs])
-        print(f'average {min_ngram}-ngram coverage: {avg_coverage:.3f}, std: {std:.3f}, average length: {avg_len}')
+            avg_coverage = np.average([x['coverage'] for x in outputs])
+            std = np.std([x['coverage'] for x in outputs])
+            avg_len = np.average([x['avg_span_len'] for x in outputs])
+            print(f'average {min_ngram}-ngram coverage: {avg_coverage:.3f}, std: {std:.3f}, average length: {avg_len}')
 
+        all_outputs.append(outputs)
         with open(output_file, 'w') as f:
-            json.dump(outputs, f, indent=4)
+            json.dump(all_outputs, f, indent=4)
             f.flush()
-
 def main():
     parser = argparse.ArgumentParser()
     parser.add_argument('--task', type=str, default='bookMIA',
@@ -224,6 +229,61 @@ python3 -m dj_search.dj_search_exact_LLM \
     --task bookMIA \
     --output_dir /gscratch/xlab/hallisky/membership-inference/tasks/bookMIA/coverages/ \
     --gen_data /gscratch/xlab/hallisky/membership-inference/tasks/bookMIA/generations/davinci-002_maxTokens512_numSeq1_topP0.95_numSent1_promptIdx3_len100.jsonl \
+    --min_ngram 4 \
+    --source_docs swj0419/BookMIA;
+
+    
+python3 -m dj_search.dj_search_exact_LLM \
+    --task bookMIA \
+    --output_dir /gscratch/xlab/hallisky/membership-inference/tasks/bookMIA/coverages/ \
+    --gen_data /gscratch/xlab/hallisky/membership-inference/tasks/bookMIA/generations/gpt-3.5-turbo-0125_maxTokens512_numSeq10_topP0.95_numSent5_startSent1_promptIdx0_len100.jsonl \
+    --min_ngram 4;
+
+python3 -m dj_search.dj_search_exact_LLM \
+    --task bookMIA \
+    --output_dir /gscratch/xlab/hallisky/membership-inference/tasks/bookMIA/coverages/ \
+    --gen_data /gscratch/xlab/hallisky/membership-inference/tasks/bookMIA/generations/gpt-3.5-turbo-0125_maxTokens512_numSeq10_topP0.95_numSent5_startSent1_promptIdx3_len100.jsonl \
+    --min_ngram 4;
+
+python3 -m dj_search.dj_search_exact_LLM \
+    --task bookMIA \
+    --output_dir /gscratch/xlab/hallisky/membership-inference/tasks/bookMIA/coverages/ \
+    --gen_data /gscratch/xlab/hallisky/membership-inference/tasks/bookMIA/generations/gpt-3.5-turbo-0125_maxTokens512_numSeq10_topP0.95_numSent5_startSent1_promptIdx4_len100.jsonl \
+    --min_ngram 4;
+
+python3 -m dj_search.dj_search_exact_LLM \
+    --task bookMIA \
+    --output_dir /gscratch/xlab/hallisky/membership-inference/tasks/bookMIA/coverages/ \
+    --gen_data /gscratch/xlab/hallisky/membership-inference/tasks/bookMIA/generations/gpt-3.5-turbo-0125_maxTokens512_numSeq10_topP0.95_numSent5_startSent1_promptIdx5_len100.jsonl \
+    --min_ngram 4;
+
+
+
+python3 -m dj_search.dj_search_exact_LLM \
+    --task bookMIA \
+    --output_dir /gscratch/xlab/hallisky/membership-inference/tasks/bookMIA/coverages/ \
+    --gen_data /gscratch/xlab/hallisky/membership-inference/tasks/bookMIA/generations/gpt-3.5-turbo-0125_maxTokens512_numSeq10_topP0.95_numSent3_startSent1_promptIdx0_len100.jsonl \
+    --min_ngram 4 \
+    --source_docs swj0419/BookMIA;
+
+python3 -m dj_search.dj_search_exact_LLM \
+    --task bookMIA \
+    --output_dir /gscratch/xlab/hallisky/membership-inference/tasks/bookMIA/coverages/ \
+    --gen_data /gscratch/xlab/hallisky/membership-inference/tasks/bookMIA/generations/gpt-3.5-turbo-0125_maxTokens512_numSeq10_topP0.95_numSent3_startSent1_promptIdx3_len100.jsonl \
+    --min_ngram 4 \
+    --source_docs swj0419/BookMIA;
+
+python3 -m dj_search.dj_search_exact_LLM \
+    --task bookMIA \
+    --output_dir /gscratch/xlab/hallisky/membership-inference/tasks/bookMIA/coverages/ \
+    --gen_data /gscratch/xlab/hallisky/membership-inference/tasks/bookMIA/generations/gpt-3.5-turbo-0125_maxTokens512_numSeq10_topP0.95_numSent3_startSent1_promptIdx4_len100.jsonl \
+    --min_ngram 4 \
+    --source_docs swj0419/BookMIA;
+
+python3 -m dj_search.dj_search_exact_LLM \
+    --task bookMIA \
+    --output_dir /gscratch/xlab/hallisky/membership-inference/tasks/bookMIA/coverages/ \
+    --gen_data /gscratch/xlab/hallisky/membership-inference/tasks/bookMIA/generations/gpt-3.5-turbo-0125_maxTokens512_numSeq10_topP0.95_numSent3_startSent1_promptIdx5_len100.jsonl \
     --min_ngram 4 \
     --source_docs swj0419/BookMIA;
 """
