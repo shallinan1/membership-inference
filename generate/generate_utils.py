@@ -143,7 +143,7 @@ extra commentary, formatting, or additional text.\n\nComplete the prefix: """,
             "task_postprompt": "",
             "task_preprompt": ""
         }],
-    "gpt4-o-mini": # Can be abstracted to prompts for non-instruction tuned models
+    "gpt-4o-mini-2024-07-18": # Can be abstracted to prompts for non-instruction tuned models
         [{
             "task_prompt": "Write a novel: ",
             "task_postprompt": "",
