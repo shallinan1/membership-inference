@@ -75,7 +75,8 @@ class ModelGenerator:
         sample: bool = True,
         max_new_tokens: int = 256,
         max_length: int = 2048,
-        extra_stop_tokens: List[int] = None
+        extra_stop_tokens: List[int] = None,
+        n: int = 1
     ) -> Tuple[List[str], List[str]]:
         """
         Generates text based on a list of input prompts using a language model with specific sampling parameters.
@@ -89,6 +90,7 @@ class ModelGenerator:
             max_new_tokens (int, optional): The maximum number of new tokens to generate for each input prompt. Defaults to 256.
             max_length (int, optional): The maximum length (in tokens) of the input prompt plus the generated text. Defaults to 2048.
             extra_stop_tokens (List[int], optional): Additional token IDs that should stop the generation. Defaults to None.
+            n (int, optional): The number of sequences to return for each prompt.
 
         Returns:
             Tuple[List[str], List[str]]: A tuple containing a list of final prompts after filtering and a list of generated outputs corresponding to those prompts.
@@ -118,7 +120,8 @@ class ModelGenerator:
             temperature=temperature,
             top_p=top_p,
             max_tokens=max_new_tokens,
-            stop_token_ids=stop_token_ids
+            stop_token_ids=stop_token_ids,
+            n=n
         )
 
         # Generation
