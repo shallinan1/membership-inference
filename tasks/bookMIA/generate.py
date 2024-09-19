@@ -13,7 +13,7 @@ from IPython import embed
 from tqdm import tqdm
 import re
 from generate.vllm_generate import ModelGenerator 
-
+from generate.generate_utils import task_prompts_dict, make_prompts
 
 def extract_sentence_chunk(text, start_sentence, num_sentences):
     text_sentences = sent_tokenize(text)
@@ -29,17 +29,11 @@ def extract_sentence_chunk(text, start_sentence, num_sentences):
 
     return prompt_text
 
-
-
 # Function to define the main process
 def main(args):
-    # Task prompts
-    task_prompts = [
-        "Given the following sentence from a novel, continue the narrative while keeping the style and context consistent: ",
-        "Write a novel: ",
-        # "Continue the story: ",
-        ""
-    ]
+    if args.model not in task_prompts_dict:
+        print("Valid model not passed in. Try again")
+    cur_task_prompts = task_prompts_dict[args.model][args.task_prompt_idx]
 
     # Load dataset
     ds = load_dataset("swj0419/BookMIA")
@@ -92,34 +86,47 @@ def main(args):
             cache_dir=args.cache_dir
         )
 
-    # Generate text and save to DataFrame
-    task_prompt = task_prompts[args.task_prompt_idx]
-
-    if args.open_ai:
+    if args.openai:
+        first_gen = True
         for index, row in tqdm(final_subset.iterrows(), total=len(final_subset), desc="Generating"):
-
             prompt_text = extract_sentence_chunk(row.snippet, args.start_sentence, args.num_sentences)
             if prompt_text is None:
                 continue
-  
-            prompt = task_prompt + prompt_text
-            generation = get_gpt_output(prompt, model=args.model, max_tokens=args.max_tokens, n=args.num_sequences, top_p=args.top_p)
+                
+            prompt = make_prompts(
+                prompt_text, 
+                cur_task_prompts["task_prompt"], 
+                cur_task_prompts["task_preprompt"],
+                cur_task_prompts["task_postprompt"]
+                )[0]
+
+            if first_gen:
+                print(prompt)
+                first_gen=False
+
+            generations = get_gpt_output(prompt, model=args.model, max_tokens=args.max_tokens, n=args.num_sequences, top_p=args.top_p)
 
             # Save the generation in the DataFrame
-            final_subset.at[index, "generation"] = generation
+            final_subset.at[index, "generation"] = generations
     else:
         passages = final_subset.row.tolist()
         prompt_texts = [extract_sentence_chunk(text, args.start_sentence, args.num_sentences) for text in passages]
         
-        # TODO prompt loading logic here
-
+        prompts = make_prompts(
+            prompt_texts, 
+            cur_task_prompts["task_prompt"], 
+            cur_task_prompts["task_preprompt"],
+            cur_task_prompts["task_postprompt"]
+            )
+        
         # Generate texts
         final_prompts, generated_texts = generator.generate_vllm(
             prompts=prompts,
             temperature=args.temperature,
             top_p=args.top_p,
             max_new_tokens=args.max_new_tokens,
-            max_length=args.max_length
+            max_length=args.max_length,
+
         )
 
     # Save DataFrame to CSV with detailed info in the filename
@@ -146,3 +153,41 @@ if __name__ == "__main__":
     # Parse arguments and call main function
     args = parse_args()
     main(args)
+
+
+"""
+python3 -m tasks.bookMIA.generate \
+    --openai \
+    --model davinci-002 \
+    --start_sentence 1 \
+    --num_sentences 3 \
+    --num_sequences 10
+
+python3 -m tasks.bookMIA.generate \
+    --openai \
+    --model gpt-3.5-turbo-0125 \
+    --start_sentence 1 \
+    --num_sentences 3 \
+    --num_sequences 10 \
+    --max_tokens 512 \
+    --task_prompt_idx 5
+
+python3 -m tasks.bookMIA.generate \
+    --openai \
+    --model gpt-3.5-turbo-0125 \
+    --start_sentence 1 \
+    --num_sentences 5 \
+    --num_sequences 10 \
+    --max_tokens 512 \
+    --task_prompt_idx 0
+
+python3 -m tasks.bookMIA.generate \
+    --openai \
+    --model gpt-4o-mini-2024-07-18 \
+    --start_sentence 1 \
+    --num_sentences 5 \
+    --num_sequences 10 \
+    --max_tokens 512 \
+    --task_prompt_idx 0
+
+"""
