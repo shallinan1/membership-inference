@@ -3,6 +3,10 @@ __pycache__/
 *.py[cod]
 *$py.class
 
+*.png
+*.jsonl
+*.json
+
 user_secrets.py
 
 # C extensions
