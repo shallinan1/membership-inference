@@ -12,6 +12,8 @@ import os
 import itertools
 from tqdm import tqdm
 from multiprocessing import Pool, cpu_count
+from sklearn.metrics import roc_curve, auc, accuracy_score
+from IPython import embed
 
 LOW_CI_BOUND=3
 HIGH_CI_BOUND=12
@@ -77,7 +79,6 @@ def process_combination(params):
     if not os.path.exists(gen_path):
         return
 
-    all_doc = False
     doc_string = "alldoc" if all_doc else "onedoc"
 
     coverage_path = gen_path.replace(".jsonl", f"_{min_ngram}_{doc_string}.jsonl").replace("generations", "coverages")
@@ -134,7 +135,7 @@ def process_combination(params):
 
     folder_path = "/gscratch/xlab/hallisky/membership-inference/tasks/bookMIA/plots"
     if not os.path.exists(os.path.join(folder_path, model_name)):
-        os.makedirs(os.path.join(folder_path, model_name))
+        os.makedirs(os.path.join(folder_path, model_name), exist_ok=True)
     plt.savefig(os.path.join(folder_path, model_name, f"promptIdx{prompt_idx}_minNgram{min_ngram}_{doc_string}_{aggregate}_numSent{num_sent}_CI{LOW_CI_BOUND}-{HIGH_CI_BOUND}.png"), dpi=200, bbox_inches="tight")
 
     # Plotting for Coverages
@@ -164,11 +165,55 @@ def process_combination(params):
     plt.ylim(top=max(mean_0 + 2*std0, mean_1 + 2*std1), bottom=0)
     plt.grid(alpha=0.2, axis='y')
     plt.tight_layout()
-
-    folder_path = "/gscratch/xlab/hallisky/membership-inference/tasks/bookMIA/plots"
-    if not os.path.exists(os.path.join(folder_path, model_name)):
-        os.makedirs(os.path.join(folder_path, model_name))
     plt.savefig(os.path.join(folder_path, model_name, f"promptIdx{prompt_idx}_minNgram{min_ngram}_{doc_string}_{aggregate}_numSent{num_sent}_cov.png"), dpi=200, bbox_inches="tight")
+
+    # ROC AUC curves for cov
+    fpr, tpr, thresholds = roc_curve(gen_labels, covs)
+    roc_auc = auc(fpr, tpr)
+    # Calculate accuracy for each threshold
+    accuracy_scores = []
+    for threshold in thresholds:
+        y_pred = np.where(covs >= threshold, 1, 0)
+        accuracy_scores.append(accuracy_score(gen_labels, y_pred))
+    plt.figure()
+    plt.plot(fpr, tpr, color='blue', lw=2, label=f'ROC curve (area = {roc_auc:0.2f})')
+    plt.plot([0, 1], [0, 1], color='red', lw=2, linestyle='--')  # Diagonal line for random guess
+    plt.xlim([0.0, 1.0])
+    plt.ylim([0.0, 1.05])
+    plt.xlabel('False Positive Rate')
+    plt.ylabel('True Positive Rate')
+    plt.title(f'Cov ROC Curve for BookMIA, {model_name}, min_ngram {min_ngram}, {doc_string}, prompt {prompt_idx}, agg {aggregate}')
+    plt.grid(alpha=0.15)
+    plt.legend(loc="lower right")
+    # Add maximum accuracy as text on the plot
+    plt.text(0.6, 0.2, f'Max Accuracy: {max(accuracy_scores):.2f}', fontsize=12, color='black')
+    plt.tight_layout()
+    plt.savefig(os.path.join(folder_path, model_name, f"promptIdx{prompt_idx}_minNgram{min_ngram}_{doc_string}_{aggregate}_numSent{num_sent}_cov_rocauc.png"), dpi=200, bbox_inches="tight")
+
+    # ROC AUC curves for CI
+    gen_labels = [1-g for g in gen_labels]
+    fpr, tpr, thresholds = roc_curve(gen_labels, cis)
+    roc_auc = auc(fpr, tpr)
+
+    # Calculate accuracy for each threshold
+    accuracy_scores = []
+    for threshold in thresholds:
+        y_pred = np.where(cis >= threshold, 1, 0)
+        accuracy_scores.append(accuracy_score(gen_labels, y_pred))
+
+    # Plotting the ROC curve
+    plt.figure()
+    plt.plot(fpr, tpr, color='blue', lw=2, label=f'ROC curve (area = {roc_auc:0.2f})')
+    plt.plot([0, 1], [0, 1], color='red', lw=2, linestyle='--')  # Diagonal line for random guess
+    plt.xlim([0.0, 1.0])
+    plt.ylim([0.0, 1.05])
+    plt.xlabel('False Positive Rate')
+    plt.ylabel('True Positive Rate')
+    plt.title(f'CI ROC Curve for BookMIA, {model_name}, min_ngram {min_ngram}, {doc_string}, prompt {prompt_idx}, agg {aggregate}')
+    plt.grid(alpha=0.15)
+    plt.legend(loc="lower right")
+    plt.tight_layout()
+    plt.savefig(os.path.join(folder_path, model_name, f"promptIdx{prompt_idx}_minNgram{min_ngram}_{doc_string}_{aggregate}_numSent{num_sent}_CI{LOW_CI_BOUND}-{HIGH_CI_BOUND}_rocauc.png"), dpi=200, bbox_inches="tight")
 
 if __name__ == "__main__":
     min_ngram=4
@@ -183,3 +228,6 @@ if __name__ == "__main__":
     num_workers = min(cpu_count(), len(combinations))  # Limit to available CPU cores or number of tasks
     with Pool(num_workers) as pool:
         results = list(tqdm(pool.imap(process_combination, combinations), total=len(combinations), desc="Processing in parallel"))
+
+    # for combo in combinations:
+    #     process_combination(combo)
