@@ -185,8 +185,6 @@ def process_combination(params):
     plt.title(f'Cov ROC Curve for BookMIA, {model_name}, min_ngram {min_ngram}, {doc_string}, prompt {prompt_idx}, agg {aggregate}')
     plt.grid(alpha=0.15)
     plt.legend(loc="lower right")
-    # Add maximum accuracy as text on the plot
-    plt.text(0.6, 0.2, f'Max Accuracy: {max(accuracy_scores):.2f}', fontsize=12, color='black')
     plt.tight_layout()
     plt.savefig(os.path.join(folder_path, model_name, f"promptIdx{prompt_idx}_minNgram{min_ngram}_{doc_string}_{aggregate}_numSent{num_sent}_cov_rocauc.png"), dpi=200, bbox_inches="tight")
 
