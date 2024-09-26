@@ -99,7 +99,7 @@ def dj_search(generation_texts_list: List[List[str]],
             avg_coverage = np.average([x['coverage'] for x in outputs])
             std = np.std([x['coverage'] for x in outputs])
             avg_len = np.average([x['avg_span_len'] for x in outputs])
-            print(f'average {min_ngram}-ngram coverage: {avg_coverage:.3f}, std: {std:.3f}, average length: {avg_len}')
+            # print(f'average {min_ngram}-ngram coverage: {avg_coverage:.3f}, std: {std:.3f}, average length: {avg_len}')
 
         all_outputs.append(outputs)
         with open(output_file, 'w') as f:
@@ -178,136 +178,97 @@ if __name__ == '__main__':
 python3 -m dj_search.dj_search_exact_LLM \
     --task bookMIA \
     --output_dir /gscratch/xlab/hallisky/membership-inference/tasks/bookMIA/coverages/ \
-    --gen_data /gscratch/xlab/hallisky/membership-inference/tasks/bookMIA/generations/davinci-002_maxTokens512_numSeq1_topP0.95_numSent1_promptIdx2_len100.jsonl \
+    --gen_data /gscratch/xlab/hallisky/membership-inference/tasks/bookMIA/generations/gpt-3.5-turbo-0125_maxTokens512_numSeq10_topP0.95_numSent3_startSent1_promptIdx5_len788.jsonl \
     --min_ngram 5;
 
 python3 -m dj_search.dj_search_exact_LLM \
     --task bookMIA \
     --output_dir /gscratch/xlab/hallisky/membership-inference/tasks/bookMIA/coverages/ \
-    --gen_data /gscratch/xlab/hallisky/membership-inference/tasks/bookMIA/generations/davinci-002_maxTokens512_numSeq1_topP0.95_numSent1_promptIdx1_len100.jsonl \
+    --gen_data /gscratch/xlab/hallisky/membership-inference/tasks/bookMIA/generations/gpt-3.5-turbo-0125_maxTokens512_numSeq10_topP0.95_numSent5_startSent1_promptIdx5_len788.jsonl \
     --min_ngram 5;
 
 python3 -m dj_search.dj_search_exact_LLM \
     --task bookMIA \
     --output_dir /gscratch/xlab/hallisky/membership-inference/tasks/bookMIA/coverages/ \
-    --gen_data /gscratch/xlab/hallisky/membership-inference/tasks/bookMIA/generations/davinci-002_maxTokens512_numSeq1_topP0.95_numSent1_promptIdx0_len100.jsonl \
+    --gen_data /gscratch/xlab/hallisky/membership-inference/tasks/bookMIA/generations/gpt-3.5-turbo-0125_maxTokens512_numSeq10_topP0.95_numSent3_startSent1_promptIdx0_len788.jsonl \
     --min_ngram 5;
 
 python3 -m dj_search.dj_search_exact_LLM \
     --task bookMIA \
     --output_dir /gscratch/xlab/hallisky/membership-inference/tasks/bookMIA/coverages/ \
-    --gen_data /gscratch/xlab/hallisky/membership-inference/tasks/bookMIA/generations/davinci-002_maxTokens512_numSeq1_topP0.95_numSent1_promptIdx3_len100.jsonl \
+    --gen_data /gscratch/xlab/hallisky/membership-inference/tasks/bookMIA/generations/gpt-3.5-turbo-0125_maxTokens512_numSeq10_topP0.95_numSent5_startSent1_promptIdx0_len788.jsonl \
     --min_ngram 5;
-
-    
-
-
-
-
-python3 -m dj_search.dj_search_exact_LLM \
-    --task bookMIA \
-    --output_dir /gscratch/xlab/hallisky/membership-inference/tasks/bookMIA/coverages/ \
-    --gen_data /gscratch/xlab/hallisky/membership-inference/tasks/bookMIA/generations/davinci-002_maxTokens512_numSeq1_topP0.95_numSent1_promptIdx2_len100.jsonl \
-    --min_ngram 4 \
-    --source_docs swj0419/BookMIA;
-
-python3 -m dj_search.dj_search_exact_LLM \
-    --task bookMIA \
-    --output_dir /gscratch/xlab/hallisky/membership-inference/tasks/bookMIA/coverages/ \
-    --gen_data /gscratch/xlab/hallisky/membership-inference/tasks/bookMIA/generations/davinci-002_maxTokens512_numSeq1_topP0.95_numSent1_promptIdx1_len100.jsonl \
-    --min_ngram 4 \
-    --source_docs swj0419/BookMIA;
-
-python3 -m dj_search.dj_search_exact_LLM \
-    --task bookMIA \
-    --output_dir /gscratch/xlab/hallisky/membership-inference/tasks/bookMIA/coverages/ \
-    --gen_data /gscratch/xlab/hallisky/membership-inference/tasks/bookMIA/generations/davinci-002_maxTokens512_numSeq1_topP0.95_numSent1_promptIdx0_len100.jsonl \
-    --min_ngram 4 \
-    --source_docs swj0419/BookMIA;
-
-python3 -m dj_search.dj_search_exact_LLM \
-    --task bookMIA \
-    --output_dir /gscratch/xlab/hallisky/membership-inference/tasks/bookMIA/coverages/ \
-    --gen_data /gscratch/xlab/hallisky/membership-inference/tasks/bookMIA/generations/davinci-002_maxTokens512_numSeq1_topP0.95_numSent1_promptIdx3_len100.jsonl \
-    --min_ngram 4 \
-    --source_docs swj0419/BookMIA;
-
     
 python3 -m dj_search.dj_search_exact_LLM \
     --task bookMIA \
     --output_dir /gscratch/xlab/hallisky/membership-inference/tasks/bookMIA/coverages/ \
-    --gen_data /gscratch/xlab/hallisky/membership-inference/tasks/bookMIA/generations/gpt-3.5-turbo-0125_maxTokens512_numSeq10_topP0.95_numSent5_startSent1_promptIdx0_len100.jsonl \
+    --gen_data /gscratch/xlab/hallisky/membership-inference/tasks/bookMIA/generations/gpt-3.5-turbo-0125_maxTokens512_numSeq10_topP0.95_numSent3_startSent1_promptIdx4_len788.jsonl \
+    --min_ngram 5;
+
+python3 -m dj_search.dj_search_exact_LLM \
+    --task bookMIA \
+    --output_dir /gscratch/xlab/hallisky/membership-inference/tasks/bookMIA/coverages/ \
+    --gen_data /gscratch/xlab/hallisky/membership-inference/tasks/bookMIA/generations/gpt-3.5-turbo-0125_maxTokens512_numSeq10_topP0.95_numSent5_startSent1_promptIdx4_len788.jsonl \
+    --min_ngram 5;
+
+python3 -m dj_search.dj_search_exact_LLM \
+    --task bookMIA \
+    --output_dir /gscratch/xlab/hallisky/membership-inference/tasks/bookMIA/coverages/ \
+    --gen_data /gscratch/xlab/hallisky/membership-inference/tasks/bookMIA/generations/gpt-3.5-turbo-0125_maxTokens512_numSeq10_topP0.95_numSent3_startSent1_promptIdx5_len788.jsonl \
     --min_ngram 4;
 
 python3 -m dj_search.dj_search_exact_LLM \
     --task bookMIA \
     --output_dir /gscratch/xlab/hallisky/membership-inference/tasks/bookMIA/coverages/ \
-    --gen_data /gscratch/xlab/hallisky/membership-inference/tasks/bookMIA/generations/gpt-3.5-turbo-0125_maxTokens512_numSeq10_topP0.95_numSent5_startSent1_promptIdx3_len100.jsonl \
+    --gen_data /gscratch/xlab/hallisky/membership-inference/tasks/bookMIA/generations/gpt-3.5-turbo-0125_maxTokens512_numSeq10_topP0.95_numSent5_startSent1_promptIdx5_len788.jsonl \
     --min_ngram 4;
 
 python3 -m dj_search.dj_search_exact_LLM \
     --task bookMIA \
     --output_dir /gscratch/xlab/hallisky/membership-inference/tasks/bookMIA/coverages/ \
-    --gen_data /gscratch/xlab/hallisky/membership-inference/tasks/bookMIA/generations/gpt-3.5-turbo-0125_maxTokens512_numSeq10_topP0.95_numSent5_startSent1_promptIdx4_len100.jsonl \
+    --gen_data /gscratch/xlab/hallisky/membership-inference/tasks/bookMIA/generations/gpt-3.5-turbo-0125_maxTokens512_numSeq10_topP0.95_numSent3_startSent1_promptIdx0_len788.jsonl \
     --min_ngram 4;
 
 python3 -m dj_search.dj_search_exact_LLM \
     --task bookMIA \
     --output_dir /gscratch/xlab/hallisky/membership-inference/tasks/bookMIA/coverages/ \
-    --gen_data /gscratch/xlab/hallisky/membership-inference/tasks/bookMIA/generations/gpt-3.5-turbo-0125_maxTokens512_numSeq10_topP0.95_numSent5_startSent1_promptIdx5_len100.jsonl \
-    --min_ngram 4;
-
-
-
-python3 -m dj_search.dj_search_exact_LLM \
-    --task bookMIA \
-    --output_dir /gscratch/xlab/hallisky/membership-inference/tasks/bookMIA/coverages/ \
-    --gen_data /gscratch/xlab/hallisky/membership-inference/tasks/bookMIA/generations/gpt-4o-mini-2024-07-18_maxTokens512_numSeq10_topP0.95_numSent3_startSent1_promptIdx0_len100.jsonl \
+    --gen_data /gscratch/xlab/hallisky/membership-inference/tasks/bookMIA/generations/gpt-3.5-turbo-0125_maxTokens512_numSeq10_topP0.95_numSent5_startSent1_promptIdx0_len788.jsonl \
     --min_ngram 4;
 
 python3 -m dj_search.dj_search_exact_LLM \
     --task bookMIA \
     --output_dir /gscratch/xlab/hallisky/membership-inference/tasks/bookMIA/coverages/ \
-    --gen_data /gscratch/xlab/hallisky/membership-inference/tasks/bookMIA/generations/gpt-4o-mini-2024-07-18_maxTokens512_numSeq10_topP0.95_numSent3_startSent1_promptIdx3_len100.jsonl \
+    --gen_data /gscratch/xlab/hallisky/membership-inference/tasks/bookMIA/generations/gpt-4o-mini-2024-07-18_maxTokens512_numSeq10_topP0.95_numSent3_startSent1_promptIdx5_len788.jsonl \
+    --min_ngram 4;
+    
+python3 -m dj_search.dj_search_exact_LLM \
+    --task bookMIA \
+    --output_dir /gscratch/xlab/hallisky/membership-inference/tasks/bookMIA/coverages/ \
+    --gen_data /gscratch/xlab/hallisky/membership-inference/tasks/bookMIA/generations/gpt-4o-mini-2024-07-18_maxTokens512_numSeq10_topP0.95_numSent5_startSent1_promptIdx5_len788.jsonl \
     --min_ngram 4;
 
 python3 -m dj_search.dj_search_exact_LLM \
     --task bookMIA \
     --output_dir /gscratch/xlab/hallisky/membership-inference/tasks/bookMIA/coverages/ \
-    --gen_data /gscratch/xlab/hallisky/membership-inference/tasks/bookMIA/generations/gpt-4o-mini-2024-07-18_maxTokens512_numSeq10_topP0.95_numSent3_startSent1_promptIdx4_len100.jsonl \
+    --gen_data /gscratch/xlab/hallisky/membership-inference/tasks/bookMIA/generations/gpt-4o-mini-2024-07-18_maxTokens512_numSeq10_topP0.95_numSent3_startSent1_promptIdx0_len788.jsonl \
     --min_ngram 4;
 
 python3 -m dj_search.dj_search_exact_LLM \
     --task bookMIA \
     --output_dir /gscratch/xlab/hallisky/membership-inference/tasks/bookMIA/coverages/ \
-    --gen_data /gscratch/xlab/hallisky/membership-inference/tasks/bookMIA/generations/gpt-4o-mini-2024-07-18_maxTokens512_numSeq10_topP0.95_numSent3_startSent1_promptIdx5_len100.jsonl \
+    --gen_data /gscratch/xlab/hallisky/membership-inference/tasks/bookMIA/generations/gpt-4o-mini-2024-07-18_maxTokens512_numSeq10_topP0.95_numSent5_startSent1_promptIdx0_len788.jsonl \
     --min_ngram 4;
 
 python3 -m dj_search.dj_search_exact_LLM \
     --task bookMIA \
     --output_dir /gscratch/xlab/hallisky/membership-inference/tasks/bookMIA/coverages/ \
-    --gen_data /gscratch/xlab/hallisky/membership-inference/tasks/bookMIA/generations/gpt-4o-mini-2024-07-18_maxTokens512_numSeq10_topP0.95_numSent3_startSent1_promptIdx0_len100.jsonl \
-    --min_ngram 4 \
-    --source_docs swj0419/BookMIA;
+    --gen_data /gscratch/xlab/hallisky/membership-inference/tasks/bookMIA/generations/gpt-4o-mini-2024-07-18_maxTokens512_numSeq10_topP0.95_numSent3_startSent1_promptIdx4_len788.jsonl \
+    --min_ngram 4;
 
 python3 -m dj_search.dj_search_exact_LLM \
     --task bookMIA \
     --output_dir /gscratch/xlab/hallisky/membership-inference/tasks/bookMIA/coverages/ \
-    --gen_data /gscratch/xlab/hallisky/membership-inference/tasks/bookMIA/generations/gpt-4o-mini-2024-07-18_maxTokens512_numSeq10_topP0.95_numSent3_startSent1_promptIdx3_len100.jsonl \
-    --min_ngram 4 \
-    --source_docs swj0419/BookMIA;
+    --gen_data /gscratch/xlab/hallisky/membership-inference/tasks/bookMIA/generations/gpt-4o-mini-2024-07-18_maxTokens512_numSeq10_topP0.95_numSent5_startSent1_promptIdx4_len788.jsonl \
+    --min_ngram 4;
 
-python3 -m dj_search.dj_search_exact_LLM \
-    --task bookMIA \
-    --output_dir /gscratch/xlab/hallisky/membership-inference/tasks/bookMIA/coverages/ \
-    --gen_data /gscratch/xlab/hallisky/membership-inference/tasks/bookMIA/generations/gpt-4o-mini-2024-07-18_maxTokens512_numSeq10_topP0.95_numSent3_startSent1_promptIdx4_len100.jsonl \
-    --min_ngram 4 \
-    --source_docs swj0419/BookMIA;
-
-python3 -m dj_search.dj_search_exact_LLM \
-    --task bookMIA \
-    --output_dir /gscratch/xlab/hallisky/membership-inference/tasks/bookMIA/coverages/ \
-    --gen_data /gscratch/xlab/hallisky/membership-inference/tasks/bookMIA/generations/gpt-4o-mini-2024-07-18_maxTokens512_numSeq10_topP0.95_numSent3_startSent1_promptIdx5_len100.jsonl \
-    --min_ngram 4 \
-    --source_docs swj0419/BookMIA;
 """
