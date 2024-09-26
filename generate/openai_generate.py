@@ -21,6 +21,7 @@ def get_gpt_output(query, model='davinci-002', temperature=1.0, max_tokens=256, 
                 return [r['text'] for r in response['choices']]
             else:
                 messages = [{"role": "user", "content": query}]
+
                 response = openai.ChatCompletion.create(
                     model=model,
                     messages=messages,
