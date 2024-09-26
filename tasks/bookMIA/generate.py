@@ -14,6 +14,8 @@ from tqdm import tqdm
 import re
 from generate.vllm_generate import ModelGenerator 
 from generate.generate_utils import task_prompts_dict, make_prompts
+import numpy as np
+import random
 
 def extract_sentence_chunk(text, start_sentence, num_sentences):
     text_sentences = sent_tokenize(text)
@@ -31,6 +33,8 @@ def extract_sentence_chunk(text, start_sentence, num_sentences):
 
 # Function to define the main process
 def main(args):
+    random.seed(0)
+
     if args.model not in task_prompts_dict:
         print("Valid model not passed in. Try again")
     cur_task_prompts = task_prompts_dict[args.model][args.task_prompt_idx]
@@ -54,20 +58,28 @@ def main(args):
 
     # Filter data based on snippet counts
     snippet_value_counts = df.snippet_id.value_counts()
-    valid_snippet_ids = snippet_value_counts[snippet_value_counts == 100].index
+    valid_snippet_ids = snippet_value_counts[snippet_value_counts >= 20].index
     filtered_df = df[df.snippet_id.isin(valid_snippet_ids)]
 
-    # Ensure we have both labels for the same snippet_id
-    final_subset = pd.DataFrame()  # Initialize empty DataFrame to hold the final subset
-    for snippet_id in valid_snippet_ids[:10]:
-        snippet_data = filtered_df[filtered_df.snippet_id == snippet_id]
-        label_0_data = snippet_data[snippet_data.label == 0].head(5)
-        label_1_data = snippet_data[snippet_data.label == 1].head(5)
-        if not label_0_data.empty and not label_1_data.empty:
-            # Combine the data if both labels are available
-            combined_data = pd.concat([label_0_data, label_1_data])
-            final_subset = pd.concat([final_subset, combined_data])
-    
+    subsets = []
+    # Extract k=20 snippets with the same "book_id" for 20 different "book_ids" (total 400).
+    # Half of book_ids should have label 0, the other half should have label 1
+    for label in [0,1]:
+        valid_ids = list(np.unique(filtered_df[filtered_df.label == label].book_id.tolist()))
+        cur_ids = random.sample(valid_ids, 20)
+
+        print(cur_ids)
+        # Filter the dataframe to include only selected book_ids for this label
+        selected_books_df = filtered_df[filtered_df.book_id.isin(cur_ids)]
+
+        # Take the same snippets
+        snippets_ids = list(np.arange(0, 99, 5))
+
+        subset_df = selected_books_df[selected_books_df.snippet_id.isin(snippets_ids)]
+        subsets.append(subset_df)
+
+    final_subset = pd.concat(subsets)
+
     print(f"Length: {len(final_subset)}")
     # Prepare to save generations
     save_folder = "tasks/bookMIA/generations"
@@ -158,19 +170,21 @@ if __name__ == "__main__":
 """
 python3 -m tasks.bookMIA.generate \
     --openai \
-    --model davinci-002 \
+    --model gpt-4o-mini-2024-07-18 \
     --start_sentence 1 \
-    --num_sentences 3 \
-    --num_sequences 10
+    --num_sentences 5 \
+    --num_sequences 10 \
+    --max_tokens 512 \
+    --task_prompt_idx 5;
 
 python3 -m tasks.bookMIA.generate \
     --openai \
-    --model gpt-3.5-turbo-0125 \
+    --model gpt-4o-mini-2024-07-18 \
     --start_sentence 1 \
     --num_sentences 3 \
     --num_sequences 10 \
     --max_tokens 512 \
-    --task_prompt_idx 5
+    --task_prompt_idx 5;
 
 python3 -m tasks.bookMIA.generate \
     --openai \
@@ -179,7 +193,90 @@ python3 -m tasks.bookMIA.generate \
     --num_sentences 5 \
     --num_sequences 10 \
     --max_tokens 512 \
-    --task_prompt_idx 0
+    --task_prompt_idx 5;
+
+python3 -m tasks.bookMIA.generate \
+    --openai \
+    --model gpt-3.5-turbo-0125 \
+    --start_sentence 1 \
+    --num_sentences 3 \
+    --num_sequences 10 \
+    --max_tokens 512 \
+    --task_prompt_idx 5;
+    
+python3 -m tasks.bookMIA.generate \
+    --openai \
+    --model gpt-4o-2024-05-13 \
+    --start_sentence 1 \
+    --num_sentences 5 \
+    --num_sequences 10 \
+    --max_tokens 512 \
+    --task_prompt_idx 5;
+
+python3 -m tasks.bookMIA.generate \
+    --openai \
+    --model gpt-4o-2024-05-13 \
+    --start_sentence 1 \
+    --num_sentences 3 \
+    --num_sequences 10 \
+    --max_tokens 512 \
+    --task_prompt_idx 5;
+
+    
+python3 -m tasks.bookMIA.generate \
+    --openai \
+    --model gpt-4o-mini-2024-07-18 \
+    --start_sentence 1 \
+    --num_sentences 5 \
+    --num_sequences 10 \
+    --max_tokens 512 \
+    --task_prompt_idx 0;
+
+python3 -m tasks.bookMIA.generate \
+    --openai \
+    --model gpt-4o-mini-2024-07-18 \
+    --start_sentence 1 \
+    --num_sentences 3 \
+    --num_sequences 10 \
+    --max_tokens 512 \
+    --task_prompt_idx 0;
+
+python3 -m tasks.bookMIA.generate \
+    --openai \
+    --model gpt-3.5-turbo-0125 \
+    --start_sentence 1 \
+    --num_sentences 5 \
+    --num_sequences 10 \
+    --max_tokens 512 \
+    --task_prompt_idx 0;
+
+python3 -m tasks.bookMIA.generate \
+    --openai \
+    --model gpt-3.5-turbo-0125 \
+    --start_sentence 1 \
+    --num_sentences 3 \
+    --num_sequences 10 \
+    --max_tokens 512 \
+    --task_prompt_idx 0;
+    
+python3 -m tasks.bookMIA.generate \
+    --openai \
+    --model gpt-4o-2024-05-13 \
+    --start_sentence 1 \
+    --num_sentences 5 \
+    --num_sequences 10 \
+    --max_tokens 512 \
+    --task_prompt_idx 0;
+
+python3 -m tasks.bookMIA.generate \
+    --openai \
+    --model gpt-4o-2024-05-13 \
+    --start_sentence 1 \
+    --num_sentences 3 \
+    --num_sequences 10 \
+    --max_tokens 512 \
+    --task_prompt_idx 0;
+
 
 python3 -m tasks.bookMIA.generate \
     --openai \
@@ -188,6 +285,50 @@ python3 -m tasks.bookMIA.generate \
     --num_sentences 5 \
     --num_sequences 10 \
     --max_tokens 512 \
-    --task_prompt_idx 0
+    --task_prompt_idx 4;
 
+python3 -m tasks.bookMIA.generate \
+    --openai \
+    --model gpt-4o-mini-2024-07-18 \
+    --start_sentence 1 \
+    --num_sentences 3 \
+    --num_sequences 10 \
+    --max_tokens 512 \
+    --task_prompt_idx 4;
+
+python3 -m tasks.bookMIA.generate \
+    --openai \
+    --model gpt-3.5-turbo-0125 \
+    --start_sentence 1 \
+    --num_sentences 5 \
+    --num_sequences 10 \
+    --max_tokens 512 \
+    --task_prompt_idx 4;
+
+python3 -m tasks.bookMIA.generate \
+    --openai \
+    --model gpt-3.5-turbo-0125 \
+    --start_sentence 1 \
+    --num_sentences 3 \
+    --num_sequences 10 \
+    --max_tokens 512 \
+    --task_prompt_idx 4;
+    
+python3 -m tasks.bookMIA.generate \
+    --openai \
+    --model gpt-4o-2024-05-13 \
+    --start_sentence 1 \
+    --num_sentences 5 \
+    --num_sequences 10 \
+    --max_tokens 512 \
+    --task_prompt_idx 4;
+
+python3 -m tasks.bookMIA.generate \
+    --openai \
+    --model gpt-4o-2024-05-13 \
+    --start_sentence 1 \
+    --num_sentences 3 \
+    --num_sequences 10 \
+    --max_tokens 512 \
+    --task_prompt_idx 4;    
 """
