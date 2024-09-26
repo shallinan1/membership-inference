@@ -173,7 +173,7 @@ extra commentary, formatting, or additional text.\n\nComplete the prefix: """,
             "task_prompt": """You will be shown a series of passages from famous literary works. After these examples, \
 you will receive a prefix from another passage and be asked to complete it based on the \
 text of a famous work. Provide only the continuation for the last given prefix without any \
-extra commentary, formatting, or additional text.""",
+extra commentary, formatting, or additional text.\n\nComplete the prefix: """,
             "task_postprompt": "",
             "task_preprompt": ""
         }],
@@ -207,7 +207,7 @@ extra commentary, formatting, or additional text.""",
             "task_prompt": """You will be shown a series of passages from famous literary works. After these examples, \
 you will receive a prefix from another passage and be asked to complete it based on the \
 text of a famous work. Provide only the continuation for the last given prefix without any \
-extra commentary, formatting, or additional text.""",
+extra commentary, formatting, or additional text.\n\nComplete the prefix: """,
             "task_postprompt": "",
             "task_preprompt": ""
         }],
