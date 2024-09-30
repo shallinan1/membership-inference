@@ -87,6 +87,8 @@ def main(args):
 
     # Add a column to save generations
     final_subset["generation"] = ""
+    final_subset["model"] = ""
+    final_subset["logprobs"] = ""
 
     if not args.openai:
         # Initialize ModelGenerator
@@ -116,10 +118,32 @@ def main(args):
                 print(prompt)
                 first_gen=False
 
-            generations = get_gpt_output(prompt, model=args.model, max_tokens=args.max_tokens, n=args.num_sequences, top_p=args.top_p)
+            full_generations = get_gpt_output(prompt, 
+                                              model=args.model, 
+                                              max_tokens=args.max_tokens, 
+                                              n=args.num_sequences, 
+                                              top_p=args.top_p)
+            
+            if args.model == 'gpt-3.5-turbo-instruct' or any([args.model.startswith(x) for x in ['babbage', 'davinci']]):
+                generations = [r['text'] for r in full_generations['choices']]
+
+                # Store model too
+                models = [full_generations["model"]] * len(generations)
+                
+                # Can also store the logprobs
+                logprobs =  [r['logprobs'] for r in full_generations['choices']]
+            else:
+                generations = [r['message']['content'] for r in full_generations['choices']]
+                # Store model too
+                models = [full_generations["model"]] * len(generations)
+                # Can also store the logprobs
+                logprobs =  [r['logprobs'] for r in full_generations['choices']]
 
             # Save the generation in the DataFrame
             final_subset.at[index, "generation"] = generations
+            final_subset.at[index, "model"] = models
+            final_subset.at[index, "logprobs"] = logprobs
+
     else:
         passages = final_subset.row.tolist()
         prompt_texts = [extract_sentence_chunk(text, args.start_sentence, args.num_sentences) for text in passages]
