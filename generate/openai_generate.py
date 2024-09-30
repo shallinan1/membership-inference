@@ -16,9 +16,10 @@ def get_gpt_output(query, model='davinci-002', temperature=1.0, max_tokens=256, 
                     temperature=temperature,
                     max_tokens=max_tokens,
                     top_p=top_p,
-                    n=n
+                    n=n,
+                    logprobs=True
                 )
-                return [r['text'] for r in response['choices']]
+                return response
             else:
                 messages = [{"role": "user", "content": query}]
 
@@ -28,13 +29,24 @@ def get_gpt_output(query, model='davinci-002', temperature=1.0, max_tokens=256, 
                     temperature=temperature,
                     max_tokens=max_tokens,
                     top_p=top_p,
-                    n=n
+                    n=n,
+                    logprobs=True
                 )
-                return [choice['message']['content'] for choice in response['choices']]
+                return response
         except Exception as e:
             attempts += 1
             print(f"Service unavailable, retrying in 10 seconds ({attempts}/5): {e}")
             time.sleep(10)
     else:
         return None
+
+if __name__ == "__main__":
+    # Testing
+    from IPython import embed
+
+    output = get_gpt_output("Complete the following sentence: When I",
+                            model="gpt-4o-2024-05-13")
+
+    embed()
+
 
