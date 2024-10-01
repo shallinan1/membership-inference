@@ -104,6 +104,10 @@ def process_combination(params):
     color_map = plt.get_cmap('tab20', int(len(unique_book_ids)/2))
     book_id_to_color = {}
     
+    # book_id_to_jitter = {book_id: np.random.normal(0, 0.03) for book_id in set(unique_book_ids)} # Random jitter
+    jitters = np.linspace(-0.05, 0.05, int(len(unique_book_ids)/2))
+    book_id_to_jitter = {}
+
     label_0_indices = []
     for g, b in zip(gen_labels, book_ids):
         if g == 0:
@@ -114,11 +118,12 @@ def process_combination(params):
     for i, book_id in enumerate(unique_book_ids):  # Map each book_id to a color
         if book_id in label_0_indices:
             book_id_to_color[book_id] = color_map(label_0_idx)
+            book_id_to_jitter[book_id] = jitters[label_0_idx]
             label_0_idx += 1
         else:
             book_id_to_color[book_id] = color_map(label_1_idx)
+            book_id_to_jitter[book_id] = jitters[label_1_idx]
             label_1_idx += 1
-    book_id_to_jitter = {book_id: np.random.normal(0, 0.03) for book_id in set(unique_book_ids)}
 
     cis = [compute_ci_statistic(cur_data, LOW_CI_BOUND, HIGH_CI_BOUND) for cur_data in tqdm(coverage_data, leave=False, desc = "Iterating through cur_data")]
     covs = [[c["coverage"] for c in cur_data] for cur_data in coverage_data]
@@ -171,8 +176,8 @@ def process_combination(params):
     # Add scatter points for each category
     x_positions_0 = np.random.normal(1, 0.03, size=len(data_0_cis))  # jitter for category 0
     x_positions_1 = np.random.normal(2, 0.03, size=len(data_1_cis))  # jitter for category 1
-    plt.scatter(x_positions_0, data_0_cis, color='black', alpha=0.4)
-    plt.scatter(x_positions_1, data_1_cis, color='black', alpha=0.4)
+    plt.scatter(x_positions_0, data_0_cis, color='black', alpha=0.2)
+    plt.scatter(x_positions_1, data_1_cis, color='black', alpha=0.2)
     # Adding mean and median text
     plt.text(1.25, mean_0_cis, f'Mean: {mean_0_cis:.2f}', ha='center', va='bottom', color='blue', fontsize=10)
     plt.text(1.25, median_0_cis, f'Median: {median_0_cis:.2f}', ha='center', va='top', color='green', fontsize=10)
@@ -203,8 +208,8 @@ def process_combination(params):
         else:
             violin_parts[partname].set_edgecolor('black')
             violin_parts[partname].set_alpha(0.1)
-    plt.scatter(x_positions_0, data_0_covs, color='black', alpha=0.4)
-    plt.scatter(x_positions_1, data_1_covs, color='black', alpha=0.4)
+    plt.scatter(x_positions_0, data_0_covs, color='black', alpha=0.2)
+    plt.scatter(x_positions_1, data_1_covs, color='black', alpha=0.2)
     plt.text(1.25, mean_0_covs, f'Mean: {mean_0_covs:.2f}', ha='center', va='bottom', color='blue', fontsize=10)
     plt.text(1.25, median_0_covs, f'Median: {median_0_covs:.2f}', ha='center', va='top', color='green', fontsize=10)
     plt.text(1.75, mean_1_covs, f'Mean: {mean_1_covs:.2f}', ha='center', va='bottom', color='blue', fontsize=10)
@@ -233,13 +238,14 @@ def process_combination(params):
             violin_parts[partname].set_alpha(0.1)
     # Add scatter points for each category, color-coded by book_id
     for i, book_id in enumerate(book_ids):
+        jitter = book_id_to_jitter[book_id]  # Use the pre-computed jitter for the book_id
         color = book_id_to_color[book_id]
         if gen_labels[i] == 0:
-            x_position = np.random.normal(1, 0.03, size=1)  # jitter for category 0
-            plt.scatter(x_position, cis[i], color=color, alpha=0.7, label=f'Book ID {book_id}' if i == book_ids.index(book_id) else "")
+            x_position = 1 + jitter
+            plt.scatter(x_position, cis[i], color=color, alpha=0.5, label=f'Book ID {book_id}' if i == book_ids.index(book_id) else "")
         else:
-            x_position = np.random.normal(2, 0.03, size=1)  # jitter for category 1
-            plt.scatter(x_position, cis[i], color=color, alpha=0.7, label=f'Book ID {book_id}' if i == book_ids.index(book_id) else "")
+            x_position = 2 + jitter
+            plt.scatter(x_position, cis[i], color=color, alpha=0.5, label=f'Book ID {book_id}' if i == book_ids.index(book_id) else "")
     # Adding mean and median text 
     plt.text(1.25, mean_0_cis, f'Mean: {mean_0_cis:.2f}', ha='center', va='bottom', color='blue', fontsize=10)
     plt.text(1.25, median_0_cis, f'Median: {median_0_cis:.2f}', ha='center', va='top', color='green', fontsize=10)
@@ -275,10 +281,10 @@ def process_combination(params):
         color = book_id_to_color[book_id]
         if gen_labels[i] == 0:
             x_position = 1 + jitter
-            plt.scatter(x_position, covs[i], color=color, alpha=0.7, label=f'Book ID {book_id}' if i == book_ids.index(book_id) else "")
+            plt.scatter(x_position, covs[i], color=color, alpha=0.5, label=f'Book ID {book_id}' if i == book_ids.index(book_id) else "")
         else:
             x_position = 2 + jitter
-            plt.scatter(x_position, covs[i], color=color, alpha=0.7, label=f'Book ID {book_id}' if i == book_ids.index(book_id) else "")
+            plt.scatter(x_position, covs[i], color=color, alpha=0.5, label=f'Book ID {book_id}' if i == book_ids.index(book_id) else "")
     # Adding mean and median text 
     plt.text(1.25, mean_0_covs, f'Mean: {mean_0_covs:.2f}', ha='center', va='bottom', color='blue', fontsize=10)
     plt.text(1.25, median_0_covs, f'Median: {median_0_covs:.2f}', ha='center', va='top', color='green', fontsize=10)
