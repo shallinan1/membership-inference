@@ -13,9 +13,11 @@ from IPython import embed
 from tqdm import tqdm
 import re
 from generate.vllm_generate import ModelGenerator 
-from generate.generate_utils import task_prompts_dict, make_prompts
+from generate.generate_utils import task_prompts_dict_book, make_prompts
 import numpy as np
 import random
+from datetime import datetime
+from IPython import embed
 
 def extract_sentence_chunk(text, start_sentence, num_sentences):
     text_sentences = sent_tokenize(text)
@@ -35,9 +37,10 @@ def extract_sentence_chunk(text, start_sentence, num_sentences):
 def main(args):
     random.seed(0)
 
-    if args.model not in task_prompts_dict:
+    model_str = args.model.split("/")[-1] # Splits to get actual model name
+    if model_str not in task_prompts_dict_book:
         print("Valid model not passed in. Try again")
-    cur_task_prompts = task_prompts_dict[args.model][args.task_prompt_idx]
+    cur_task_prompts = task_prompts_dict_book[model_str][args.task_prompt_idx]
 
     # Load dataset
     ds = load_dataset("swj0419/BookMIA")
@@ -94,18 +97,17 @@ def main(args):
         # Initialize ModelGenerator
         generator = ModelGenerator(
             model=args.model,
-            tokenizer=args.tokenizer,
+            tokenizer=args.model if not args.tokenizer else args.tokenizer,
             seed=args.seed,
             hf_token=args.hf_token,
-            cache_dir=args.cache_dir
+            cache_dir=CACHE_PATH
         )
 
     if args.openai:
         first_gen = True
         for index, row in tqdm(final_subset.iterrows(), total=len(final_subset), desc="Generating"):
             prompt_text = extract_sentence_chunk(row.snippet, args.start_sentence, args.num_sentences)
-            if prompt_text is None:
-                continue
+            assert prompt_text is not None
                 
             prompt = make_prompts(
                 prompt_text, 
@@ -145,28 +147,37 @@ def main(args):
             final_subset.at[index, "logprobs"] = logprobs
 
     else:
-        passages = final_subset.row.tolist()
+        passages = final_subset.snippet.tolist()
         prompt_texts = [extract_sentence_chunk(text, args.start_sentence, args.num_sentences) for text in passages]
-        
+        assert None not in prompt_texts
+
         prompts = make_prompts(
             prompt_texts, 
             cur_task_prompts["task_prompt"], 
             cur_task_prompts["task_preprompt"],
             cur_task_prompts["task_postprompt"]
             )
-        
+      
         # Generate texts
-        final_prompts, generated_texts = generator.generate_vllm(
+        final_prompts, all_text_outputs, all_prompt_logprobs, all_output_logprobs = generator.generate_vllm(
             prompts=prompts,
             temperature=args.temperature,
             top_p=args.top_p,
-            max_new_tokens=args.max_new_tokens,
+            max_new_tokens=args.max_tokens,
             max_length=args.max_length,
-
+            n=args.num_sequences
         )
 
+        final_subset["generation"] =all_text_outputs
+        final_subset["model"] = [model_str] * len(final_subset)
+        final_subset["logprobs"] = all_output_logprobs
+        final_subset["logprobs_prompt"] = all_prompt_logprobs
+
+    # Convert current datetime to string in 'YYYY-MM-DD HH:MM:SS.sss' format
+    date_str = datetime.now().strftime("%Y-%m-%d %H:%M:%S").strip()
+
     # Save DataFrame to CSV with detailed info in the filename
-    file_name = f"{args.model}_maxTokens{args.max_tokens}_numSeq{args.num_sequences}_topP{args.top_p}_numSent{args.num_sentences}_startSent{args.start_sentence}_promptIdx{args.task_prompt_idx}_len{len(final_subset)}.jsonl"
+    file_name = f"{model_str}_maxTokens{args.max_tokens}_numSeq{args.num_sequences}_topP{args.top_p}_numSent{args.num_sentences}_startSent{args.start_sentence}_promptIdx{args.task_prompt_idx}_len{len(final_subset)}_{date_str}.jsonl"
     file_path = os.path.join(save_folder, file_name)
     columns = [col for col in final_subset.columns if col != 'snippet'] + ['snippet']
     final_subset = final_subset[columns]
@@ -176,13 +187,18 @@ def main(args):
 def parse_args():
     parser = argparse.ArgumentParser(description="Generate text using GPT models.")
     parser.add_argument('--max_tokens', type=int, default=512, help='Maximum number of tokens to generate.')
+    parser.add_argument('--max_length', type=int, default=2048, help='Maximum length')
     parser.add_argument('--num_sequences', type=int, default=1, help='Number of sequences to generate.')
     parser.add_argument('--top_p', type=float, default=0.95, help='Top-p sampling value.')
     parser.add_argument('--num_sentences', type=int, default=1, help='Number of sentences to use from the snippet.')
     parser.add_argument('--start_sentence', type=int, default=1, help='Number of sentences to use from the snippet.')
     parser.add_argument('--task_prompt_idx', type=int, default=1, help='Index of the task prompt to use.')
     parser.add_argument('--model', type=str, default="davinci-002", help='Model to use for text generation.')
+    parser.add_argument('--tokenizer', type=str, default=None, help='Pass in tokenizer manually. Optional.')
+    parser.add_argument('--temperature', type=float, default=1.0, help='Model sampling temperature')
+    parser.add_argument('--hf_token', type=str, default=None, help='Pass in tokenizer manually. Optional.')
     parser.add_argument("--openai", action="store_true")
+    parser.add_argument("--seed", type=int, default=0)
     return parser.parse_args()
 
 if __name__ == "__main__":
@@ -212,24 +228,6 @@ python3 -m tasks.bookMIA.generate \
 
 python3 -m tasks.bookMIA.generate \
     --openai \
-    --model gpt-3.5-turbo-0125 \
-    --start_sentence 1 \
-    --num_sentences 5 \
-    --num_sequences 10 \
-    --max_tokens 512 \
-    --task_prompt_idx 5;
-
-python3 -m tasks.bookMIA.generate \
-    --openai \
-    --model gpt-3.5-turbo-0125 \
-    --start_sentence 1 \
-    --num_sentences 3 \
-    --num_sequences 10 \
-    --max_tokens 512 \
-    --task_prompt_idx 5;
-    
-python3 -m tasks.bookMIA.generate \
-    --openai \
     --model gpt-4o-2024-05-13 \
     --start_sentence 1 \
     --num_sentences 5 \
@@ -246,6 +244,23 @@ python3 -m tasks.bookMIA.generate \
     --max_tokens 512 \
     --task_prompt_idx 5;
 
+python3 -m tasks.bookMIA.generate \
+    --openai \
+    --model gpt-3.5-turbo-0125 \
+    --start_sentence 1 \
+    --num_sentences 5 \
+    --num_sequences 10 \
+    --max_tokens 512 \
+    --task_prompt_idx 5;
+
+python3 -m tasks.bookMIA.generate \
+    --openai \
+    --model gpt-3.5-turbo-0125 \
+    --start_sentence 1 \
+    --num_sentences 3 \
+    --num_sequences 10 \
+    --max_tokens 512 \
+    --task_prompt_idx 5;
     
 python3 -m tasks.bookMIA.generate \
     --openai \
@@ -355,4 +370,39 @@ python3 -m tasks.bookMIA.generate \
     --num_sequences 10 \
     --max_tokens 512 \
     --task_prompt_idx 4;    
+
+# GPT2-large
+
+CUDA_VISIBLE_DEVICES=0 python3 -m tasks.bookMIA.generate \
+    --model openai-community/gpt2-large \
+    --start_sentence 1 \
+    --num_sentences 3 \
+    --num_sequences 20 \
+    --max_tokens 512 \
+    --task_prompt_idx 0;    
+
+CUDA_VISIBLE_DEVICES=1 python3 -m tasks.bookMIA.generate \
+    --model openai-community/gpt2-large \
+    --start_sentence 1 \
+    --num_sentences 3 \
+    --num_sequences 20 \
+    --max_tokens 512 \
+    --task_prompt_idx 1;
+
+CUDA_VISIBLE_DEVICES=2 python3 -m tasks.bookMIA.generate \
+    --model openai-community/gpt2-large \
+    --start_sentence 1 \
+    --num_sentences 5 \
+    --num_sequences 20 \
+    --max_tokens 512 \
+    --task_prompt_idx 0;   
+
+CUDA_VISIBLE_DEVICES=0 python3 -m tasks.bookMIA.generate \
+    --model openai-community/gpt2-large \
+    --start_sentence 1 \
+    --num_sentences 5 \
+    --num_sequences 20 \
+    --max_tokens 512 \
+    --task_prompt_idx 1;    
+    
 """
