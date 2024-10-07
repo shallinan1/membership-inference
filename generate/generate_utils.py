@@ -73,7 +73,7 @@ def make_prompts(
             prompts = [f"{task_prompt}{' '.join(p.strip().split())}{task_postprompt}" for p in prompts]
     elif "llama3" in lower_model_name: # LLama3 models, ie, https://huggingface.co/docs/transformers/main/en/model_doc/llama3
         if "inst" in lower_model_name:
-            cur_instructions = llama3_chat_prompt_guide[prompt_key] if prompt_key in llama3_chat_prompt_guide else "lighest"
+            cur_instructions = llama3_chat_prompt_guide[prompt_key] if prompt_key in llama3_chat_prompt_guide else "lightest"
             preprompt = LLAMA3_INSTRUCT_PREPROMPT.substitute(instructions=cur_instructions)
             task_postprompt = task_postprompt.lstrip()
             prompts = [f"{preprompt}{task_prompt}{' '.join(p.strip().split())}{LLAMA3_INSTRUCT_POSTPROMPT}{task_postprompt}" for p in prompts]
@@ -98,11 +98,32 @@ def make_prompts(
     return prompts
 
 # Task prompts
-task_prompts_dict = {
+task_prompts_dict_book = {
     "davinci-002": # GPT3 style - Can be abstracted to prompts for non-instruction tuned models
-        ["Write a novel: ",
+        [{
+            "task_prompt": "Write a novel: ",
+            "task_postprompt": "",
+            "task_preprompt": ""
+        },
         # "Continue the story: ", # Didn't work as well as above prompt
-        "" # Blank string 
+        {
+            "task_prompt": "", # Blank string ,
+            "task_postprompt": "",
+            "task_preprompt": ""
+        },
+        ],
+    "gpt2-large": # GPT3 style - Can be abstracted to prompts for non-instruction tuned models
+        [{
+            "task_prompt": "Write a novel: ",
+            "task_postprompt": "",
+            "task_preprompt": ""
+        },
+        # "Continue the story: ", # Didn't work as well as above prompt
+        {
+            "task_prompt": "", # Blank string ,
+            "task_postprompt": "",
+            "task_preprompt": ""
+        },
         ],
     "gpt-3.5-turbo-instruct": # GPT3 instruct style
         ["Write a novel: ",
