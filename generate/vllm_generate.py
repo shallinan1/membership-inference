@@ -121,7 +121,9 @@ class ModelGenerator:
             top_p=top_p,
             max_tokens=max_new_tokens,
             stop_token_ids=stop_token_ids,
-            n=n
+            n=n,
+            logprobs=5,
+            prompt_logprobs=5
         )
 
         # Generation
@@ -130,10 +132,22 @@ class ModelGenerator:
             prompt_token_ids=filtered_input_ids
         )
         
+
+        all_text_outputs = []
+        all_prompt_logprobs = []
+        all_output_logprobs = []
         # Decode the generated outputs
         for o in output:
-            output_str = self.tokenizer.decode(o.outputs[0].token_ids, skip_special_tokens=True).strip()
-            outputs.append(output_str)
+            cur_output = []
+            cur_output_logprobs = []
+            for generated_output in o.outputs:
+                output_str = self.tokenizer.decode(generated_output.token_ids, skip_special_tokens=True).strip()
+                cur_output.append(output_str)
+                cur_output_logprobs.append(generated_output.logprobs)
+
+            all_prompt_logprobs.append(o.prompt_logprobs)
+            all_text_outputs.append(cur_output)
+            all_output_logprobs.append(cur_output_logprobs)
         
-        return final_prompts, outputs
+        return final_prompts, all_text_outputs, all_prompt_logprobs, all_output_logprobs
 
