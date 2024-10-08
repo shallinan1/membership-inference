@@ -88,6 +88,8 @@ def process_single_doc(t_idx, all_gens, min_ngram, source_docs):
 
     return outputs
 
+# def process_single_doc_star(args):
+#     return process_single_doc(*args)
 
 def dj_search(generation_texts_list: List[List[str]],
               source_docs, output_file: str, 
@@ -115,10 +117,13 @@ def dj_search(generation_texts_list: List[List[str]],
     all_outputs = []
 
     if num_cpus > 1:
-        print(f"Launching search in parallel with {num_cpus}")
-        func_inputs = [(t_idx, all_gens, min_ngram, source_docs) for t_idx, all_gens in enumerate(data)]
+        combinations = [(t_idx, all_gens, min_ngram, source_docs) for t_idx, all_gens in enumerate(data)]
+        print(f"Launching search in parallel with {num_cpus} on {len(combinations)} inputs")
+
         with Pool(num_cpus) as pool:
-            all_outputs = list(pool.starmap(process_single_doc, tqdm(func_inputs, total=len(func_inputs), position=0)))
+            all_outputs = list(pool.starmap(process_single_doc, tqdm(combinations, total=len(combinations), position=0)))
+            # all_outputs = list(tqdm(pool.imap(process_single_doc_star, combinations), total=len(combinations), desc="Processing in parallel", position=0)) # This was slower
+
     else:
         print("Launching search iteratively")
         for t_idx, all_gens in tqdm(enumerate(data), desc='target gens', total=len(data)):         
@@ -179,7 +184,7 @@ def main(args):
 
             args.output_file = args.output_file.replace(".jsonl", "_alldoc.jsonl")
 
-    num_workers = cpu_count() if args.parallel else 1
+    num_workers = min(cpu_count(), 32) if args.parallel else 1 # Set to 16 since it will get killed with too many cpus
     dj_search(generation_texts, source_docs, args.output_file, args.min_ngram, args.subset, num_workers)
 
 if __name__ == '__main__':
