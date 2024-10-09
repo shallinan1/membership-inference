@@ -18,8 +18,8 @@ MIN_NGRAM_VALUES=(3 4 5 6)
 # Command to activate the environment
 ACTIVATE_ENV="source activate vllminf"
 
-# SLURM command to request resources
-SLURM_COMMAND="srun -p gpu-rtx6k -A cse --time=24:00:00 --nodes=1 --cpus-per-task=5 --mem=25G --pty /bin/bash"
+# SLURM command to request resources (updated to run commands within it)
+SLURM_COMMAND="srun -p gpu-rtx6k -A cse-ckpt --time=8:00:00 --nodes=1 --cpus-per-task=5 --mem=25G --pty /bin/bash -c"
 
 # Iterate over gen_data files in the folder
 for gen_data_file in "$GEN_DATA_FOLDER"/*.jsonl; do
@@ -46,7 +46,7 @@ for gen_data_file in "$GEN_DATA_FOLDER"/*.jsonl; do
          echo "Running command: $cmd_without_source"
 
          # Create a new tmux session and run the SLURM command inside
-         tmux new-session -d "$SLURM_COMMAND && $ACTIVATE_ENV && $cmd_without_source"
+         tmux new-session -d "$SLURM_COMMAND \"$ACTIVATE_ENV && $cmd_without_source\""
       else
          echo "Output file already exists: $output_without_source, skipping..."
       fi
@@ -66,13 +66,9 @@ for gen_data_file in "$GEN_DATA_FOLDER"/*.jsonl; do
          echo "Running command: $cmd_with_source"
 
          # Create a new tmux session and run the SLURM command inside
-         tmux new-session -d "$SLURM_COMMAND && $ACTIVATE_ENV && $cmd_with_source"
+         tmux new-session -d "$SLURM_COMMAND \"$ACTIVATE_ENV && $cmd_with_source\""
       else
          echo "Output file already exists: $output_with_source, skipping..."
       fi
-
    done
-
-   # Break after the first gen_data file (for quick testing)
-   break
 done
