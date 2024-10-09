@@ -20,6 +20,7 @@ import re
 from IPython import embed
 from typing import List
 from multiprocessing import Pool, cpu_count
+import time
 
 datasets.logging.set_verbosity_error()
 disable_progress_bar() # Disable filter progress bar
@@ -136,6 +137,8 @@ def dj_search(generation_texts_list: List[List[str]],
         f.flush()
 
 def main(args):
+    start_time = time.time()
+
     # Ensure the output directory exists
     os.makedirs(args.output_dir, exist_ok=True)
 
@@ -184,8 +187,13 @@ def main(args):
 
             args.output_file = args.output_file.replace(".jsonl", "_alldoc.jsonl")
 
-    num_workers = min(cpu_count(), 32) if args.parallel else 1 # Set to 16 since it will get killed with too many cpus
+    num_workers = min(cpu_count(), 4) if args.parallel else 1 # Set to 16 since it will get killed with too many cpus
     dj_search(generation_texts, source_docs, args.output_file, args.min_ngram, args.subset, num_workers)
+
+    execution_time = time.time() - start_time
+    minutes = int(execution_time // 60)
+    seconds = int(execution_time % 60)
+    print(f"Program executed in {minutes}:{seconds} ({execution_time:.4f} seconds)")
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser()
