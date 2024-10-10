@@ -21,7 +21,6 @@ LOW_CI_BOUND=3
 HIGH_CI_BOUND=12
 CREATIVITY_CONSTANT = HIGH_CI_BOUND - LOW_CI_BOUND
     
-
 # Load gen_path as jsonl
 def load_jsonl(file_path):
     with open(file_path, 'r') as f:
@@ -84,7 +83,6 @@ def process_combination(params):
         return
 
     doc_string = "alldoc" if all_doc else "onedoc"
-
     coverage_path = gen_path.replace(".jsonl", f"_{min_ngram}_{doc_string}.jsonl").replace("generations", "coverages")
     if not os.path.exists(coverage_path):
         return
@@ -140,12 +138,14 @@ def process_combination(params):
 
     # Make save folders
     folder_path = "/gscratch/xlab/hallisky/membership-inference/tasks/bookMIA/plots"
-    if not os.path.exists(os.path.join(folder_path, model_name)):
-        os.makedirs(os.path.join(folder_path, model_name), exist_ok=True)
+
+    # Save path
+    save_folder = os.path.join(folder_path, model_name, f"promptIdx{prompt_idx}_minNgram{min_ngram}_{doc_string}_numSent{num_sent}_{aggregate}")
+    if not os.path.exists(save_folder):
+        os.makedirs(save_folder, exist_ok=True)
 
     # Convert the CIs 
     cis = np.array([CREATIVITY_CONSTANT-c for c in cis])
-
     data_0_cis = [cis[i] for i in range(len(cis)) if gen_labels[i] == 0]
     data_1_cis = [cis[i] for i in range(len(cis)) if gen_labels[i] == 1]
     data_0_covs = [covs[i] for i in range(len(covs)) if gen_labels[i] == 0]
@@ -157,7 +157,6 @@ def process_combination(params):
     mean_1_cis, median_1_cis, std1_cis = np.nanmean(data_1_cis), np.nanmedian(data_1_cis), np.nanstd(data_1_cis)
     mean_0_covs, median_0_covs, std0_covs = np.nanmean(data_0_covs), np.nanmedian(data_0_covs), np.nanstd(data_0_covs)
     mean_1_covs, median_1_covs, std1_covs = np.nanmean(data_1_covs), np.nanmedian(data_1_covs), np.nanstd(data_1_covs)
-
 
     ### PLOT: Plotting for CIs
     plt.figure(figsize=(6, 5))
@@ -186,12 +185,12 @@ def process_combination(params):
     # Adding labels and title
     plt.xticks([1, 2], ["Unseen Data", "Seen Data"])
     plt.ylabel(f'{aggregate} Creativity Index')
-    plt.title(f'CI for BookMIA, {model_name}, min_ngram {min_ngram}, {doc_string}, prompt {prompt_idx}, agg {aggregate}')
+    plt.title(f'CI, BookMIA, {model_name}, min_ngram {min_ngram}, {doc_string}, prompt {prompt_idx}, agg {aggregate}')
     plt.ylim(top=min(HIGH_CI_BOUND-LOW_CI_BOUND + 0.25, max(mean_0_cis + 2*std0_cis, mean_1_cis + 2*std1_cis)), 
              bottom=max(min(mean_0_cis - 2*std0_cis, mean_1_cis - 2*std1_cis),-0.05))
     plt.grid(alpha=0.2, axis='y')
     plt.tight_layout()
-    plt.savefig(os.path.join(folder_path, model_name, f"promptIdx{prompt_idx}_minNgram{min_ngram}_{doc_string}_{aggregate}_numSent{num_sent}_CI{LOW_CI_BOUND}-{HIGH_CI_BOUND}.png"), dpi=200, bbox_inches="tight")
+    plt.savefig(os.path.join(save_folder, f"CI{LOW_CI_BOUND}-{HIGH_CI_BOUND}.png"), dpi=200, bbox_inches="tight")
 
     ### PLOT: Plotting for Coverages
     # Create a violin plot with matplotlib
@@ -217,11 +216,11 @@ def process_combination(params):
     plt.xticks([1, 2], ["Unseen Data", "Seen Data"])
     plt.ylabel(f'{aggregate} Coverage')
 
-    plt.title(f'Cov for BookMIA, {model_name}, min_ngram {min_ngram}, {doc_string}, prompt {prompt_idx}, agg {aggregate}')
+    plt.title(f'Cov, BookMIA, {model_name}, min_ngram {min_ngram}, {doc_string}, prompt {prompt_idx}, agg {aggregate}')
     plt.ylim(top=min(1.05, max(mean_0_covs + 2*std0_covs, mean_1_covs + 2*std1_covs)), bottom=-0.05)
     plt.grid(alpha=0.2, axis='y')
     plt.tight_layout()
-    plt.savefig(os.path.join(folder_path, model_name, f"promptIdx{prompt_idx}_minNgram{min_ngram}_{doc_string}_{aggregate}_numSent{num_sent}_cov.png"), dpi=200, bbox_inches="tight")
+    plt.savefig(os.path.join(save_folder, f"cov.png"), dpi=200, bbox_inches="tight")
 
     ### NEW PLOT: Book ID color-coded violin plot (new) (CI)
     plt.figure(figsize=(6, 5))
@@ -260,7 +259,7 @@ def process_combination(params):
     plt.grid(alpha=0.2, axis='y')
     plt.tight_layout()
     # plt.legend(loc='upper right', bbox_to_anchor=(1.1, 1), title="Book IDs")
-    plt.savefig(os.path.join(folder_path, model_name, f"promptIdx{prompt_idx}_minNgram{min_ngram}_{doc_string}_{aggregate}_numSent{num_sent}_CI{LOW_CI_BOUND}-{HIGH_CI_BOUND}_bookid.png"), dpi=200, bbox_inches="tight")
+    plt.savefig(os.path.join(save_folder, f"CI{LOW_CI_BOUND}-{HIGH_CI_BOUND}_bookid.png"), dpi=200, bbox_inches="tight")
 
     ### NEW PLOT: Book ID color-coded violin plot (new) (coverage)
     plt.figure(figsize=(6, 5))
@@ -298,7 +297,7 @@ def process_combination(params):
     plt.grid(alpha=0.2, axis='y')
     plt.tight_layout()
     # plt.legend(loc='upper right', bbox_to_anchor=(1.1, 1), title="Book IDs")
-    plt.savefig(os.path.join(folder_path, model_name, f"promptIdx{prompt_idx}_minNgram{min_ngram}_{doc_string}_{aggregate}_numSent{num_sent}_cov_bookid.png"), dpi=200, bbox_inches="tight")
+    plt.savefig(os.path.join(save_folder, f"cov_bookid.png"), dpi=200, bbox_inches="tight")
 
     ### NEW PLOT: ROC AUC curves for cov
     fpr, tpr, thresholds = roc_curve(gen_labels, covs)
@@ -315,11 +314,11 @@ def process_combination(params):
     plt.ylim([0.0, 1.05])
     plt.xlabel('False Positive Rate')
     plt.ylabel('True Positive Rate')
-    plt.title(f'Cov ROC Curve for BookMIA, {model_name}, min_ngram {min_ngram}, {doc_string}, prompt {prompt_idx}, agg {aggregate}')
+    plt.title(f'Cov ROC Curve, BookMIA, {model_name}, min_ngram {min_ngram}, {doc_string}, prompt {prompt_idx}, agg {aggregate}')
     plt.grid(alpha=0.15)
     plt.legend(loc="lower right")
     plt.tight_layout()
-    plt.savefig(os.path.join(folder_path, model_name, f"promptIdx{prompt_idx}_minNgram{min_ngram}_{doc_string}_{aggregate}_numSent{num_sent}_cov_rocauc.png"), dpi=200, bbox_inches="tight")
+    plt.savefig(os.path.join(save_folder, f"cov_rocauc.png"), dpi=200, bbox_inches="tight")
 
     # ROC AUC curves for CI
     gen_labels = [1-g for g in gen_labels]
@@ -340,12 +339,13 @@ def process_combination(params):
     plt.ylim([0.0, 1.05])
     plt.xlabel('False Positive Rate')
     plt.ylabel('True Positive Rate')
-    plt.title(f'CI ROC Curve for BookMIA, {model_name}, min_ngram {min_ngram}, {doc_string}, prompt {prompt_idx}, agg {aggregate}')
+    plt.title(f'CI ROC Curve, BookMIA, {model_name}, min_ngram {min_ngram}, {doc_string}, prompt {prompt_idx}, agg {aggregate}')
     plt.grid(alpha=0.15)
     plt.legend(loc="lower right")
     plt.tight_layout()
-    plt.savefig(os.path.join(folder_path, model_name, f"promptIdx{prompt_idx}_minNgram{min_ngram}_{doc_string}_{aggregate}_numSent{num_sent}_CI{LOW_CI_BOUND}-{HIGH_CI_BOUND}_rocauc.png"), dpi=200, bbox_inches="tight")
+    plt.savefig(os.path.join(save_folder, f"CI{LOW_CI_BOUND}-{HIGH_CI_BOUND}_rocauc.png"), dpi=200, bbox_inches="tight")
 
+    plt.close('all')
     return 1
 
 if __name__ == "__main__":
@@ -357,8 +357,8 @@ if __name__ == "__main__":
     prompt_idxs = list(range(10))
     start_sents = list(range(10))
     num_sents = list(range(10))
-    models = ["gpt-3.5-turbo-0125", "gpt-4o-mini-2024-07-18"]
-    models = ["gpt-3.5-turbo-0125"]
+    models = ["gpt-3.5-turbo-0125", "gpt-4o-mini-2024-07-18", "gpt-4o-2024-05-13"]
+    # models = ["gpt-3.5-turbo-0125"]
     all_docs = [True, False]
     aggregates = ["mean", "max"]
 
