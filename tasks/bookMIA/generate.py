@@ -173,8 +173,8 @@ def main(args):
         final_subset["logprobs"] = all_output_logprobs
         final_subset["logprobs_prompt"] = all_prompt_logprobs
 
-    # Convert current datetime to string in 'YYYY-MM-DD HH:MM:SS.sss' format
-    date_str = datetime.now().strftime("%Y-%m-%d %H:%M:%S").strip()
+    # Convert current datetime to string in 'YYYY-MM-DD HH:MM:SS' format
+    date_str = datetime.now().strftime("%Y-%m-%d-%H:%M:%S").strip()
 
     # Save DataFrame to CSV with detailed info in the filename
     file_name = f"{model_str}_maxTokens{args.max_tokens}_numSeq{args.num_sequences}_topP{args.top_p}_numSent{args.num_sentences}_startSent{args.start_sentence}_promptIdx{args.task_prompt_idx}_len{len(final_subset)}_{date_str}.jsonl"
