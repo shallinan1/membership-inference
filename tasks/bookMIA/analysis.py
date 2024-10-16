@@ -20,7 +20,49 @@ import argparse
 LOW_CI_BOUND=3
 HIGH_CI_BOUND=12
 CREATIVITY_CONSTANT = HIGH_CI_BOUND - LOW_CI_BOUND
+
+def combine_lists(list1, list2):
+    output_list = []
+    for l1, l2 in zip(list1, list2):
+        output_list.append(l1 + l2)
+    return output_list
+
+def combine_dicts(dict1, dict2):
+    for cur_key in ['logprobs', 'model']:
+        if cur_key in dict1:
+            dict1.pop(cur_key)
+        if cur_key in dict2:
+            dict2.pop(cur_key)
+
+    # Assert that both dictionaries have the same keys
+    assert dict1.keys() == dict2.keys(), f"Keys do not match: {dict1.keys()} != {dict2.keys()}"
     
+    combined_dict = {}
+    
+    for key in dict1.keys():
+        if isinstance(dict1[key], list):
+            # Combine list values by concatenation
+            combined_dict[key] = dict1[key] + dict2[key]
+        else:
+            # Ensure non-list values are equal
+            assert dict1[key] == dict2[key], f"Values for '{key}' do not match: {dict1[key]} != {dict2[key]}"
+            combined_dict[key] = dict1[key]
+    
+    return combined_dict
+    
+def combine_list_of_dicts(list1, list2):
+    # Ensure both lists have the same length
+    assert len(list1) == len(list2), f"Lists must have the same length: {len(list1)} != {len(list2)}"
+    
+    combined_list = []
+
+    # Iterate through both lists simultaneously and combine each pair of dictionaries
+    for dict1, dict2 in zip(list1, list2):
+        combined_dict = combine_dicts(dict1, dict2)
+        combined_list.append(combined_dict)
+    
+    return combined_list
+
 # Load gen_path as jsonl
 def load_jsonl(file_path):
     with open(file_path, 'r') as f:
@@ -72,27 +114,73 @@ def process_combination(params):
     
     if "gpt-3.5-turbo" in model:
         model_name = "ChatGPT"
-    elif "gpt-4o-" in model:
+    elif "gpt-4o-mini" in model:
+        model_name = "GPT-4o-mini"
+    elif "gpt-4o" in model:
         model_name = "GPT-4o"
     else:
-        model_name = "GPT-4o-mini"
+        model_name = "Default"
 
-    # Open the jsonl
-    gen_path = f"/gscratch/xlab/hallisky/membership-inference/tasks/bookMIA/generations/{model}_maxTokens512_numSeq10_topP0.95_numSent{num_sent}_startSent{start_sent}_promptIdx{prompt_idx}_len788.jsonl"
-    if not os.path.exists(gen_path):
-        return
+    # Base path to search
+    gen_path_base_start = f"/gscratch/xlab/hallisky/membership-inference/tasks/bookMIA/generations/{model}_maxTokens512_numSeq"
+    gen_path_base_end = f"_topP0.95_numSent{num_sent}_startSent{start_sent}_promptIdx{prompt_idx}_len"
 
-    doc_string = "alldoc" if all_doc else "onedoc"
-    coverage_path = gen_path.replace(".jsonl", f"_{min_ngram}_{doc_string}.jsonl").replace("generations", "coverages")
-    if not os.path.exists(coverage_path):
-        return
+    # Directory where the files are located
+    gen_dir = os.path.dirname(gen_path_base_start)
+    base_filename = os.path.basename(gen_path_base_start)
+
+    # List all generation files in the directory
+    gen_file_paths = [os.path.join(gen_dir, f) for f in os.listdir(gen_dir) if 
+                      (f.startswith(base_filename) and f.endswith(".jsonl") and gen_path_base_end in f)]
+
+    # Initialize empty lists for combined generation data and coverage data
+    combined_gen_data = []
+    combined_coverage_data = []
     
-    try:   
+    if not gen_file_paths:
+        return None
+
+    # Iterate through the found generation JSONL files and load their data
+    for gen_path in gen_file_paths:
+        # Load the jsonl for generation data
         gen_data = load_jsonl(gen_path)
-        coverage_data = load_json(coverage_path)
-    except:
-        return
-    if len(gen_data) != len(coverage_data):
+
+        # Get corresponding coverage file paths (assuming similar structure with date appended)
+        doc_string = "alldoc" if all_doc else "onedoc"
+        coverage_path = gen_path.replace(".jsonl", f"_{min_ngram}_{doc_string}.jsonl").replace("generations", "coverages")
+
+        if not os.path.exists(coverage_path):
+            continue
+        # Load and combine coverage data
+        with open(coverage_path, 'r') as file:
+            coverage_data = json.load(file)
+
+        # Combine the generation data
+        if not combined_gen_data:
+            combined_gen_data = gen_data
+        else:
+            combined_gen_data = combine_list_of_dicts(combined_gen_data, gen_data)
+
+        if not combined_coverage_data:
+            combined_coverage_data = coverage_data
+        else:
+            combined_coverage_data = combine_lists(combined_coverage_data, coverage_data)
+        
+    no_empty_gen_data = []
+    no_empty_coverage_data = []
+    for i, c in enumerate(combined_coverage_data):
+        if len(c) > 0:
+            no_empty_gen_data.append(combined_gen_data[i])
+            no_empty_coverage_data.append(combined_coverage_data[i])
+        else:
+            print("omitted something")
+            print(f"Old Length: {len(combined_gen_data)}, new length: {len(no_empty_gen_data)}")
+
+    gen_data = no_empty_gen_data
+    coverage_data = no_empty_coverage_data
+
+    if len(gen_data) == 0 or len(gen_data) != len(coverage_data):
+        print(f"Invalid length for {gen_path}. Len gen_data {len(gen_data)}. Len coverage data {len(coverage_data)}")
         return # Don't run on incomplete data
     
     gen_labels = [g["label"] for g in gen_data]
@@ -136,6 +224,7 @@ def process_combination(params):
         pass
         # TODO code here to plot the distributions themself
 
+
     # Make save folders
     folder_path = "/gscratch/xlab/hallisky/membership-inference/tasks/bookMIA/plots"
 
@@ -151,12 +240,17 @@ def process_combination(params):
     data_0_covs = [covs[i] for i in range(len(covs)) if gen_labels[i] == 0]
     data_1_covs = [covs[i] for i in range(len(covs)) if gen_labels[i] == 1]
 
+
     # TODO look into why it sometimes has a nan in it??
     # Calculate means and medians
     mean_0_cis, median_0_cis, std0_cis = np.nanmean(data_0_cis), np.nanmedian(data_0_cis), np.nanstd(data_0_cis)
     mean_1_cis, median_1_cis, std1_cis = np.nanmean(data_1_cis), np.nanmedian(data_1_cis), np.nanstd(data_1_cis)
     mean_0_covs, median_0_covs, std0_covs = np.nanmean(data_0_covs), np.nanmedian(data_0_covs), np.nanstd(data_0_covs)
     mean_1_covs, median_1_covs, std1_covs = np.nanmean(data_1_covs), np.nanmedian(data_1_covs), np.nanstd(data_1_covs)
+
+    if np.nan in data_0_cis:
+        print("nan")
+        embed()
 
     ### PLOT: Plotting for CIs
     plt.figure(figsize=(6, 5))
@@ -358,6 +452,7 @@ if __name__ == "__main__":
     start_sents = list(range(10))
     num_sents = list(range(10))
     models = ["gpt-3.5-turbo-0125", "gpt-4o-mini-2024-07-18", "gpt-4o-2024-05-13"]
+
     # models = ["gpt-3.5-turbo-0125"]
     all_docs = [True, False]
     aggregates = ["mean", "max"]
