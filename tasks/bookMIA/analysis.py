@@ -143,6 +143,12 @@ def process_combination(params):
         return None
     doc_string = "alldoc" if all_doc else "onedoc"
 
+    # Make save folders
+    folder_path = "/gscratch/xlab/hallisky/membership-inference/tasks/bookMIA/plots"
+
+    # Save path
+    save_folder = os.path.join(folder_path, model_name, f"promptIdx{prompt_idx}_minNgram{min_ngram}_{doc_string}_numSent{num_sent}_{aggregate}_{ref_prompt_idx}")
+
     # Iterate through the found generation JSONL files and load their data
     for gen_path in gen_file_paths:
         # Load the jsonl for generation data
@@ -198,14 +204,17 @@ def process_combination(params):
     no_empty_gen_data = []
     no_empty_coverage_data = []
     no_empty_ref_coverage_data = []
+    flag=False
     for i, c in enumerate(combined_coverage_data):
         if len(c) > 0:
             no_empty_gen_data.append(combined_gen_data[i])
             no_empty_coverage_data.append(combined_coverage_data[i])
             no_empty_ref_coverage_data.append(ref_coverage_data[i])
         else:
-            print("omitted something")
-            print(f"Old Length: {len(combined_gen_data)}, new length: {len(no_empty_gen_data)}")
+            flag=True
+    if flag:
+        pass
+        # print(f"omitted something {save_folder}; Old Length: {len(combined_gen_data)}, new length: {len(no_empty_gen_data)}")
 
     gen_data = no_empty_gen_data
     coverage_data = no_empty_coverage_data
@@ -243,7 +252,7 @@ def process_combination(params):
             book_id_to_jitter[book_id] = jitters[label_1_idx]
             label_1_idx += 1
 
-    cis = [compute_ci_statistic(cur_data, LOW_CI_BOUND, HIGH_CI_BOUND) for cur_data in tqdm(coverage_data, leave=False, desc = "Iterating through cur_data", position=1)]
+    cis = [compute_ci_statistic(cur_data, LOW_CI_BOUND, HIGH_CI_BOUND) for cur_data in tqdm(coverage_data, leave=False, desc = "Iterating through original data", position=1)]
     covs = [[c["coverage"] for c in cur_data] for cur_data in coverage_data]
 
     if aggregate == "mean":
@@ -264,32 +273,28 @@ def process_combination(params):
     elif aggregate == "max":
         ref_covs = np.array([np.max(inner_list) for inner_list in ref_covs])
         ref_cis = np.array([np.max(inner_list) for inner_list in ref_cis])
-
-    # Make save folders
-    folder_path = "/gscratch/xlab/hallisky/membership-inference/tasks/bookMIA/plots"
-
-    # Save path
-    save_folder = os.path.join(folder_path, model_name, f"promptIdx{prompt_idx}_minNgram{min_ngram}_{doc_string}_numSent{num_sent}_{aggregate}_{ref_prompt_idx}")
-    if not os.path.exists(save_folder):
-        os.makedirs(save_folder, exist_ok=True)
-
+ 
+    # Now, make a normalized version - subtract?
+    normalized_covs = np.maximum(covs - ref_covs, 0)
+    normalized_cis = np.maximum(cis - ref_cis, 0)
+    
     # Convert the CIs 
     cis = np.array([CREATIVITY_CONSTANT-c for c in cis])
     ref_cis = np.array([CREATIVITY_CONSTANT-c for c in ref_cis])
+    normalized_cis = np.array([CREATIVITY_CONSTANT-c for c in normalized_cis])
 
     data_0_cis = [cis[i] for i in range(len(cis)) if gen_labels[i] == 0]
     data_1_cis = [cis[i] for i in range(len(cis)) if gen_labels[i] == 1]
     data_0_covs = [covs[i] for i in range(len(covs)) if gen_labels[i] == 0]
     data_1_covs = [covs[i] for i in range(len(covs)) if gen_labels[i] == 1]
 
-
     # TODO look into why it sometimes has a nan in it??
-    # Calculate means and medians
     mean_0_cis, median_0_cis, std0_cis = np.nanmean(data_0_cis), np.nanmedian(data_0_cis), np.nanstd(data_0_cis)
     mean_1_cis, median_1_cis, std1_cis = np.nanmean(data_1_cis), np.nanmedian(data_1_cis), np.nanstd(data_1_cis)
     mean_0_covs, median_0_covs, std0_covs = np.nanmean(data_0_covs), np.nanmedian(data_0_covs), np.nanstd(data_0_covs)
     mean_1_covs, median_1_covs, std1_covs = np.nanmean(data_1_covs), np.nanmedian(data_1_covs), np.nanstd(data_1_covs)
 
+    # Now, do same for reference ones
     data_0_ref_cis = [ref_cis[i] for i in range(len(ref_cis)) if gen_labels[i] == 0]
     data_1_ref_cis = [ref_cis[i] for i in range(len(ref_cis)) if gen_labels[i] == 1]
     data_0_ref_covs = [ref_covs[i] for i in range(len(ref_covs)) if gen_labels[i] == 0]
@@ -300,9 +305,23 @@ def process_combination(params):
     mean_0_ref_covs, median_0_ref_covs, std0_covs = np.nanmean(data_0_ref_covs), np.nanmedian(data_0_ref_covs), np.nanstd(data_0_ref_covs)
     mean_1_ref_covs, median_1_ref_covs, std1_covs = np.nanmean(data_1_ref_covs), np.nanmedian(data_1_ref_covs), np.nanstd(data_1_ref_covs)
 
+    # Same for normalized ones
+    data_0_normalized_cis = [normalized_cis[i] for i in range(len(normalized_cis)) if gen_labels[i] == 0]
+    data_1_normalized_cis = [normalized_cis[i] for i in range(len(normalized_cis)) if gen_labels[i] == 1]
+    data_0_normalized_covs = [normalized_covs[i] for i in range(len(normalized_covs)) if gen_labels[i] == 0]
+    data_1_normalized_covs = [normalized_covs[i] for i in range(len(normalized_covs)) if gen_labels[i] == 1]
+
+    mean_0_normalized_cis, median_0_normalized_cis, std0_cis = np.nanmean(data_0_normalized_cis), np.nanmedian(data_0_normalized_cis), np.nanstd(data_0_normalized_cis)
+    mean_1_normalized_cis, median_1_normalized_cis, std1_cis = np.nanmean(data_1_normalized_cis), np.nanmedian(data_1_normalized_cis), np.nanstd(data_1_normalized_cis)
+    mean_0_normalized_covs, median_0_normalized_covs, std0_covs = np.nanmean(data_0_normalized_covs), np.nanmedian(data_0_normalized_covs), np.nanstd(data_0_normalized_covs)
+    mean_1_normalized_covs, median_1_normalized_covs, std1_covs = np.nanmean(data_1_normalized_covs), np.nanmedian(data_1_normalized_covs), np.nanstd(data_1_normalized_covs)
+    
     if np.nan in data_0_cis or np.nan in data_1_cis:
-        print("NAN FOUND")
-        print(params)
+        print(f"NAN FOUND {save_folder}") # This should not happen
+
+    # Make save folder if we finished everything succesfully
+    if not os.path.exists(save_folder):
+        os.makedirs(save_folder, exist_ok=True)
 
     ### PLOT: Plotting for CIs
     plt.figure(figsize=(6, 5))
@@ -336,9 +355,9 @@ def process_combination(params):
              bottom=max(min(mean_0_cis - 2*std0_cis, mean_1_cis - 2*std1_cis),-0.05))
     plt.grid(alpha=0.2, axis='y')
     plt.tight_layout()
-    plt.savefig(os.path.join(save_folder, f"CI{LOW_CI_BOUND}-{HIGH_CI_BOUND}.png"), dpi=200, bbox_inches="tight")
+    plt.savefig(os.path.join(save_folder, f"CI{LOW_CI_BOUND}-{HIGH_CI_BOUND}_orig.png"), dpi=200, bbox_inches="tight")
 
-    print(save_folder)
+    # print(save_folder)
     ### PLOT: Plotting for CIs - Reference Model
     plt.figure(figsize=(6, 5))
     violin_parts = plt.violinplot([data_0_ref_cis, data_1_ref_cis], showmeans=True)
@@ -373,6 +392,40 @@ def process_combination(params):
     plt.tight_layout()
     plt.savefig(os.path.join(save_folder, f"CI{LOW_CI_BOUND}-{HIGH_CI_BOUND}_ref.png"), dpi=200, bbox_inches="tight")
 
+    ### PLOT: Plotting for CIs - Reference Model
+    plt.figure(figsize=(6, 5))
+    violin_parts = plt.violinplot([data_0_normalized_cis, data_1_normalized_cis], showmeans=True)
+    # Set the color and transparency
+    for partname in ('bodies', 'cmeans', 'cbars', 'cmins', 'cmaxes'):
+        if partname == 'bodies':
+            for body in violin_parts[partname]:
+                body.set_facecolor('black')
+                body.set_edgecolor('black')
+                body.set_alpha(0.1)
+        else:
+            violin_parts[partname].set_edgecolor('black')
+            violin_parts[partname].set_alpha(0.1)
+
+    # Add scatter points for each category
+    x_positions_0_ref = np.random.normal(1, 0.03, size=len(data_0_normalized_cis))  # jitter for category 0
+    x_positions_1_ref = np.random.normal(2, 0.03, size=len(data_1_normalized_cis))  # jitter for category 1
+    plt.scatter(x_positions_0_ref, data_0_normalized_cis, color='black', alpha=0.2)
+    plt.scatter(x_positions_1_ref, data_1_normalized_cis, color='black', alpha=0.2)
+    # Adding mean and median text
+    plt.text(1.25, mean_0_normalized_cis, f'Mean: {mean_0_normalized_cis:.2f}', ha='center', va='bottom', color='blue', fontsize=10)
+    plt.text(1.25, median_0_normalized_cis, f'Median: {median_0_normalized_cis:.2f}', ha='center', va='top', color='green', fontsize=10)
+    plt.text(1.75, mean_1_normalized_cis, f'Mean: {mean_1_normalized_cis:.2f}', ha='center', va='bottom', color='blue', fontsize=10)
+    plt.text(1.75, median_1_normalized_cis, f'Median: {median_1_normalized_cis:.2f}', ha='center', va='top', color='green', fontsize=10)
+    # Adding labels and title
+    plt.xticks([1, 2], ["Unseen Data", "Seen Data"])
+    plt.ylabel(f'{aggregate} Creativity Index')
+    plt.title(f'Norm CI, BookMIA, {model_name}, min_ngram {min_ngram}, {doc_string}, prompt {prompt_idx}, agg {aggregate}')
+    plt.ylim(top=min(HIGH_CI_BOUND-LOW_CI_BOUND + 0.25, max(mean_0_normalized_cis + 2*std0_cis, mean_1_normalized_cis + 2*std1_cis)), 
+             bottom=max(min(mean_0_normalized_cis - 2*std0_cis, mean_1_normalized_cis - 2*std1_cis),-0.05))
+    plt.grid(alpha=0.2, axis='y')
+    plt.tight_layout()
+    plt.savefig(os.path.join(save_folder, f"CI{LOW_CI_BOUND}-{HIGH_CI_BOUND}_norm.png"), dpi=200, bbox_inches="tight")
+
     ### PLOT: Plotting for Coverages
     # Create a violin plot with matplotlib
     plt.figure(figsize=(6, 5))
@@ -401,7 +454,7 @@ def process_combination(params):
     plt.ylim(top=min(1.05, max(mean_0_covs + 2*std0_covs, mean_1_covs + 2*std1_covs)), bottom=-0.05)
     plt.grid(alpha=0.2, axis='y')
     plt.tight_layout()
-    plt.savefig(os.path.join(save_folder, f"cov.png"), dpi=200, bbox_inches="tight")
+    plt.savefig(os.path.join(save_folder, f"cov_orig.png"), dpi=200, bbox_inches="tight")
 
     ### PLOT: Plotting for CIs - Reference Model
     plt.figure(figsize=(6, 5))
@@ -436,6 +489,40 @@ def process_combination(params):
     plt.grid(alpha=0.2, axis='y')
     plt.tight_layout()
     plt.savefig(os.path.join(save_folder, f"cov_ref.png"), dpi=200, bbox_inches="tight")
+
+### PLOT: Plotting for CIs - Reference Model
+    plt.figure(figsize=(6, 5))
+    violin_parts = plt.violinplot([data_0_normalized_covs, data_1_normalized_covs], showmeans=True)
+    # Set the color and transparency
+    for partname in ('bodies', 'cmeans', 'cbars', 'cmins', 'cmaxes'):
+        if partname == 'bodies':
+            for body in violin_parts[partname]:
+                body.set_facecolor('black')
+                body.set_edgecolor('black')
+                body.set_alpha(0.1)
+        else:
+            violin_parts[partname].set_edgecolor('black')
+            violin_parts[partname].set_alpha(0.1)
+
+    # Add scatter points for each category
+    x_positions_0_ref = np.random.normal(1, 0.03, size=len(data_0_normalized_covs))  # jitter for category 0
+    x_positions_1_ref = np.random.normal(2, 0.03, size=len(data_1_normalized_covs))  # jitter for category 1
+    plt.scatter(x_positions_0_ref, data_0_normalized_covs, color='black', alpha=0.2)
+    plt.scatter(x_positions_1_ref, data_1_normalized_covs, color='black', alpha=0.2)
+    # Adding mean and median text
+    plt.text(1.25, mean_0_normalized_covs, f'Mean: {mean_0_normalized_covs:.2f}', ha='center', va='bottom', color='blue', fontsize=10)
+    plt.text(1.25, median_0_normalized_covs, f'Median: {median_0_normalized_covs:.2f}', ha='center', va='top', color='green', fontsize=10)
+    plt.text(1.75, mean_1_normalized_covs, f'Mean: {mean_1_normalized_covs:.2f}', ha='center', va='bottom', color='blue', fontsize=10)
+    plt.text(1.75, median_1_normalized_covs, f'Median: {median_1_normalized_covs:.2f}', ha='center', va='top', color='green', fontsize=10)
+    # Adding labels and title
+    plt.xticks([1, 2], ["Unseen Data", "Seen Data"])
+    plt.ylabel(f'{aggregate} Creativity Index')
+    plt.title(f'CI, BookMIA, {model_name}, min_ngram {min_ngram}, {doc_string}, prompt {prompt_idx}, agg {aggregate}')
+    plt.ylim(top=min(HIGH_CI_BOUND-LOW_CI_BOUND + 0.25, max(mean_0_normalized_covs + 2*std0_covs, mean_1_normalized_covs + 2*std1_covs)), 
+             bottom=max(min(mean_0_normalized_covs - 2*std0_covs, mean_1_normalized_covs - 2*std1_covs),-0.05))
+    plt.grid(alpha=0.2, axis='y')
+    plt.tight_layout()
+    plt.savefig(os.path.join(save_folder, f"cov_norm.png"), dpi=200, bbox_inches="tight")
 
     ### NEW PLOT: Book ID color-coded violin plot (new) (CI)
     plt.figure(figsize=(6, 5))
@@ -559,6 +646,57 @@ def process_combination(params):
     plt.legend(loc="lower right")
     plt.tight_layout()
     plt.savefig(os.path.join(save_folder, f"CI{LOW_CI_BOUND}-{HIGH_CI_BOUND}_rocauc.png"), dpi=200, bbox_inches="tight")
+    # Reset them
+    gen_labels = [1-g for g in gen_labels]
+
+    ### NEW PLOT: ROC AUC curves for cov
+    fpr, tpr, thresholds = roc_curve(gen_labels, normalized_covs)
+    roc_auc = auc(fpr, tpr)
+    # Calculate accuracy for each threshold
+    accuracy_scores = []
+    for threshold in thresholds:
+        y_pred = np.where(normalized_covs >= threshold, 1, 0)
+        accuracy_scores.append(accuracy_score(gen_labels, y_pred))
+    plt.figure()
+    plt.plot(fpr, tpr, color='blue', lw=2, label=f'ROC curve (area = {roc_auc:0.2f})')
+    plt.plot([0, 1], [0, 1], color='red', lw=2, linestyle='--')  # Diagonal line for random guess
+    plt.xlim([0.0, 1.0])
+    plt.ylim([0.0, 1.05])
+    plt.xlabel('False Positive Rate')
+    plt.ylabel('True Positive Rate')
+    plt.title(f'Norm Cov ROC Curve, BookMIA, {model_name}, min_ngram {min_ngram}, {doc_string}, prompt {prompt_idx}, agg {aggregate}')
+    plt.grid(alpha=0.15)
+    plt.legend(loc="lower right")
+    plt.tight_layout()
+    plt.savefig(os.path.join(save_folder, f"cov_rocauc_norm.png"), dpi=200, bbox_inches="tight")
+
+    # gen labels for CI
+    gen_labels = [1-g for g in gen_labels]
+
+    # ROC AUC curves for CI
+    gen_labels = [1-g for g in gen_labels]
+    fpr, tpr, thresholds = roc_curve(gen_labels, normalized_cis)
+    roc_auc = auc(fpr, tpr)
+
+    # Calculate accuracy for each threshold
+    accuracy_scores = []
+    for threshold in thresholds:
+        y_pred = np.where(normalized_cis >= threshold, 1, 0)
+        accuracy_scores.append(accuracy_score(gen_labels, y_pred))
+
+    # Plotting the ROC curve
+    plt.figure()
+    plt.plot(fpr, tpr, color='blue', lw=2, label=f'ROC curve (area = {roc_auc:0.2f})')
+    plt.plot([0, 1], [0, 1], color='red', lw=2, linestyle='--')  # Diagonal line for random guess
+    plt.xlim([0.0, 1.0])
+    plt.ylim([0.0, 1.05])
+    plt.xlabel('False Positive Rate')
+    plt.ylabel('True Positive Rate')
+    plt.title(f'Norm CI ROC Curve, BookMIA, {model_name}, min_ngram {min_ngram}, {doc_string}, prompt {prompt_idx}, agg {aggregate}')
+    plt.grid(alpha=0.15)
+    plt.legend(loc="lower right")
+    plt.tight_layout()
+    plt.savefig(os.path.join(save_folder, f"CI{LOW_CI_BOUND}-{HIGH_CI_BOUND}_rocauc_norm.png"), dpi=200, bbox_inches="tight")
 
     plt.close('all')
     return 1
@@ -569,14 +707,14 @@ if __name__ == "__main__":
     args = parser.parse_args()
 
     min_ngrams=[4,5]
-    prompt_idxs = list(range(10))
+    prompt_idxs = list(range(10))[::-1]
     start_sents = list(range(10))
     num_sents = list(range(10))
-    models = ["gpt-3.5-turbo-0125", "gpt-4o-mini-2024-07-18", "gpt-4o-2024-05-13"]
+    models = ["gpt-3.5-turbo-0125", "gpt-4o-mini-2024-07-18", "gpt-4o-2024-05-13"][::-1]
 
     # models = ["gpt-3.5-turbo-0125"]
-    all_docs = [True, False]
-    aggregates = ["mean", "max"]
+    all_docs = [False, True]
+    aggregates = ["max", "mean"]
     ref_prompt_idxs = [1]
     ref_prompt_idxs = [0]
 
@@ -584,11 +722,12 @@ if __name__ == "__main__":
 
     if args.parallel:
         num_workers = min(cpu_count(), len(combinations))  # Limit to available CPU cores or number of tasks
+        num_workers=16
         with Pool(num_workers) as pool:
-            results = list(tqdm(pool.imap(process_combination, combinations), total=len(combinations), desc="Processing in parallel"))
+            results = list(tqdm(pool.imap(process_combination, combinations), total=len(combinations), desc="Processing in parallel", position=0))
     else:
         total = 0
-        for combo in tqdm(combinations):
+        for combo in tqdm(combinations, total=len(combinations), position=0):
             func_output = process_combination(combo)
             total += 1
         print(total, len(combinations))
