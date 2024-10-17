@@ -17,7 +17,6 @@ from generate.generate_utils import task_prompts_dict_book, make_prompts
 import numpy as np
 import random
 from datetime import datetime
-from IPython import embed
 
 def extract_sentence_chunk(text, start_sentence, num_sentences):
     text_sentences = sent_tokenize(text)
@@ -30,8 +29,8 @@ def extract_sentence_chunk(text, start_sentence, num_sentences):
             return None
     else:
         prompt_text = " ".join(text_sentences[start_sentence:start_sentence + num_sentences])
-
-    return prompt_text
+        rest_of_text =  " ".join(text_sentences[start_sentence + num_sentences:])
+    return prompt_text, rest_of_text
 
 # Function to define the main process
 def main(args):
@@ -92,6 +91,7 @@ def main(args):
     final_subset["generation"] = ""
     final_subset["model"] = ""
     final_subset["logprobs"] = ""
+    final_subset["snippet_"] = ""
 
     if not args.openai:
         # Initialize ModelGenerator
@@ -106,7 +106,7 @@ def main(args):
     if args.openai:
         first_gen = True
         for index, row in tqdm(final_subset.iterrows(), total=len(final_subset), desc="Generating"):
-            prompt_text = extract_sentence_chunk(row.snippet, args.start_sentence, args.num_sentences)
+            prompt_text, rest_of_text = extract_sentence_chunk(row.snippet, args.start_sentence, args.num_sentences)
             assert prompt_text is not None
                 
             prompt = make_prompts(
@@ -145,10 +145,16 @@ def main(args):
             final_subset.at[index, "generation"] = generations
             final_subset.at[index, "model"] = models
             final_subset.at[index, "logprobs"] = logprobs
+            final_subset.at[index, "snippet_no_prompt"] = rest_of_text
 
     else:
         passages = final_subset.snippet.tolist()
-        prompt_texts = [extract_sentence_chunk(text, args.start_sentence, args.num_sentences) for text in passages]
+        prompt_outputs = [extract_sentence_chunk(text, args.start_sentence, args.num_sentences) for text in passages]
+        
+        prompt_texts, rest_of_texts = zip(*prompt_outputs)
+        prompt_texts= list(prompt_texts)
+        rest_of_texts = list(rest_of_texts)
+
         assert None not in prompt_texts
 
         prompts = make_prompts(
@@ -172,6 +178,7 @@ def main(args):
         final_subset["model"] = [model_str] * len(final_subset)
         final_subset["logprobs"] = all_output_logprobs
         final_subset["logprobs_prompt"] = all_prompt_logprobs
+        final_subset["snippet_no_prompt"] = rest_of_texts
 
     # Convert current datetime to string in 'YYYY-MM-DD HH:MM:SS' format
     date_str = datetime.now().strftime("%Y-%m-%d-%H:%M:%S").strip()
@@ -182,6 +189,7 @@ def main(args):
     columns = [col for col in final_subset.columns if col != 'snippet'] + ['snippet']
     final_subset = final_subset[columns]
     final_subset.to_json(file_path, index=False, lines=True, orient='records')
+    
 
 # Argument parser setup
 def parse_args():
