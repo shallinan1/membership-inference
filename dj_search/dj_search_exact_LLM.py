@@ -156,11 +156,10 @@ def main(args):
 
     if args.task == "bookMIA":
         if args.source_docs is None: # Case when we want to reference only against the original text
-            source_docs = [Dataset.from_dict({"text": [g["snippet"]]}) for g in generations]
+            source_docs = [Dataset.from_dict({"text": [unidecode(g["snippet_no_prompt"])]}) for g in generations]
             args.output_file = args.output_file.replace(".jsonl", "_onedoc.jsonl")
         else:
             # For each book index in the generations, all snippets from the dataset should be the source data
-            # Load dataset
             ds = load_dataset(args.source_docs)
             df = ds["train"].to_pandas()
 
@@ -181,7 +180,10 @@ def main(args):
             source_docs = []
             for g in generations:
                 cur_book_id = g["book_id"]
-                all_book_snippets = df[df["book_id"] == cur_book_id].snippet.to_list()
+                cur_snippet_id = g["snippet_id"]
+                # All snippets excluding original one
+                all_book_snippets = df[(df["book_id"] == cur_book_id) & (df["snippet_id"] != cur_snippet_id)].snippet.to_list()
+                all_book_snippets.append(g["snippet_no_prompt"]) # Add original snippet
                 all_book_snippets_cleaned = [unidecode(x) for x in all_book_snippets]
                 source_docs.append(Dataset.from_dict({"text": all_book_snippets_cleaned}))
 
