@@ -30,6 +30,14 @@ $instructions<|eot_id|><|start_header_id|>user<|end_header_id|>
 """)
 LLAMA3_INSTRUCT_POSTPROMPT = "<|eot_id|><|start_header_id|>assistant<|end_header_id|>"
 
+# LLama3.1 prompts - Same as LLama3
+LLAMA31_INSTRUCT_PREPROMPT = Template("""<|start_header_id|>system<|end_header_id|>
+
+$instructions<|eot_id|><|start_header_id|>user<|end_header_id|>
+
+""")
+LLAMA31_INSTRUCT_POSTPROMPT = "<|eot_id|><|start_header_id|>assistant<|end_header_id|>"
+
 def make_prompts(
     prompts: Union[List[str], str], 
     task_prompt: str, 
@@ -57,13 +65,15 @@ def make_prompts(
     if "tulu" in lower_model_name: # Tulu Models, ie https://huggingface.co/allenai/tulu-2-dpo-70b
         task_postprompt = task_postprompt.lstrip()
         prompts = ["<|user|>\n" + task_prompt + ' '.join(p.strip().split()) + f"\n<|assistant|>\n{task_postprompt}" for p in prompts]
+    
     elif "olmo" in lower_model_name: # Olmo models, ie https://huggingface.co/allenai/OLMo-7B and for internal, instruction tuned variant
         if "internal" in lower_model_name or "instruct" in lower_model_name:
             task_postprompt = task_postprompt.lstrip()
             prompts = ["<|user|>\n" + task_prompt + ' '.join(p.strip().split()) + f"\n<|assistant|>\n{task_postprompt}" for p in prompts]
         else:
             prompts = [f"{task_prompt}{' '.join(p.strip().split())}{task_postprompt}" for p in prompts]
-    elif "llama2" in lower_model_name: # LLama2 models, ie, https://huggingface.co/docs/transformers/model_doc/llama2
+    
+    elif "llama-2" in lower_model_name: # LLama2 models, ie, https://huggingface.co/docs/transformers/model_doc/llama2
         if "chat" in lower_model_name:
             cur_instructions = llama2_chat_prompt_guide[prompt_key] if prompt_key in llama2_chat_prompt_guide else "full"
             preprompt = LLAMA2_CHAT_PREPROMPT.substitute(instructions=cur_instructions)
@@ -71,15 +81,30 @@ def make_prompts(
             prompts = [f"{preprompt}{task_prompt}{' '.join(p.strip().split())}{LLAMA2_CHAT_POSTPROMPT}{task_postprompt}" for p in prompts]
         else:
             prompts = [f"{task_prompt}{' '.join(p.strip().split())}{task_postprompt}" for p in prompts]
-    elif "llama3" in lower_model_name: # LLama3 models, ie, https://huggingface.co/docs/transformers/main/en/model_doc/llama3
+    
+    elif "llama-3.2" in lower_model_name: # LLama3 models, ie, https://huggingface.co/docs/transformers/main/en/model_doc/llama3
+            print("NOT IMPLEMENTED YET")
+            import sys; sys.exit()
+
+    elif "llama-3.1" in lower_model_name: # LLama3 models, ie, https://huggingface.co/docs/transformers/main/en/model_doc/llama3
+        if "inst" in lower_model_name:
+            cur_instructions = llama3_chat_prompt_guide[prompt_key] if prompt_key in llama3_chat_prompt_guide else "lightest"
+            preprompt = LLAMA31_INSTRUCT_PREPROMPT.substitute(instructions=cur_instructions)
+            task_postprompt = task_postprompt.lstrip()
+            prompts = [f"{preprompt}{task_prompt}{' '.join(p.strip().split())}{LLAMA31_INSTRUCT_POSTPROMPT}{task_postprompt}" for p in prompts]
+        else:
+            prompts = [f"{task_prompt}{task_preprompt}{p}{task_postprompt}" for p in prompts]
+    
+
+    elif "llama-3-" in lower_model_name:
         if "inst" in lower_model_name:
             cur_instructions = llama3_chat_prompt_guide[prompt_key] if prompt_key in llama3_chat_prompt_guide else "lightest"
             preprompt = LLAMA3_INSTRUCT_PREPROMPT.substitute(instructions=cur_instructions)
             task_postprompt = task_postprompt.lstrip()
             prompts = [f"{preprompt}{task_prompt}{' '.join(p.strip().split())}{LLAMA3_INSTRUCT_POSTPROMPT}{task_postprompt}" for p in prompts]
         else:
-            print("NOT IMPLEMENTED YET")
-            import sys; sys.exit()
+            prompts = [f"{task_prompt}{task_preprompt}{p}{task_postprompt}" for p in prompts]
+    
     elif "mistral" in lower_model_name or "mixtral" in lower_model_name:
         if "inst" in lower_model_name:
             task_postprompt = task_postprompt.lstrip()
@@ -87,12 +112,14 @@ def make_prompts(
         else:
             print("NOT IMPLEMENTED YET")
             import sys; sys.exit()
+    
     elif "gemma" in lower_model_name: # Gemma models, ie https://huggingface.co/google/gemma-2b-it
         if "it" in lower_model_name:
             task_postprompt = "\n"+task_postprompt.lstrip()
             prompts = [f"<start_of_turn>user\n{task_prompt}{' '.join(p.strip().split())}<end_of_turn>\n<start_of_turn>model{task_postprompt}" for p in prompts]
         else:
             prompts = [f"{task_prompt}{' '.join(p.strip().split())}{task_postprompt}" for p in prompts]
+    
     else: # Default branch (no instructions) for all other models such as openai model
             prompts = [f"{task_prompt}{task_preprompt}{p}{task_postprompt}" for p in prompts]
     return prompts
