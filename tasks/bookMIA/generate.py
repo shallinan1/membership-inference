@@ -102,7 +102,7 @@ def main(args):
             tokenizer=args.model if not args.tokenizer else args.tokenizer,
             seed=args.seed,
             hf_token=args.hf_token,
-            cache_dir=CACHE_PATH
+            cache_dir=CACHE_PATH,
         )
 
     if args.openai:
@@ -150,7 +150,6 @@ def main(args):
             final_subset.at[index, "snippet_no_prompt"] = rest_of_text
 
     else:
-        args.min_tokens = None if args.min_tokens == -1 else args.min_tokens
         passages = final_subset.snippet.tolist()
         prompt_outputs = [extract_sentence_chunk(text, args.start_sentence, args.num_sentences) for text in passages]
         
@@ -189,9 +188,7 @@ def main(args):
     # Convert current datetime to string in 'YYYY-MM-DD HH:MM:SS' format
     date_str = datetime.now().strftime("%Y-%m-%d-%H:%M:%S").strip()
 
-    minTokStr = ""
-    if args.min_tokens != -1: # For non-openai models
-        minTokStr = str(args.min_tokens) + "_"
+    minTokStr = "minTok" + str(args.min_tokens) + "_"
     
     # Save DataFrame to CSV with detailed info in the filename
     file_name = f"{model_str}_maxTok{args.max_tokens}_{minTokStr}numSeq{args.num_sequences}_topP{args.top_p}_temp{args.temperature}_numSent{args.num_sentences}_startSent{args.start_sentence}_promptIdx{args.task_prompt_idx}_len{len(final_subset)}_{date_str}.jsonl"
@@ -205,7 +202,7 @@ def main(args):
 def parse_args():
     parser = argparse.ArgumentParser(description="Generate text using GPT models.")
     parser.add_argument('--max_tokens', type=int, default=512, help='Maximum number of tokens to generate.')
-    parser.add_argument('--min_tokens', type=int, default=-1, help='Maximum number of tokens to generate.')
+    parser.add_argument('--min_tokens', type=int, default=0, help='Maximum number of tokens to generate.')
     parser.add_argument('--max_length', type=int, default=2048, help='Maximum length')
     parser.add_argument('--num_sequences', type=int, default=1, help='Number of sequences to generate.')
     parser.add_argument('--top_p', type=float, default=0.95, help='Top-p sampling value.')
@@ -424,7 +421,30 @@ CUDA_VISIBLE_DEVICES=0 python3 -m tasks.bookMIA.generate \
     --max_tokens 512 \
     --min_tokens 10 \
     --task_prompt_idx 5;    
+
+CUDA_VISIBLE_DEVICES=0 python3 -m tasks.bookMIA.generate \
+    --model meta-llama/Llama-3.1-70B-Instruct \
+    --start_sentence 1 \
+    --num_sentences 5 \
+    --num_sequences 20 \
+    --max_tokens 512 \
+    --min_tokens 10 \
+    --task_prompt_idx 5;      
+
+CUDA_VISIBLE_DEVICES=0 python3 -m tasks.bookMIA.generate \
+    --model meta-llama/Llama-3.1-8B-Instruct \
+    --start_sentence 1 \
+    --num_sentences 5 \
+    --num_sequences 20 \
+    --max_tokens 512 \
+    --min_tokens 10 \
+    --task_prompt_idx 5;      
     
-
-
+CUDA_VISIBLE_DEVICES=0,1 python3 -m tasks.bookMIA.generate \
+    --model meta-llama/Llama-3.1-70B-Instruct \
+    --start_sentence 1 \
+    --num_sentences 5 \
+    --num_sequences 20 \
+    --max_tokens 512 \
+    --task_prompt_idx 5; 
 """
