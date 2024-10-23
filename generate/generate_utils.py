@@ -328,3 +328,5 @@ extra commentary, formatting, or additional text.\n\nComplete the prefix: """,
             "task_preprompt": ""
         }],
     }
+
+task_prompts_dict_book["Llama-3.1-70B-Instruct"] = task_prompts_dict_book["Llama-3.1-8B-Instruct"]
