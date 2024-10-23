@@ -32,6 +32,13 @@ def extract_sentence_chunk(text, start_sentence, num_sentences):
         rest_of_text =  " ".join(text_sentences[start_sentence + num_sentences:])
     return prompt_text, rest_of_text
 
+
+# Function to clean the 'snippet' by replacing '\x00' with an empty string
+def clean_snippet(snippet):
+    if isinstance(snippet, bytes):  # Decode if snippet is in bytes
+        snippet = snippet.decode('utf-8', errors='ignore')
+    return re.sub(r'\x14', '',re.sub(r'\x00', '', snippet))
+
 # Function to define the main process
 def main(args):
     random.seed(0)
@@ -47,15 +54,7 @@ def main(args):
 
     # Jane Eyre is loaded incorrectly??
     problematic_rows = df[df['snippet'].str.contains('\x00', regex=False)].index
-
-    # Function to clean the 'snippet' by replacing '\x00' with an empty string
-    def clean_snippet(snippet):
-        if isinstance(snippet, bytes):  # Decode if snippet is in bytes
-            snippet = snippet.decode('utf-8', errors='ignore')
-        return re.sub(r'\x14', '',re.sub(r'\x00', '', snippet))
-
-    # Replace '\x00' with regex in problematic rows
-    for idx in problematic_rows:
+    for idx in problematic_rows: # Replace '\x00' with regex in problematic rows
         df.at[idx, 'snippet'] = clean_snippet(df.at[idx, 'snippet'])
 
     # Filter data based on snippet counts
@@ -81,9 +80,7 @@ def main(args):
         subsets.append(subset_df)
 
     final_subset = pd.concat(subsets)
-
     print(f"Length: {len(final_subset)}")
-    # Prepare to save generations
     save_folder = "tasks/bookMIA/generations"
     os.makedirs(save_folder, exist_ok=True)
 
@@ -92,6 +89,11 @@ def main(args):
     final_subset["model"] = ""
     final_subset["logprobs"] = ""
     final_subset["snippet_"] = ""
+
+    # Reduce num_sequences if using greedy decoding
+    if args.temperature == 0:
+        print("GREEDY decoding - setting num_sequences to 1")
+        args.num_sequences = 1
 
     if not args.openai:
         # Initialize ModelGenerator
@@ -148,6 +150,7 @@ def main(args):
             final_subset.at[index, "snippet_no_prompt"] = rest_of_text
 
     else:
+        args.min_tokens = None if args.min_tokens == -1 else args.min_tokens
         passages = final_subset.snippet.tolist()
         prompt_outputs = [extract_sentence_chunk(text, args.start_sentence, args.num_sentences) for text in passages]
         
@@ -161,15 +164,18 @@ def main(args):
             prompt_texts, 
             cur_task_prompts["task_prompt"], 
             cur_task_prompts["task_preprompt"],
-            cur_task_prompts["task_postprompt"]
+            cur_task_prompts["task_postprompt"],
+            model_name=model_str,
+            prompt_key="lightest"
             )
-      
+              
         # Generate texts
         final_prompts, all_text_outputs, all_prompt_logprobs, all_output_logprobs = generator.generate_vllm(
             prompts=prompts,
             temperature=args.temperature,
             top_p=args.top_p,
             max_new_tokens=args.max_tokens,
+            min_tokens=args.min_tokens,
             max_length=args.max_length,
             n=args.num_sequences
         )
@@ -183,8 +189,12 @@ def main(args):
     # Convert current datetime to string in 'YYYY-MM-DD HH:MM:SS' format
     date_str = datetime.now().strftime("%Y-%m-%d-%H:%M:%S").strip()
 
+    minTokStr = ""
+    if args.min_tokens != -1: # For non-openai models
+        minTokStr = str(args.min_tokens) + "_"
+    
     # Save DataFrame to CSV with detailed info in the filename
-    file_name = f"{model_str}_maxTokens{args.max_tokens}_numSeq{args.num_sequences}_topP{args.top_p}_numSent{args.num_sentences}_startSent{args.start_sentence}_promptIdx{args.task_prompt_idx}_len{len(final_subset)}_{date_str}.jsonl"
+    file_name = f"{model_str}_maxTok{args.max_tokens}_{minTokStr}numSeq{args.num_sequences}_topP{args.top_p}_temp{args.temperature}_numSent{args.num_sentences}_startSent{args.start_sentence}_promptIdx{args.task_prompt_idx}_len{len(final_subset)}_{date_str}.jsonl"
     file_path = os.path.join(save_folder, file_name)
     columns = [col for col in final_subset.columns if col != 'snippet'] + ['snippet']
     final_subset = final_subset[columns]
@@ -195,6 +205,7 @@ def main(args):
 def parse_args():
     parser = argparse.ArgumentParser(description="Generate text using GPT models.")
     parser.add_argument('--max_tokens', type=int, default=512, help='Maximum number of tokens to generate.')
+    parser.add_argument('--min_tokens', type=int, default=-1, help='Maximum number of tokens to generate.')
     parser.add_argument('--max_length', type=int, default=2048, help='Maximum length')
     parser.add_argument('--num_sequences', type=int, default=1, help='Number of sequences to generate.')
     parser.add_argument('--top_p', type=float, default=0.95, help='Top-p sampling value.')
@@ -406,11 +417,14 @@ CUDA_VISIBLE_DEVICES=2 python3 -m tasks.bookMIA.generate \
     --task_prompt_idx 0;   
 
 CUDA_VISIBLE_DEVICES=0 python3 -m tasks.bookMIA.generate \
-    --model openai-community/gpt2-large \
+    --model meta-llama/Llama-3.1-8B-Instruct \
     --start_sentence 1 \
     --num_sentences 5 \
     --num_sequences 20 \
     --max_tokens 512 \
-    --task_prompt_idx 1;    
+    --min_tokens 10 \
+    --task_prompt_idx 5;    
     
+
+
 """
