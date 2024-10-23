@@ -75,7 +75,7 @@ def make_prompts(
     
     elif "llama-2" in lower_model_name: # LLama2 models, ie, https://huggingface.co/docs/transformers/model_doc/llama2
         if "chat" in lower_model_name:
-            cur_instructions = llama2_chat_prompt_guide[prompt_key] if prompt_key in llama2_chat_prompt_guide else "full"
+            cur_instructions = llama2_chat_prompt_guide[prompt_key] if prompt_key in llama2_chat_prompt_guide else llama2_chat_prompt_guide["lightest"]
             preprompt = LLAMA2_CHAT_PREPROMPT.substitute(instructions=cur_instructions)
             task_postprompt = task_postprompt.lstrip()
             prompts = [f"{preprompt}{task_prompt}{' '.join(p.strip().split())}{LLAMA2_CHAT_POSTPROMPT}{task_postprompt}" for p in prompts]
@@ -88,7 +88,7 @@ def make_prompts(
 
     elif "llama-3.1" in lower_model_name: # LLama3 models, ie, https://huggingface.co/docs/transformers/main/en/model_doc/llama3
         if "inst" in lower_model_name:
-            cur_instructions = llama3_chat_prompt_guide[prompt_key] if prompt_key in llama3_chat_prompt_guide else "lightest"
+            cur_instructions = llama3_chat_prompt_guide[prompt_key] if prompt_key in llama3_chat_prompt_guide else llama3_chat_prompt_guide["lightest"]
             preprompt = LLAMA31_INSTRUCT_PREPROMPT.substitute(instructions=cur_instructions)
             task_postprompt = task_postprompt.lstrip()
             prompts = [f"{preprompt}{task_prompt}{' '.join(p.strip().split())}{LLAMA31_INSTRUCT_POSTPROMPT}{task_postprompt}" for p in prompts]
@@ -98,7 +98,7 @@ def make_prompts(
 
     elif "llama-3-" in lower_model_name:
         if "inst" in lower_model_name:
-            cur_instructions = llama3_chat_prompt_guide[prompt_key] if prompt_key in llama3_chat_prompt_guide else "lightest"
+            cur_instructions = llama3_chat_prompt_guide[prompt_key] if prompt_key in llama3_chat_prompt_guide else llama3_chat_prompt_guide["lightest"]
             preprompt = LLAMA3_INSTRUCT_PREPROMPT.substitute(instructions=cur_instructions)
             task_postprompt = task_postprompt.lstrip()
             prompts = [f"{preprompt}{task_prompt}{' '.join(p.strip().split())}{LLAMA3_INSTRUCT_POSTPROMPT}{task_postprompt}" for p in prompts]
@@ -193,6 +193,74 @@ extra commentary, formatting, or additional text.\n\nComplete the prefix: """,
         }],
     "gpt-4o-mini-2024-07-18": # Can be abstracted to prompts for non-instruction tuned models
         [{
+            "task_prompt": "Write a novel: ",
+            "task_postprompt": "",
+            "task_preprompt": ""
+        },
+        {
+            "task_prompt": "", # Blank
+            "task_postprompt": "",
+            "task_preprompt": ""
+        },
+        {
+            "task_prompt": "Given some text from part of a novel, continue the narrative while keeping the style and context consistent:",
+            "task_postprompt": "",
+            "task_preprompt": ""
+        },
+        {
+            "task_prompt": "You will be shown part of a passage from a famous novel. Please try to generate the rest of the passage as accurately as possible. Do not generate any other text.\n\n",
+            "task_postprompt": "",
+            "task_preprompt": ""
+        },
+        {
+            "task_prompt": "You will be shown part of a passage from a novel. Please try to generate the rest of the passage as accurately as possible. Do not generate any other text.\n\n",
+            "task_postprompt": "",
+            "task_preprompt": ""
+        },
+        {
+            "task_prompt": """You will be shown a series of passages from famous literary works. After these examples, \
+you will receive a prefix from another passage and be asked to complete it based on the \
+text of a famous work. Provide only the continuation for the last given prefix without any \
+extra commentary, formatting, or additional text.\n\nComplete the prefix: """,
+            "task_postprompt": "",
+            "task_preprompt": ""
+        }],
+        "gpt-4o-2024-05-13": # Can be abstracted to prompts for non-instruction tuned models
+        [{
+            "task_prompt": "Write a novel: ",
+            "task_postprompt": "",
+            "task_preprompt": ""
+        },
+        {
+            "task_prompt": "", # Blank
+            "task_postprompt": "",
+            "task_preprompt": ""
+        },
+        {
+            "task_prompt": "Given some text from part of a novel, continue the narrative while keeping the style and context consistent:",
+            "task_postprompt": "",
+            "task_preprompt": ""
+        },
+        {
+            "task_prompt": "You will be shown part of a passage from a famous novel. Please try to generate the rest of the passage as accurately as possible. Do not generate any other text.\n\n",
+            "task_postprompt": "",
+            "task_preprompt": ""
+        },
+        {
+            "task_prompt": "You will be shown part of a passage from a novel. Please try to generate the rest of the passage as accurately as possible. Do not generate any other text.\n\n",
+            "task_postprompt": "",
+            "task_preprompt": ""
+        },
+        {
+            "task_prompt": """You will be shown a series of passages from famous literary works. After these examples, \
+you will receive a prefix from another passage and be asked to complete it based on the \
+text of a famous work. Provide only the continuation for the last given prefix without any \
+extra commentary, formatting, or additional text.\n\nComplete the prefix: """,
+            "task_postprompt": "",
+            "task_preprompt": ""
+        }],
+        "Llama-3.1-8B-Instruct": 
+                [{
             "task_prompt": "Write a novel: ",
             "task_postprompt": "",
             "task_preprompt": ""
