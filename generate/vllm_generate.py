@@ -7,7 +7,7 @@ import json
 from IPython import embed
 from generate.generate_utils import make_prompts
 from vllm import LLM, SamplingParams
-from typing import List, Tuple
+from typing import List, Tuple, Optional
 
 class ModelGenerator:
     """
@@ -34,7 +34,8 @@ class ModelGenerator:
         seed: int = 0,
         hf_token: str = None,
         vllm: bool = True,
-        cache_dir: str = "../cache/"
+        cache_dir: str = "../cache/",
+        gpu_memory_utilization: int = 0.9
     ):
         print("Initializing vLLM model")
         set_seed(seed) # Set the random seed for reproducibility
@@ -54,7 +55,9 @@ class ModelGenerator:
         self.llm = LLM(
             model=model,
             tensor_parallel_size=torch.cuda.device_count(), # Install ray if > 1 GPUs
-            download_dir=cache_dir
+            download_dir=cache_dir,
+            gpu_memory_utilization=0.85, # TODO fix this
+            max_model_len = 2048, # Set manually for large models which have large context lengths
         )
         
         # Create the tokenizer
@@ -65,7 +68,7 @@ class ModelGenerator:
             padding_side="left",
             trust_remote_code=True,
             add_bos_token=add_bos_token
-        )
+        ) # Check this for LLama models - used to not add bos for some variants
 
     def generate_vllm(
         self,
@@ -74,8 +77,9 @@ class ModelGenerator:
         top_p: float = 0.95,
         sample: bool = True,
         max_new_tokens: int = 256,
+        min_tokens: Optional[int] = None,
         max_length: int = 2048,
-        extra_stop_tokens: List[int] = None,
+        extra_stop_tokens: Optional[List[int]] = None,
         n: int = 1
     ) -> Tuple[List[str], List[str]]:
         """
@@ -88,6 +92,7 @@ class ModelGenerator:
             top_p (float, optional): Nucleus sampling parameter. The probability threshold for top-p sampling. Defaults to 0.95.
             sample (bool, optional): If True, uses sampling; otherwise, sets temperature to 0 for deterministic decoding. Defaults to True.
             max_new_tokens (int, optional): The maximum number of new tokens to generate for each input prompt. Defaults to 256.
+            min_tokens (int, optional): Force to generate at least min tokens
             max_length (int, optional): The maximum length (in tokens) of the input prompt plus the generated text. Defaults to 2048.
             extra_stop_tokens (List[int], optional): Additional token IDs that should stop the generation. Defaults to None.
             n (int, optional): The number of sequences to return for each prompt.
@@ -116,10 +121,12 @@ class ModelGenerator:
         stop_token_ids = list(set(extra_stop_tokens + [self.llm.get_tokenizer().eos_token_id]))
         if not sample:
             temperature = 0  # vllm will always use sampling unless temperature = 0
+
         sampling_params = SamplingParams(
             temperature=temperature,
             top_p=top_p,
             max_tokens=max_new_tokens,
+            min_tokens=min_tokens,
             stop_token_ids=stop_token_ids,
             n=n,
             logprobs=5,
@@ -149,5 +156,5 @@ class ModelGenerator:
             all_text_outputs.append(cur_output)
             all_output_logprobs.append(cur_output_logprobs)
         
-        return final_prompts, all_text_outputs, all_prompt_logprobs, all_output_logprobs
+        return final_prompts, all_text_outputs, all_prompt_logprobs, all_output_logprobs 
 
