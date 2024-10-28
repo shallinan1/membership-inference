@@ -1,8 +1,3 @@
-"""
-python3 -m tasks.bookMIA.analysis
-python3 -m tasks.bookMIA.analysis --parallel
-"""
-
 # TODO: something like max_docs which says only to use the first max_docs coverages/cis
 
 import json
@@ -21,8 +16,8 @@ import argparse
 
 LOW_CI_BOUND=3
 HIGH_CI_BOUND=12
-CREATIVITY_CONSTANT = HIGH_CI_BOUND - LOW_CI_BOUND
-NORM_FACTOR = 1e-9
+CREATIVITY_CONSTANT = HIGH_CI_BOUND - LOW_CI_BOUND + 1
+NORM_FACTOR = 1e-2
 
 def combine_lists(list1, list2):
     output_list = []
@@ -112,8 +107,12 @@ def compute_ci_statistic(outputs, min_ngram, max_ngram, add_output_file=None, th
 
     return avg_coverages
 
+ref_models_dict = {
+    "Llama-3.1-70B-Instruct": "Llama-3.1-8B-Instruct"
+}
+
 def process_combination(params):
-    min_ngram, prompt_idx, start_sent, num_sent, model, all_doc, aggregate, ref_prompt_idx = params
+    min_ngram, prompt_idx, start_sent, num_sent, model, all_doc, aggregate, ref_prompt_idx, min_tokens, temp = params
 
     if "gpt-3.5-turbo" in model:
         model_name = "ChatGPT"
@@ -121,12 +120,16 @@ def process_combination(params):
         model_name = "GPT-4o-mini"
     elif "gpt-4o" in model:
         model_name = "GPT-4o"
+    elif "Llama-3.1-70B-Instruct" in model:
+        model_name = "Llama-3.1-70B-Instruct"
+    elif "Llama-3.1-8B-Instruct" in model:
+        model_name = "Llama-3.1-8B-Instruct"
     else:
         model_name = "Default"
 
     # Base path to search
-    gen_path_base_start = f"/gscratch/xlab/hallisky/membership-inference/tasks/bookMIA/generations/{model}_maxTokens512_numSeq"
-    gen_path_base_end = f"_topP0.95_numSent{num_sent}_startSent{start_sent}_promptIdx{prompt_idx}_len"
+    gen_path_base_start = f"/gscratch/xlab/hallisky/membership-inference/tasks/bookMIA/generations/{model}_maxTok512_minTok{min_tokens}_numSeq"
+    gen_path_base_end = f"_topP0.95_temp{temp}_numSent{num_sent}_startSent{start_sent}_promptIdx{prompt_idx}_len"
 
     # Directory where the files are located
     gen_dir = os.path.dirname(gen_path_base_start)
@@ -142,13 +145,15 @@ def process_combination(params):
     
     if not gen_file_paths:
         return None
+    
     doc_string = "alldoc" if all_doc else "onedoc"
 
     # Make save folders
     folder_path = "/gscratch/xlab/hallisky/membership-inference/tasks/bookMIA/plots"
+    ref_model = ref_models_dict.get(model, "gpt2-largeE")
 
     # Save path
-    save_folder = os.path.join(folder_path, model_name, f"promptIdx{prompt_idx}_minNgram{min_ngram}_{doc_string}_numSent{num_sent}_{aggregate}_{ref_prompt_idx}")
+    save_folder = os.path.join(folder_path, model_name, f"promptIdx{prompt_idx}_minNgram{min_ngram}_{doc_string}_numSent{num_sent}_{aggregate}_refModel{ref_model}_refPrompt{ref_prompt_idx}")
 
     # Iterate through the found generation JSONL files and load their data
     for gen_path in gen_file_paths:
@@ -177,17 +182,17 @@ def process_combination(params):
 
     # TODO some check here to make sure the lenghth aligns in reference model?
     # TODO do we need to check the generations? or just load coverages
-    # Load in reference model path # TODO: don't hardcode this
-    ref_coverage_path_start = f"tasks/bookMIA/coverages/gpt2-large_maxTokens512_numSeq20_topP0.95_numSent{num_sent}_startSent{start_sent}_promptIdx{ref_prompt_idx}_len"
+    # Load in reference model path 
+    ref_coverage_path_start = f"/gscratch/xlab/hallisky/membership-inference/tasks/bookMIA/coverages/{ref_model}_maxTok512_minTok{min_tokens}_numSeq"
+    ref_coverage_middle = f"_topP0.95_temp{temp}_numSent{num_sent}_startSent{start_sent}_promptIdx{ref_prompt_idx}_len"
     ref_coverage_path_end = f"_{min_ngram}_{doc_string}.jsonl"
 
-    # Directory where the files are located
     ref_dir = os.path.dirname(ref_coverage_path_start)
     base_filename = os.path.basename(ref_coverage_path_start)
-
-    # List all files in the directory that match the start and end patterns
     matching_file_paths = [os.path.join(ref_dir, f) for f in os.listdir(ref_dir) if 
-                        (f.startswith(base_filename) and f.endswith(ref_coverage_path_end))]
+                        (f.startswith(base_filename) and ref_coverage_middle in f and f.endswith(ref_coverage_path_end))]
+
+    # TODO make folder for different reference models and save them
 
     # Print out matching file paths
     if matching_file_paths:
@@ -201,23 +206,25 @@ def process_combination(params):
     else:
         print("No matching files found.")
         ref_coverage_data = None
-        return
 
     no_empty_gen_data = []
     no_empty_coverage_data = []
     no_empty_ref_coverage_data = []
-    flag=False
+    omitted = 0
     for i, c in enumerate(combined_coverage_data):
         if len(c) > 0:
             no_empty_gen_data.append(combined_gen_data[i])
             no_empty_coverage_data.append(combined_coverage_data[i])
             if ref_coverage_data is not None:
-                no_empty_ref_coverage_data.append(ref_coverage_data[i])
+                cur_ref_coverage_data = ref_coverage_data[i]
+                if len(cur_ref_coverage_data) == 0:
+                    cur_ref_coverage_data = [{'text': "text", 'matched_spans': [], 'coverage': 0, 'avg_span_len': 0}]
+                no_empty_ref_coverage_data.append(cur_ref_coverage_data)
         else:
-            flag=True
-    if flag:
-        pass
-        # print(f"omitted something {save_folder}; Old Length: {len(combined_gen_data)}, new length: {len(no_empty_gen_data)}")
+            omitted += 1
+    if omitted > 0:
+#        pass
+        print(f"omitted something {save_folder}; Old Length: {len(combined_gen_data)}, new length: {len(no_empty_gen_data)}. Number omitted {omitted}")
 
     gen_data = no_empty_gen_data
     coverage_data = no_empty_coverage_data
@@ -228,7 +235,6 @@ def process_combination(params):
         return # Don't run on incomplete data
     
     gen_labels = [g["label"] for g in gen_data]
-    gen_labels_inverted = [1-g for g in gen_labels]
     # Collect book_ids and assign unique colors to them
     book_ids = [g["book_id"] for g in gen_data]  # Assuming `book_id` exists in each generation data
     unique_book_ids = list(set(book_ids))  # Get unique book_ids
@@ -266,8 +272,7 @@ def process_combination(params):
         covs = np.array([np.max(inner_list) for inner_list in covs])
         cis = np.array([np.max(inner_list) for inner_list in cis])
     else:
-        pass
-        # TODO code here to plot the distributions themself
+        pass # TODO code here to plot the distributions themself
 
     if len(ref_coverage_data) == len(coverage_data):
         ref_cis = [compute_ci_statistic(cur_data, LOW_CI_BOUND, HIGH_CI_BOUND) for cur_data in tqdm(ref_coverage_data, leave=False, desc = "Iterating through ref data", position=1)]
@@ -281,17 +286,17 @@ def process_combination(params):
     
         # Now, make a normalized version - subtract?
         normalized_covs_subtract = np.maximum(covs - ref_covs, 0)
-        normalized_cis_subtract = np.maximum(cis - ref_cis, 0)
+        normalized_cis_subtract = CREATIVITY_CONSTANT - np.maximum(cis - ref_cis, 0)
         
         normalized_covs_divide = covs / (ref_covs + NORM_FACTOR)
-        normalized_cis_divide = np.array([CREATIVITY_CONSTANT-c for c in cis]) / (np.array([CREATIVITY_CONSTANT-c for c in ref_cis]) + NORM_FACTOR)
+        normalized_cis_divide = np.minimum(np.array([CREATIVITY_CONSTANT-c for c in cis]) / (np.array([CREATIVITY_CONSTANT-c for c in ref_cis]) + NORM_FACTOR), 1)
 
-        # Convert the CIs 
-        cis = np.array([CREATIVITY_CONSTANT-c for c in cis])
-        ref_cis = np.array([CREATIVITY_CONSTANT-c for c in ref_cis])
-        normalized_cis_subtract = np.array([CREATIVITY_CONSTANT-c for c in normalized_cis_subtract])
-    else:
-        cis = np.array([CREATIVITY_CONSTANT-c for c in cis])
+        normalied_covs_multiply = covs * (1 - ref_covs)
+        normalized_cis_multiply = cis * (np.array([CREATIVITY_CONSTANT-c for c in cis])/CREATIVITY_CONSTANT)
+
+        ref_cis = np.array([CREATIVITY_CONSTANT-c for c in ref_cis]) # Convert
+
+    cis = np.array([CREATIVITY_CONSTANT-c for c in cis]) # Convert 
 
     data_0_cis = [cis[i] for i in range(len(cis)) if gen_labels[i] == 0]
     data_1_cis = [cis[i] for i in range(len(cis)) if gen_labels[i] == 1]
@@ -303,7 +308,7 @@ def process_combination(params):
     mean_1_cis, median_1_cis, std1_cis = np.nanmean(data_1_cis), np.nanmedian(data_1_cis), np.nanstd(data_1_cis)
     mean_0_covs, median_0_covs, std0_covs = np.nanmean(data_0_covs), np.nanmedian(data_0_covs), np.nanstd(data_0_covs)
     mean_1_covs, median_1_covs, std1_covs = np.nanmean(data_1_covs), np.nanmedian(data_1_covs), np.nanstd(data_1_covs)
-
+    
     if len(ref_coverage_data) == len(coverage_data):
         # Now, do same for reference ones
         data_0_ref_cis = [ref_cis[i] for i in range(len(ref_cis)) if gen_labels[i] == 0]
@@ -372,7 +377,7 @@ def process_combination(params):
     plt.xticks([1, 2], ["Unseen Data", "Seen Data"])
     plt.ylabel(f'{aggregate} Creativity Index')
     plt.title(f'CI, BookMIA, {model_name}, min_ngram {min_ngram}, {doc_string}, prompt {prompt_idx}, agg {aggregate}')
-    plt.ylim(top=min(HIGH_CI_BOUND-LOW_CI_BOUND + 0.25, max(mean_0_cis + 2*std0_cis, mean_1_cis + 2*std1_cis)), 
+    plt.ylim(top=min(CREATIVITY_CONSTANT + 0.25, max(mean_0_cis + 2*std0_cis, mean_1_cis + 2*std1_cis)), 
              bottom=max(min(mean_0_cis - 2*std0_cis, mean_1_cis - 2*std1_cis),-0.05))
     plt.grid(alpha=0.2, axis='y')
     plt.tight_layout()
@@ -404,7 +409,7 @@ def process_combination(params):
         plt.xticks([1, 2], ["Unseen Data", "Seen Data"])
         plt.ylabel(f'{aggregate} Creativity Index')
         plt.title(f'CI, BookMIA, {model_name}, min_ngram {min_ngram}, {doc_string}, prompt {prompt_idx}, agg {aggregate}')
-        plt.ylim(top=min(HIGH_CI_BOUND-LOW_CI_BOUND + 0.25, max(mean_0_ref_cis + 2*std0_ref_cis, mean_1_ref_cis + 2*std1_ref_cis)), 
+        plt.ylim(top=min(CREATIVITY_CONSTANT + 0.25, max(mean_0_ref_cis + 2*std0_ref_cis, mean_1_ref_cis + 2*std1_ref_cis)), 
                 bottom=max(min(mean_0_ref_cis - 2*std0_ref_cis, mean_1_ref_cis - 2*std1_ref_cis),-0.05))
         plt.grid(alpha=0.2, axis='y')
         plt.tight_layout()
@@ -435,11 +440,24 @@ def process_combination(params):
         plt.xticks([1, 2], ["Unseen Data", "Seen Data"])
         plt.ylabel(f'{aggregate} Creativity Index')
         plt.title(f'Norm CI, BookMIA, {model_name}, min_ngram {min_ngram}, {doc_string}, prompt {prompt_idx}, agg {aggregate}')
-        plt.ylim(top=min(HIGH_CI_BOUND-LOW_CI_BOUND + 0.25, max(mean_0_normalized_cis_subtract + 2*std0_normalized_cis_subtract, mean_1_normalized_cis_subtract + 2*std1_normalized_cis_subtract)), 
+        plt.ylim(top=min(CREATIVITY_CONSTANT + 0.25, max(mean_0_normalized_cis_subtract + 2*std0_normalized_cis_subtract, mean_1_normalized_cis_subtract + 2*std1_normalized_cis_subtract)), 
                 bottom=max(min(mean_0_normalized_cis_subtract - 2*std0_normalized_cis_subtract, mean_1_normalized_cis_subtract - 2*std1_normalized_cis_subtract),-0.05))
         plt.grid(alpha=0.2, axis='y')
         plt.tight_layout()
         plt.savefig(os.path.join(save_folder, f"CI{LOW_CI_BOUND}-{HIGH_CI_BOUND}_norm_subtract.png"), dpi=200, bbox_inches="tight")
+
+        plt.figure(figsize=(6, 5))
+        violin_parts = plt.violinplot([data_0_normalized_cis_divide, data_1_normalized_cis_divide], showmeans=True)
+        # Set the color and transparency
+        for partname in ('bodies', 'cmeans', 'cbars', 'cmins', 'cmaxes'):
+            if partname == 'bodies':
+                for body in violin_parts[partname]:
+                    body.set_facecolor('black')
+                    body.set_edgecolor('black')
+                    body.set_alpha(0.1)
+            else:
+                violin_parts[partname].set_edgecolor('black')
+                violin_parts[partname].set_alpha(0.1)
 
         plt.scatter(x_positions_0, data_0_normalized_cis_divide, color='black', alpha=0.2)
         plt.scatter(x_positions_1, data_1_normalized_cis_divide, color='black', alpha=0.2)
@@ -452,7 +470,7 @@ def process_combination(params):
         plt.xticks([1, 2], ["Unseen Data", "Seen Data"])
         plt.ylabel(f'{aggregate} Creativity Index')
         plt.title(f'Norm CI, BookMIA, {model_name}, min_ngram {min_ngram}, {doc_string}, prompt {prompt_idx}, agg {aggregate}')
-        # plt.ylim(top=min(HIGH_CI_BOUND-LOW_CI_BOUND + 0.25, max(mean_0_normalized_cis_divide + 2*std0_normalized_cis_divide, mean_1_normalized_cis_divide + 2*std1_normalized_cis_divide)), 
+        # plt.ylim(top=min(CREATIVITY_CONSTANT + 0.25, max(mean_0_normalized_cis_divide + 2*std0_normalized_cis_divide, mean_1_normalized_cis_divide + 2*std1_normalized_cis_divide)), 
         #          bottom=max(min(mean_0_normalized_cis_divide - 2*std0_normalized_cis_divide, mean_1_normalized_cis_divide - 2*std1_normalized_cis_divide),-0.05))
         plt.yscale('log')
         plt.grid(alpha=0.2, axis='y')
@@ -460,11 +478,8 @@ def process_combination(params):
         plt.savefig(os.path.join(save_folder, f"CI{LOW_CI_BOUND}-{HIGH_CI_BOUND}_norm_divide.png"), dpi=200, bbox_inches="tight")
 
     ### PLOT: Plotting for Coverages
-    # Create a violin plot with matplotlib
     plt.figure(figsize=(6, 5))
     violin_parts = plt.violinplot([data_0_covs, data_1_covs], showmeans=True)
-
-    # Set the color and transparency
     for partname in ('bodies', 'cmeans', 'cbars', 'cmins', 'cmaxes'):
         if partname == 'bodies':
             for body in violin_parts[partname]:
@@ -482,7 +497,6 @@ def process_combination(params):
     plt.text(1.75, median_1_covs, f'Median: {median_1_covs:.2f}', ha='center', va='top', color='green', fontsize=10)
     plt.xticks([1, 2], ["Unseen Data", "Seen Data"])
     plt.ylabel(f'{aggregate} Coverage')
-
     plt.title(f'Cov, BookMIA, {model_name}, min_ngram {min_ngram}, {doc_string}, prompt {prompt_idx}, agg {aggregate}')
     plt.ylim(top=min(1.05, max(mean_0_covs + 2*std0_covs, mean_1_covs + 2*std1_covs)), bottom=-0.05)
     plt.grid(alpha=0.2, axis='y')
@@ -515,7 +529,7 @@ def process_combination(params):
         plt.xticks([1, 2], ["Unseen Data", "Seen Data"])
         plt.ylabel(f'{aggregate} Creativity Index')
         plt.title(f'CI, BookMIA, {model_name}, min_ngram {min_ngram}, {doc_string}, prompt {prompt_idx}, agg {aggregate}')
-        plt.ylim(top=min(HIGH_CI_BOUND-LOW_CI_BOUND + 0.25, max(mean_0_ref_covs + 2*std0_ref_covs, mean_1_ref_covs + 2*std1_ref_covs)), 
+        plt.ylim(top=min(CREATIVITY_CONSTANT + 0.25, max(mean_0_ref_covs + 2*std0_ref_covs, mean_1_ref_covs + 2*std1_ref_covs)), 
                 bottom=max(min(mean_0_ref_covs - 2*std0_ref_covs, mean_1_ref_covs - 2*std1_ref_covs),-0.05))
         plt.grid(alpha=0.2, axis='y')
         plt.tight_layout()
@@ -547,7 +561,7 @@ def process_combination(params):
         plt.xticks([1, 2], ["Unseen Data", "Seen Data"])
         plt.ylabel(f'{aggregate} Creativity Index')
         plt.title(f'CI, BookMIA, {model_name}, min_ngram {min_ngram}, {doc_string}, prompt {prompt_idx}, agg {aggregate}')
-        plt.ylim(top=min(HIGH_CI_BOUND-LOW_CI_BOUND + 0.25, max(mean_0_normalized_covs_subtract + 2*std0_normalized_covs_subtract, mean_1_normalized_covs_subtract + 2*std1_normalized_covs_subtract)), 
+        plt.ylim(top=min(CREATIVITY_CONSTANT + 0.25, max(mean_0_normalized_covs_subtract + 2*std0_normalized_covs_subtract, mean_1_normalized_covs_subtract + 2*std1_normalized_covs_subtract)), 
                 bottom=max(min(mean_0_normalized_covs_subtract - 2*std0_normalized_covs_subtract, mean_1_normalized_covs_subtract - 2*std1_normalized_covs_subtract),-0.05))
         plt.grid(alpha=0.2, axis='y')
         plt.tight_layout()
@@ -576,14 +590,16 @@ def process_combination(params):
         plt.text(1.75, median_1_normalized_covs_divide, f'Median: {median_1_normalized_covs_divide:.2f}', ha='center', va='top', color='green', fontsize=10)
         # Adding labels and title
         plt.xticks([1, 2], ["Unseen Data", "Seen Data"])
-        plt.ylabel(f'{aggregate} Creativity Index')
-        plt.title(f'CI, BookMIA, {model_name}, min_ngram {min_ngram}, {doc_string}, prompt {prompt_idx}, agg {aggregate}')
-        # plt.ylim(top=min(HIGH_CI_BOUND-LOW_CI_BOUND + 0.25, max(mean_0_normalized_covs_divide + 2*std0_normalized_covs_divide, mean_1_normalized_covs_divide + 2*std1_normalized_covs_divide)), 
+        plt.ylabel(f'{aggregate} Coverage')
+        plt.title(f'Cov, BookMIA, {model_name}, min_ngram {min_ngram}, {doc_string}, prompt {prompt_idx}, agg {aggregate}')
+        # plt.ylim(top=min(CREATIVITY_CONSTANT + 0.25, max(mean_0_normalized_covs_divide + 2*std0_normalized_covs_divide, mean_1_normalized_covs_divide + 2*std1_normalized_covs_divide)), 
         #          bottom=max(min(mean_0_normalized_covs_divide - 2*std0_normalized_covs_divide, mean_1_normalized_covs_divide - 2*std1_normalized_covs_divide),-0.05))
-        plt.yscale('log')
+        plt.yscale('symlog')
+        plt.ylim(bottom=0)
         plt.grid(alpha=0.2, axis='y')
         plt.tight_layout()
-        plt.savefig(os.path.join(save_folder, f"cov_norm_divide.png"), dpi=200, bbox_inches="tight")
+
+        plt.savefig(os.path.join(save_folder, f"cov_norm_divide.png"), dpi=200, bbox_inches="tight") # *
 
     ### NEW PLOT: Book ID color-coded violin plot (new) (CI)
     plt.figure(figsize=(6, 5))
@@ -617,7 +633,7 @@ def process_combination(params):
     plt.xticks([1, 2], ["Unseen Data", "Seen Data"])
     plt.ylabel(f'{aggregate} Coverage')
     plt.title(f'CI BookMIA, {model_name}, min_ngram {min_ngram}, {doc_string}, prompt {prompt_idx}, agg {aggregate}')
-    plt.ylim(top=min(HIGH_CI_BOUND-LOW_CI_BOUND + 0.25, max(mean_0_cis + 2*std0_cis, mean_1_cis + 2*std1_cis)), 
+    plt.ylim(top=min(CREATIVITY_CONSTANT + 0.25, max(mean_0_cis + 2*std0_cis, mean_1_cis + 2*std1_cis)), 
              bottom=max(min(mean_0_cis - 2*std0_cis, mean_1_cis - 2*std1_cis),-0.05))
     plt.grid(alpha=0.2, axis='y')
     plt.tight_layout()
@@ -684,7 +700,7 @@ def process_combination(params):
     plt.savefig(os.path.join(save_folder, f"cov_rocauc.png"), dpi=200, bbox_inches="tight")
 
     # ROC AUC curves for CI
-    fpr, tpr, thresholds = roc_curve(gen_labels_inverted, cis)
+    fpr, tpr, thresholds = roc_curve(gen_labels, -1 * cis)
     roc_auc = auc(fpr, tpr)
 
     # Calculate accuracy for each threshold
@@ -730,7 +746,7 @@ def process_combination(params):
         plt.savefig(os.path.join(save_folder, f"cov_rocauc_norm_subtract.png"), dpi=200, bbox_inches="tight")
 
         # ROC AUC curves for CI
-        fpr, tpr, thresholds = roc_curve(gen_labels_inverted, normalized_cis_subtract)
+        fpr, tpr, thresholds = roc_curve(gen_labels, -1 * normalized_cis_subtract)
         roc_auc = auc(fpr, tpr)
 
         # Calculate accuracy for each threshold
@@ -774,7 +790,7 @@ def process_combination(params):
         plt.savefig(os.path.join(save_folder, f"cov_rocauc_norm_divide.png"), dpi=200, bbox_inches="tight")
 
         # ROC AUC curves for CI
-        fpr, tpr, thresholds = roc_curve(gen_labels_inverted, normalized_cis_divide)
+        fpr, tpr, thresholds = roc_curve(gen_labels, -1 * normalized_cis_divide)
         roc_auc = auc(fpr, tpr)
 
         # Calculate accuracy for each threshold
@@ -808,15 +824,19 @@ if __name__ == "__main__":
     min_ngrams=[4,5]
     prompt_idxs = list(range(10))[::-1]
     start_sents = list(range(10))
-    num_sents = list(range(10))
+    num_sents = list(range(1, 10))
     models = ["gpt-3.5-turbo-0125", "gpt-4o-mini-2024-07-18", "gpt-4o-2024-05-13"][::-1]
 
-    # models = ["gpt-3.5-turbo-0125"]
+    # # models = ["gpt-3.5-turbo-0125"]
+    # models = ["Llama-3.1-8B-Instruct", "Llama-3.1-70B-Instruct"]
+    models = ["Llama-3.1-70B-Instruct", "Llama-3.1-8B-Instruct",]
     all_docs = [False, True]
     aggregates = ["max", "mean"]
-    ref_prompt_idxs = [1,0]
+    ref_prompt_idxs = [5]
+    min_tokens = [0, 10]
+    temps = [1.0, 0]
 
-    combinations = list(itertools.product(min_ngrams, prompt_idxs, start_sents, num_sents, models, all_docs, aggregates, ref_prompt_idxs))
+    combinations = list(itertools.product(min_ngrams, prompt_idxs, start_sents, num_sents, models, all_docs, aggregates, ref_prompt_idxs, min_tokens, temps))
 
     if args.parallel:
         num_workers = min(cpu_count(), len(combinations))  # Limit to available CPU cores or number of tasks
@@ -829,3 +849,8 @@ if __name__ == "__main__":
             func_output = process_combination(combo)
             total += 1
         print(total, len(combinations))
+
+    """
+    python3 -m tasks.bookMIA.analysis
+    python3 -m tasks.bookMIA.analysis --parallel
+    """
