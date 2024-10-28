@@ -18,6 +18,8 @@ import numpy as np
 import random
 from datetime import datetime
 
+from tasks.utils import clean_snippet
+
 def extract_sentence_chunk(text, start_sentence, num_sentences):
     text_sentences = sent_tokenize(text)
     # Ignore first one, since it is often partial
@@ -31,13 +33,6 @@ def extract_sentence_chunk(text, start_sentence, num_sentences):
         prompt_text = " ".join(text_sentences[start_sentence:start_sentence + num_sentences])
         rest_of_text =  " ".join(text_sentences[start_sentence + num_sentences:])
     return prompt_text, rest_of_text
-
-
-# Function to clean the 'snippet' by replacing '\x00' with an empty string
-def clean_snippet(snippet):
-    if isinstance(snippet, bytes):  # Decode if snippet is in bytes
-        snippet = snippet.decode('utf-8', errors='ignore')
-    return re.sub(r'\x14', '',re.sub(r'\x00', '', snippet))
 
 # Function to define the main process
 def main(args):
@@ -447,4 +442,29 @@ CUDA_VISIBLE_DEVICES=0,1 python3 -m tasks.bookMIA.generate \
     --num_sequences 20 \
     --max_tokens 512 \
     --task_prompt_idx 5; 
+
+CUDA_VISIBLE_DEVICES=0,1 python3 -m tasks.bookMIA.generate \
+    --model meta-llama/Llama-2-70b-chat-hf \
+    --start_sentence 1 \
+    --num_sentences 5 \
+    --num_sequences 20 \
+    --max_tokens 512 \
+    --task_prompt_idx 5; 
+
+
+CUDA_VISIBLE_DEVICES=0,1 python3 -m tasks.bookMIA.generate \
+    --model meta-llama/Llama-2-7b-hf \
+    --start_sentence 1 \
+    --num_sentences 5 \
+    --num_sequences 20 \
+    --max_tokens 512 \
+    --task_prompt_idx 0; 
+
+CUDA_VISIBLE_DEVICES=0,1 python3 -m tasks.bookMIA.generate \
+    --model meta-llama/Llama-2-7b-hf \
+    --start_sentence 1 \
+    --num_sentences 5 \
+    --num_sequences 20 \
+    --max_tokens 512 \
+    --task_prompt_idx 1; 
 """
