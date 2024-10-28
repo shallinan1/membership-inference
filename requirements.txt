@@ -3,3 +3,4 @@ IPython
 unidecode
 matplotlib
 scikit-learn
+accelerate
