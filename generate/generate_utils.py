@@ -126,31 +126,19 @@ def make_prompts(
 
 # Task prompts
 task_prompts_dict_book = {
-    "davinci-002": # GPT3 style - Can be abstracted to prompts for non-instruction tuned models
-        [{
+    "noninstruct-autoregressive": # GPT3 style - Can be abstracted to prompts for non-instruction tuned models
+        [
+            {
             "task_prompt": "Write a novel: ",
             "task_postprompt": "",
             "task_preprompt": ""
-        },
-        # "Continue the story: ", # Didn't work as well as above prompt
-        {
-            "task_prompt": "", # Blank string ,
-            "task_postprompt": "",
-            "task_preprompt": ""
-        },
-        ],
-    "gpt2-large": # GPT3 style - Can be abstracted to prompts for non-instruction tuned models
-        [{
-            "task_prompt": "Write a novel: ",
-            "task_postprompt": "",
-            "task_preprompt": ""
-        },
-        # "Continue the story: ", # Didn't work as well as above prompt
-        {
-            "task_prompt": "", # Blank string ,
-            "task_postprompt": "",
-            "task_preprompt": ""
-        },
+            },
+            # "Continue the story: ", # Didn't work as well as above prompt
+            {
+                "task_prompt": "", # Blank string ,
+                "task_postprompt": "",
+                "task_preprompt": ""
+            },
         ],
     "gpt-3.5-turbo-instruct": # GPT3 instruct style
         ["Write a novel: ",
@@ -329,4 +317,8 @@ extra commentary, formatting, or additional text.\n\nComplete the prefix: """,
         }],
     }
 
+for mod in ["davinci-002", "gpt2-large", "Llama-2-7b-hf", "Llama-2-70b-hf"]:
+    task_prompts_dict_book[mod] = task_prompts_dict_book["noninstruct-autoregressive"]
+
 task_prompts_dict_book["Llama-3.1-70B-Instruct"] = task_prompts_dict_book["Llama-3.1-8B-Instruct"]
+task_prompts_dict_book["Llama-2-70b-chat-hf"] = task_prompts_dict_book["Llama-3.1-8B-Instruct"]
