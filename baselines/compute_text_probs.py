@@ -61,9 +61,13 @@ def getPerplexityProbsLoss(sentence, model, tokenizer):
 
 def main(args):
     # TODO save naming based on split of bookmia used
-    model_name = args.target_model.split("/")[-1]
-    args.output_dir = f"{args.output_dir}/{args.key_name}"
-    Path(args.output_dir).mkdir(parents=True, exist_ok=True)
+    model_name = args.target_model.split(os.sep)[-1]
+    data_path_split = args.data_path.split(os.sep)
+    data_name = data_path_split[1]
+    data_split = data_path_split[-1][:-6] # Prune the jsonl
+
+    output_dir = os.path.join(args.output_dir, data_name, data_split, "probs")
+    os.makedirs(output_dir, exist_ok=True)
 
     # Load dataset
     if os.path.exists(args.data_path):
@@ -77,7 +81,7 @@ def main(args):
     print("Model one loaded")
 
 
-    for d in tqdm(data[:3]):
+    for d in tqdm(data):
         text = d[args.key_name]
         perplexity, log_probs, loss = getPerplexityProbsLoss(text, model, tokenizer)
         perplexity_lower, log_probs_lower, loss_lower = getPerplexityProbsLoss(text.lower(), model, tokenizer)
@@ -90,7 +94,7 @@ def main(args):
         d["loss_lower"] = loss_lower
     
     # Save to JSONL format
-    output_file = os.path.join(args.output_dir, model_name + '.jsonl')
+    output_file = os.path.join(output_dir, model_name + '.jsonl')
     with open(output_file, 'w') as f:
         for entry in data:
             f.write(json.dumps(entry) + '\n')
@@ -99,7 +103,7 @@ def main(args):
 if __name__ == '__main__':
     parser = argparse.ArgumentParser(formatter_class=argparse.ArgumentDefaultsHelpFormatter)
     parser.add_argument('--target_model', type=str, default="text-davinci-003", help="the model to attack: huggyllama/llama-65b, text-davinci-003")
-    parser.add_argument('--output_dir', type=str, default="baselines/bookMIA_out")
+    parser.add_argument('--output_dir', type=str, default="baselines/")
     parser.add_argument('--data_path', type=str, default="data/bookMIA/split-random-overall/val.jsonl", help="the dataset to evaluate: default is WikiMIA")
     parser.add_argument('--length', type=int, default=64, help="the length of the input text to evaluate. Choose from 32, 64, 128, 256")
     parser.add_argument('--key_name', type=str, default="input", help="the key name corresponding to the input text. Selecting from: input, parapgrase")
@@ -111,6 +115,11 @@ if __name__ == '__main__':
         --target_model meta-llama/Llama-2-7b-hf \
         --key_name snippet;
 
+    CUDA_VISIBLE_DEVICES=0 python3 -m baselines.compute_text_probs \
+        --target_model openai-community/gpt2-xl \
+        --key_name snippet;
+    
+    
 
     CUDA_VISIBLE_DEVICES=0,1,2,3 python3 -m baselines.compute_text_probs \
         --target_model meta-llama/Llama-2-70b-hf \
