@@ -13,6 +13,7 @@ import numpy as np
 from IPython import embed
 import matplotlib.pyplot as plt
 import json
+import torch
 
 # def inference(model1, tokenizer1,text, ex, modelname1):
 
@@ -24,12 +25,6 @@ import json
  
 #     # Ratio of log ppl of lower-case and normal-case
 #     pred["ppl/lowercase_ppl"] = -(np.log(p_lower) / np.log(p1)).item()
-
-#     # min-k prob
-#     for ratio in [0.05, 0.1, 0.2, 0.3, 0.4, 0.5, 0.6]:
-#         k_length = int(len(all_prob)*ratio)
-#         topk_prob = np.sort(all_prob)[:k_length]
-#         pred[f"Min_{ratio*100}% Prob"] = -np.mean(topk_prob).item()
 
 #     return ex
 
@@ -50,20 +45,41 @@ def plot_roc_curve(fpr, tpr, roc_auc, strategy_title, strategy_save, output_dir)
     plt.savefig(os.path.join(output_dir, f"{strategy_save.lower()}_rocauc.png"), dpi=200, bbox_inches="tight")
     plt.close()
 
+# TODO: need to get all log probs to run this method
+# def mink_pp(log_probs, all_log_probs, ratio):
+#     mu = (torch.exp(log_probs) * log_probs).sum(-1)
+#     sigma = (torch.exp(log_probs) * torch.square(log_probs)).sum(-1) - ch.square(mu)
+#     scores = (np.array(target_prob) - mu.numpy()) / sigma.sqrt().numpy()
+    
+#     return -np.mean(sorted(scores)[:int(len(scores) * k)])
+
+def mink_attack(log_probs, ratio):
+    k_length = int(len(log_probs)*ratio)
+    topk_prob = np.sort(log_probs)[:k_length]
+    return -np.mean(topk_prob).item()
 
 def zlib_attack(loss, text):
     return loss/len(zlib.compress(bytes(text, 'utf-8')))
 
 strategies = {# "Perplexity": { "func": lambda x: -x["loss"]}, # This is the same as loss
               "Loss": {"func": lambda x: -x["loss"]},
-              "Zlib": {"func": lambda x: zlib_attack(x["loss"], x["snippet"])},
-              "Reference Loss": {"func": lambda x, y: y - x}}
+              "Zlib": {"func": lambda x: -zlib_attack(x["loss"], x["snippet"])},
+              "ReferenceLoss": {"func": lambda x, y: y - x},
+              "MinK-0.05": {"func": lambda x: -mink_attack(x["log_probs"], 0.05)},
+              "MinK-0.1": {"func": lambda x: -mink_attack(x["log_probs"], 0.1)},
+              "MinK-0.2": {"func": lambda x: -mink_attack(x["log_probs"], 0.2)},
+              "MinK-0.3": {"func": lambda x: -mink_attack(x["log_probs"], 0.3)},
+              "MinK-0.4": {"func": lambda x: -mink_attack(x["log_probs"], 0.4)},
+              "MinK-0.5": {"func": lambda x: -mink_attack(x["log_probs"], 0.5)},
+              "MinK-0.6": {"func": lambda x: -mink_attack(x["log_probs"], 0.6)},
+              }
 
 def main(args):
+    target_model_name = args.target_model_probs.split(os.sep)[-1].rstrip(".jsonl")
+
     base_dir = os.path.dirname(os.path.dirname(args.target_model_probs))  # Up one level from 'probs'
-    output_dir = os.path.join(base_dir, 'results')
-    plot_dir = os.path.join(base_dir, 'plots')
-    os.makedirs(output_dir, exist_ok=True)
+    output_dir = os.path.join(base_dir, 'results', target_model_name)
+    plot_dir = os.path.join(output_dir, 'plots')
     os.makedirs(plot_dir, exist_ok=True)
 
     print(f"Saving to {output_dir}")
@@ -78,21 +94,28 @@ def main(args):
 
     all_scores = {}
     for strategy in strategies:
-        if strategy == "Reference Loss":
+        strategy_values = strategies[strategy]
+
+        if strategy == "ReferenceLoss":
             if args.ref_model_probs is not None:
                 for ref_model_path in args.ref_model_probs:
-                    results_ref = load_jsonl(args.target_model_probs)
+                    ref_model_name = ref_model_path.split(os.sep)[-1].rstrip(".jsonl")
+                    if strategy not in all_scores:
+                        all_scores[strategy] = {}
+
+                    results_ref = load_jsonl(ref_model_path)
                     assert len(results_ref) == len(results)
                     assert [g["label"] for g in results] == gen_labels
 
-                    strategy_values = strategies["Reference Loss"]
                     scores = [strategy_values["func"](orig["loss"], ref["loss"]) for orig, ref in zip(results, results_ref)]
 
                     fpr, tpr, thresholds = roc_curve(gen_labels, scores)
                     roc_auc = auc(fpr, tpr)
-                    plot_roc_curve(fpr, tpr, roc_auc, f"{dataset} ({split}): {strategy}", strategy, plot_dir)
+                    all_scores[strategy][ref_model_name] = {}
+                    all_scores[strategy][ref_model_name]["roc_auc"] = roc_auc
+
+                    plot_roc_curve(fpr, tpr, roc_auc, f"{dataset} ({split}): {strategy}, {target_model_name} ({ref_model_name} ref)", f"{strategy}_{ref_model_name}", plot_dir)
         else:
-            strategy_values = strategies[strategy]
             scores = [strategy_values["func"](r) for r in results]
 
             fpr, tpr, thresholds = roc_curve(gen_labels, scores)
@@ -103,7 +126,7 @@ def main(args):
             # all_scores[strategy]["thresholds"] = thresholds
             all_scores[strategy]["roc_auc"] = roc_auc
 
-            plot_roc_curve(fpr, tpr, roc_auc, f"{dataset} ({split}): {strategy}", strategy, plot_dir)
+            plot_roc_curve(fpr, tpr, roc_auc, f"{dataset} ({split}): {strategy}, {target_model_name}", strategy, plot_dir)
 
     output_file_path = os.path.join(output_dir, f"{strategy.lower()}_scores.json")
     with open(output_file_path, 'w') as f:
@@ -114,12 +137,6 @@ def main(args):
         # for threshold in thresholds:
         #     y_pred = np.where(covs >= threshold, 1, 0)
         #     accuracy_scores.append(accuracy_score(gen_labels, y_pred))
-
-    
-
-
-    # all_output = evaluate_data(final_subset, model1, model2, tokenizer1, tokenizer2, args.key_name, args.target_model, args.ref_model)
-
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser(formatter_class=argparse.ArgumentDefaultsHelpFormatter)
@@ -132,8 +149,8 @@ if __name__ == '__main__':
     python3 -m baselines.run_baselines \
         --target_model_probs baselines/bookMIA/val/probs/Llama-2-7b-hf.jsonl \
 
-    CUDA_VISIBLE_DEVICES=0,1,2,3 python3 -m baselines.run_baselines \
-        --target_model meta-llama/Llama-2-70b-hf \
-        --key_name snippet;
+    python3 -m baselines.run_baselines \
+        --target_model_probs baselines/bookMIA/val/probs/Llama-2-70b-hf.jsonl \
+        --ref_model_probs baselines/bookMIA/val/probs/Llama-2-7b-hf.jsonl \
     """
 
