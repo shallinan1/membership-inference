@@ -75,7 +75,7 @@ strategies = {# "Perplexity": { "func": lambda x: -x["loss"]}, # This is the sam
               }
 
 def main(args):
-    target_model_name = args.target_model_probs.split(os.sep)[-1].rstrip(".jsonl")
+    target_model_name = args.target_model_probs.split(os.sep)[-1][:-6]
 
     base_dir = os.path.dirname(os.path.dirname(args.target_model_probs))  # Up one level from 'probs'
     output_dir = os.path.join(base_dir, 'results', target_model_name)
@@ -99,7 +99,7 @@ def main(args):
         if strategy == "ReferenceLoss":
             if args.ref_model_probs is not None:
                 for ref_model_path in args.ref_model_probs:
-                    ref_model_name = ref_model_path.split(os.sep)[-1].rstrip(".jsonl")
+                    ref_model_name = ref_model_path.split(os.sep)[-1][:-6]
                     if strategy not in all_scores:
                         all_scores[strategy] = {}
 
@@ -128,7 +128,7 @@ def main(args):
 
             plot_roc_curve(fpr, tpr, roc_auc, f"{dataset} ({split}): {strategy}, {target_model_name}", strategy, plot_dir)
 
-    output_file_path = os.path.join(output_dir, f"{strategy.lower()}_scores.json")
+    output_file_path = os.path.join(output_dir, f"scores.json")
     with open(output_file_path, 'w') as f:
         json.dump(all_scores, f, indent=4)
 
@@ -147,8 +147,7 @@ if __name__ == '__main__':
 
     """
     python3 -m baselines.run_baselines \
-        --target_model_probs baselines/bookMIA/val/probs/Llama-2-7b-hf.jsonl \
-
+        --target_model_probs baselines/bookMIA/val/probs/Llama-2-7b-hf.jsonl ;
     python3 -m baselines.run_baselines \
         --target_model_probs baselines/bookMIA/val/probs/Llama-2-70b-hf.jsonl \
         --ref_model_probs baselines/bookMIA/val/probs/Llama-2-7b-hf.jsonl \
