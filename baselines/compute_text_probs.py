@@ -25,6 +25,7 @@ from utils import load_jsonl
 from IPython import embed
 import torch
 
+# TODO add sliding window when tokenized length of texts > model length (ie, gpt2-xl)
 def getPerplexityProbsLoss(sentence, model, tokenizer):
     """
     Calculate the perplexity of a sentence given a language model and tokenizer.
@@ -60,7 +61,7 @@ def getPerplexityProbsLoss(sentence, model, tokenizer):
     return torch.exp(loss).item(), all_prob, loss.item()
 
 def main(args):
-    # TODO save naming based on split of bookmia used
+    # TODO Save all log probabilities for minkplusplus method
     model_name = args.target_model.split(os.sep)[-1]
     data_path_split = args.data_path.split(os.sep)
     data_name = data_path_split[1]
