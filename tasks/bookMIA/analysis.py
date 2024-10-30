@@ -13,6 +13,7 @@ from multiprocessing import Pool, cpu_count
 from sklearn.metrics import roc_curve, auc, accuracy_score
 from IPython import embed
 import argparse
+from utils import load_jsonl
 
 LOW_CI_BOUND=3
 HIGH_CI_BOUND=12
@@ -60,12 +61,6 @@ def combine_list_of_dicts(list1, list2):
         combined_list.append(combined_dict)
     
     return combined_list
-
-# Load gen_path as jsonl
-def load_jsonl(file_path):
-    with open(file_path, 'r') as f:
-        data = [json.loads(line) for line in f]
-    return data
 
 # Load coverage_path as a json
 def load_json(file_path):
