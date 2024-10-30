@@ -11,15 +11,14 @@ from tqdm import tqdm
 from utils import load_jsonl
 import numpy as np
 from IPython import embed
-
+import matplotlib.pyplot as plt
+import json
 
 # def inference(model1, tokenizer1,text, ex, modelname1):
 
 #     perplexity, probabilities, loss = getPerplexityProbLoss(text, model1, tokenizer1, gpu=model1.device)
 #     p_lower, _, p_lower_likelihood = getPerplexityProbLoss(text.lower(), model1, tokenizer1, gpu=model1.device)
 
-#     # ppl
-#     pred["ppl"] = p1
 #     # Ratio of log ppl of large and small models
 #     pred["ppl/Ref_ppl (calibrate PPL to the reference model)"] = p1_likelihood-p_ref_likelihood
  
@@ -35,20 +34,49 @@ from IPython import embed
 #     return ex
 
 
+# Function to plot ROC curve
+def plot_roc_curve(fpr, tpr, roc_auc, strategy_title, strategy_save, output_dir):
+    plt.figure()
+    plt.plot(fpr, tpr, color='blue', lw=2, label=f'ROC curve (area = {roc_auc:0.2f})')
+    plt.plot([0, 1], [0, 1], color='red', lw=2, linestyle='--')  # Diagonal line for random guess
+    plt.xlim([0.0, 1.0])
+    plt.ylim([0.0, 1.05])
+    plt.xlabel('False Positive Rate')
+    plt.ylabel('True Positive Rate')
+    plt.title(f'{strategy_title} ROC Curve')
+    plt.grid(alpha=0.15)
+    plt.legend(loc="lower right")
+    plt.tight_layout()
+    plt.savefig(os.path.join(output_dir, f"{strategy_save.lower()}_rocauc.png"), dpi=200, bbox_inches="tight")
+    plt.close()
+
 
 def zlib_attack(loss, text):
     return loss/len(zlib.compress(bytes(text, 'utf-8')))
 
-strategies = {"Perplexity": { "func": lambda x: -x["loss"]},
+strategies = {# "Perplexity": { "func": lambda x: -x["loss"]}, # This is the same as loss
               "Loss": {"func": lambda x: -x["loss"]},
               "Zlib": {"func": lambda x: zlib_attack(x["loss"], x["snippet"])},
               "Reference Loss": {"func": lambda x, y: y - x}}
 
 def main(args):
+    base_dir = os.path.dirname(os.path.dirname(args.target_model_probs))  # Up one level from 'probs'
+    output_dir = os.path.join(base_dir, 'results')
+    plot_dir = os.path.join(base_dir, 'plots')
+    os.makedirs(output_dir, exist_ok=True)
+    os.makedirs(plot_dir, exist_ok=True)
+
+    print(f"Saving to {output_dir}")
+
+    input_path_parts = args.target_model_probs.split(os.sep)
+    dataset = input_path_parts[1]   # 'bookMIA'
+    split = input_path_parts[2]     # 'val'
+
     # Load in the probs from file
     results = load_jsonl(args.target_model_probs)
     gen_labels = [g["label"] for g in results]
 
+    all_scores = {}
     for strategy in strategies:
         if strategy == "Reference Loss":
             if args.ref_model_probs is not None:
@@ -62,14 +90,24 @@ def main(args):
 
                     fpr, tpr, thresholds = roc_curve(gen_labels, scores)
                     roc_auc = auc(fpr, tpr)
-                    print(strategy, roc_auc)
+                    plot_roc_curve(fpr, tpr, roc_auc, f"{dataset} ({split}): {strategy}", strategy, plot_dir)
         else:
             strategy_values = strategies[strategy]
             scores = [strategy_values["func"](r) for r in results]
 
             fpr, tpr, thresholds = roc_curve(gen_labels, scores)
             roc_auc = auc(fpr, tpr)
-            print(strategy, roc_auc)
+            all_scores[strategy] = {}
+            # all_scores[strategy]["fpr"] = fpr
+            # all_scores[strategy]["tpr"] = tpr
+            # all_scores[strategy]["thresholds"] = thresholds
+            all_scores[strategy]["roc_auc"] = roc_auc
+
+            plot_roc_curve(fpr, tpr, roc_auc, f"{dataset} ({split}): {strategy}", strategy, plot_dir)
+
+    output_file_path = os.path.join(output_dir, f"{strategy.lower()}_scores.json")
+    with open(output_file_path, 'w') as f:
+        json.dump(all_scores, f, indent=4)
 
         # # Calculate accuracy for each threshold
         # accuracy_scores = []
@@ -81,8 +119,6 @@ def main(args):
 
 
     # all_output = evaluate_data(final_subset, model1, model2, tokenizer1, tokenizer2, args.key_name, args.target_model, args.ref_model)
-    
-    # fig_fpr_tpr(all_output, args.output_dir)
 
 
 if __name__ == '__main__':
