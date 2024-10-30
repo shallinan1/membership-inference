@@ -1,7 +1,3 @@
-import logging
-logger = logging.getLogger(__name__)
-logging.basicConfig(level='ERROR')
-
 from user_secrets import CACHE_PATH
 import os
 # Set up environment variables
@@ -10,7 +6,6 @@ os.environ["HF_DATASETS_PATH"] = CACHE_PATH
 
 import numpy as np
 from pathlib import Path
-import openai
 import torch
 import zlib
 from transformers import AutoTokenizer, AutoModelForCausalLM
@@ -64,41 +59,6 @@ def getPerplexityProbsLoss(sentence, model, tokenizer):
         all_prob.append(probability)
     return torch.exp(loss).item(), all_prob, loss.item()
 
-# def inference(model1, tokenizer1,text, ex, modelname1):
-#     pred = {}
-
-#     perplexity, probabilities, loss = getPerplexityProbLoss(text, model1, tokenizer1, gpu=model1.device)
-#     p_lower, _, p_lower_likelihood = getPerplexityProbLoss(text.lower(), model1, tokenizer1, gpu=model1.device)
-
-#    # ppl
-#     pred["ppl"] = p1
-#     # Ratio of log ppl of large and small models
-#     pred["ppl/Ref_ppl (calibrate PPL to the reference model)"] = p1_likelihood-p_ref_likelihood
- 
-#     # Ratio of log ppl of lower-case and normal-case
-#     pred["ppl/lowercase_ppl"] = -(np.log(p_lower) / np.log(p1)).item()
-#     # Ratio of log ppl of large and zlib
-#     zlib_entropy = len(zlib.compress(bytes(text, 'utf-8')))
-#     pred["ppl/zlib"] = np.log(p1)/zlib_entropy
-#     # min-k prob
-#     for ratio in [0.05, 0.1, 0.2, 0.3, 0.4, 0.5, 0.6]:
-#         k_length = int(len(all_prob)*ratio)
-#         topk_prob = np.sort(all_prob)[:k_length]
-#         pred[f"Min_{ratio*100}% Prob"] = -np.mean(topk_prob).item()
-
-#     ex["pred"] = pred
-#     return ex
-
-def evaluate_data(test_data, model1, model2, tokenizer1, tokenizer2, col_name, modelname1, modelname2):
-    print(f"all data size: {len(test_data)}")
-    all_output = []
-    test_data = test_data
-    for ex in tqdm(test_data): 
-        text = ex[col_name]
-        new_ex = inference(model1, model2, tokenizer1, tokenizer2, text, ex, modelname1, modelname2)
-        all_output.append(new_ex)
-    return all_output
-
 def main(args):
     # TODO save naming based on split of bookmia used
     model_name = args.target_model.split("/")[-1]
@@ -129,24 +89,11 @@ def main(args):
         d["log_probs_lower"] = log_probs_lower
         d["loss_lower"] = loss_lower
     
-    embed()
-
     # Save to JSONL format
     output_file = os.path.join(args.output_dir, model_name + '.jsonl')
     with open(output_file, 'w') as f:
         for entry in data:
             f.write(json.dumps(entry) + '\n')
-
-    # model1, tokenizer1 = load_model(args.ref_model)
-    # if "jsonl" in args.data:
-    #     data = load_jsonl(f"{args.data}")
-    # else: # load data from huggingface
-    #     dataset = load_dataset(args.data, split=f"WikiMIA_length{args.length}")
-    #     data = convert_huggingface_data_to_list_dic(dataset)
-#     embed()
-    # all_output = evaluate_data(final_subset, model1, model2, tokenizer1, tokenizer2, args.key_name, args.target_model, args.ref_model)
-    
-    # fig_fpr_tpr(all_output, args.output_dir)
 
 
 if __name__ == '__main__':
@@ -160,7 +107,6 @@ if __name__ == '__main__':
 
 
     """
-
     CUDA_VISIBLE_DEVICES=0 python3 -m baselines.compute_text_probs \
         --target_model meta-llama/Llama-2-7b-hf \
         --key_name snippet;
@@ -169,6 +115,5 @@ if __name__ == '__main__':
     CUDA_VISIBLE_DEVICES=0,1,2,3 python3 -m baselines.compute_text_probs \
         --target_model meta-llama/Llama-2-70b-hf \
         --key_name snippet;
-
     """
 
