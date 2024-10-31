@@ -13,60 +13,13 @@ from multiprocessing import Pool, cpu_count
 from sklearn.metrics import roc_curve, auc, accuracy_score
 from IPython import embed
 import argparse
-from utils import load_jsonl
+from utils import load_jsonl, load_json, combine_lists, combine_dicts, combine_list_of_dicts
+from baselines.run_baselines import plot_roc_curve
 
 LOW_CI_BOUND=3
 HIGH_CI_BOUND=12
 CREATIVITY_CONSTANT = HIGH_CI_BOUND - LOW_CI_BOUND + 1
 NORM_FACTOR = 1e-2
-
-def combine_lists(list1, list2):
-    output_list = []
-    for l1, l2 in zip(list1, list2):
-        output_list.append(l1 + l2)
-    return output_list
-
-def combine_dicts(dict1, dict2):
-    for cur_key in ['logprobs', 'model']:
-        if cur_key in dict1:
-            dict1.pop(cur_key)
-        if cur_key in dict2:
-            dict2.pop(cur_key)
-
-    # Assert that both dictionaries have the same keys
-    assert dict1.keys() == dict2.keys(), f"Keys do not match: {dict1.keys()} != {dict2.keys()}"
-    
-    combined_dict = {}
-    
-    for key in dict1.keys():
-        if isinstance(dict1[key], list):
-            # Combine list values by concatenation
-            combined_dict[key] = dict1[key] + dict2[key]
-        else:
-            # Ensure non-list values are equal
-            assert dict1[key] == dict2[key], f"Values for '{key}' do not match: {dict1[key]} != {dict2[key]}"
-            combined_dict[key] = dict1[key]
-    
-    return combined_dict
-    
-def combine_list_of_dicts(list1, list2):
-    # Ensure both lists have the same length
-    assert len(list1) == len(list2), f"Lists must have the same length: {len(list1)} != {len(list2)}"
-    
-    combined_list = []
-
-    # Iterate through both lists simultaneously and combine each pair of dictionaries
-    for dict1, dict2 in zip(list1, list2):
-        combined_dict = combine_dicts(dict1, dict2)
-        combined_list.append(combined_dict)
-    
-    return combined_list
-
-# Load coverage_path as a json
-def load_json(file_path):
-    with open(file_path, 'r') as f:
-        data = json.load(f)
-    return data
 
 def get_ngram_coverage(text, spans, min_gram):
     try:
@@ -107,7 +60,7 @@ ref_models_dict = {
 }
 
 def process_combination(params):
-    min_ngram, prompt_idx, start_sent, num_sent, model, all_doc, aggregate, ref_prompt_idx, min_tokens, temp = params
+    min_ngram, prompt_idx, start_sent, num_sent, model, all_doc, aggregate, ref_prompt_idx, min_tokens, temp, split = params
 
     if "gpt-3.5-turbo" in model:
         model_name = "ChatGPT"
@@ -119,12 +72,16 @@ def process_combination(params):
         model_name = "Llama-3.1-70B-Instruct"
     elif "Llama-3.1-8B-Instruct" in model:
         model_name = "Llama-3.1-8B-Instruct"
+    elif "Llama-2-7b-hf" in model:
+        model_name = "Llama-2-7B"
+    elif "Llama-2-70b-hf" in model:
+        model_name = "Llama-2-70B"
     else:
         model_name = "Default"
 
     # Base path to search
-    gen_path_base_start = f"/gscratch/xlab/hallisky/membership-inference/tasks/bookMIA/generations/{model}_maxTok512_minTok{min_tokens}_numSeq"
-    gen_path_base_end = f"_topP0.95_temp{temp}_numSent{num_sent}_startSent{start_sent}_promptIdx{prompt_idx}_len"
+    gen_path_base_start = f"/gscratch/xlab/hallisky/membership-inference/tasks/bookMIA/generations/{split}/{model}_maxTok512_minTok{min_tokens}_numSeq"
+    gen_path_base_end = f"_topP0.95_temp{temp}_numSent{num_sent}_startSent{start_sent}_numWord-1_startWord-1_useSentF_promptIdx{prompt_idx}_len"
 
     # Directory where the files are located
     gen_dir = os.path.dirname(gen_path_base_start)
@@ -144,7 +101,7 @@ def process_combination(params):
     doc_string = "alldoc" if all_doc else "onedoc"
 
     # Make save folders
-    folder_path = "/gscratch/xlab/hallisky/membership-inference/tasks/bookMIA/plots"
+    folder_path = "/gscratch/xlab/hallisky/membership-inference/tasks/bookMIA/plots/{split}"
     ref_model = ref_models_dict.get(model, "gpt2-largeE")
 
     # Save path
@@ -681,18 +638,23 @@ def process_combination(params):
     for threshold in thresholds:
         y_pred = np.where(covs >= threshold, 1, 0)
         accuracy_scores.append(accuracy_score(gen_labels, y_pred))
-    plt.figure()
-    plt.plot(fpr, tpr, color='blue', lw=2, label=f'ROC curve (area = {roc_auc:0.2f})')
-    plt.plot([0, 1], [0, 1], color='red', lw=2, linestyle='--')  # Diagonal line for random guess
-    plt.xlim([0.0, 1.0])
-    plt.ylim([0.0, 1.05])
-    plt.xlabel('False Positive Rate')
-    plt.ylabel('True Positive Rate')
-    plt.title(f'Cov ROC Curve, BookMIA, {model_name}, min_ngram {min_ngram}, {doc_string}, prompt {prompt_idx}, agg {aggregate}')
-    plt.grid(alpha=0.15)
-    plt.legend(loc="lower right")
-    plt.tight_layout()
-    plt.savefig(os.path.join(save_folder, f"cov_rocauc.png"), dpi=200, bbox_inches="tight")
+    # Plot the ROC curve
+    plot_roc_curve(fpr, tpr, roc_auc, 
+                   f'Cov, BookMIA, {model_name}, min_ngram {min_ngram}, {doc_string}, prompt {prompt_idx}, agg {aggregate}',
+                   save_path=os.path.join(save_folder, f"cov_rocauc.png"))
+    
+    # plt.figure()
+    # plt.plot(fpr, tpr, color='blue', lw=2, label=f'ROC curve (area = {roc_auc:0.2f})')
+    # plt.plot([0, 1], [0, 1], color='red', lw=2, linestyle='--')  # Diagonal line for random guess
+    # plt.xlim([0.0, 1.0])
+    # plt.ylim([0.0, 1.05])
+    # plt.xlabel('False Positive Rate')
+    # plt.ylabel('True Positive Rate')
+    # plt.title(f'Cov ROC Curve, BookMIA, {model_name}, min_ngram {min_ngram}, {doc_string}, prompt {prompt_idx}, agg {aggregate}')
+    # plt.grid(alpha=0.15)
+    # plt.legend(loc="lower right")
+    # plt.tight_layout()
+    # plt.savefig(os.path.join(save_folder, f"cov_rocauc.png"), dpi=200, bbox_inches="tight")
 
     # ROC AUC curves for CI
     fpr, tpr, thresholds = roc_curve(gen_labels, -1 * cis)
@@ -817,21 +779,22 @@ if __name__ == "__main__":
     args = parser.parse_args()
 
     min_ngrams=[4,5]
-    prompt_idxs = list(range(10))[::-1]
-    start_sents = list(range(10))
-    num_sents = list(range(1, 10))
+    prompt_idxs = [1]
+    start_sents = [1]
+    num_sents = [1,3,5,10]
     models = ["gpt-3.5-turbo-0125", "gpt-4o-mini-2024-07-18", "gpt-4o-2024-05-13"][::-1]
 
     # # models = ["gpt-3.5-turbo-0125"]
-    # models = ["Llama-3.1-8B-Instruct", "Llama-3.1-70B-Instruct"]
-    models = ["Llama-3.1-70B-Instruct", "Llama-3.1-8B-Instruct",]
+    splits = ["train"]
+    models = ["Llama-2-7b-hf"] # "Llama-2-70b-hf"
     all_docs = [False, True]
+    all_docs = [False]
     aggregates = ["max", "mean"]
     ref_prompt_idxs = [5]
     min_tokens = [0, 10]
     temps = [1.0, 0]
 
-    combinations = list(itertools.product(min_ngrams, prompt_idxs, start_sents, num_sents, models, all_docs, aggregates, ref_prompt_idxs, min_tokens, temps))
+    combinations = list(itertools.product(min_ngrams, prompt_idxs, start_sents, num_sents, models, all_docs, aggregates, ref_prompt_idxs, min_tokens, temps, splits))
 
     if args.parallel:
         num_workers = min(cpu_count(), len(combinations))  # Limit to available CPU cores or number of tasks
