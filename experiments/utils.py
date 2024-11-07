@@ -1,3 +1,4 @@
+import matplotlib.pyplot as plt
 
 # Function to plot ROC curve
 def plot_roc_curve(fpr, tpr, roc_auc, strategy_title, save_path):

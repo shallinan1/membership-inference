@@ -54,3 +54,16 @@ def combine_list_of_dicts(list1, list2):
         combined_list.append(combined_dict)
     
     return combined_list
+
+def save_to_jsonl(data, file_path):
+    """
+    Saves a list of dictionaries to a JSONL file.
+
+    Parameters:
+    - data (list): A list of dictionaries to save.
+    - file_path (str): Path to the JSONL file.
+    """
+    with open(file_path, "w") as f:
+        for entry in data:
+            f.write(json.dumps(entry) + "\n")
+    print(f"Data saved to {file_path} in JSONL format.")
