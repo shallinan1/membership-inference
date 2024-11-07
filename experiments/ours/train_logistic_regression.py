@@ -14,6 +14,7 @@ import argparse
 from utils import load_jsonl, load_json, combine_lists, combine_dicts, combine_list_of_dicts
 import pandas as pd
 from experiments.ours.utils import load_all_files, get_all_gen_paths, BookMIALength
+from sklearn.neural_network import MLPClassifier
 
 LOW_CI_BOUND=3
 HIGH_CI_BOUND=12
@@ -106,12 +107,16 @@ def main(args):
         ["ci_mean", "ci_median", "ci_std", "ci_iqr","ci_min", "ci_max"],
         ["ci_mean", "ci_std"],
         ["ci_std"],
+        ["ci_mean"],
+        ["ci_max"],
         ["ci_median", "ci_std", "ci_max"],
         ["ci_mean", "ci_std", "ci_max"],
         ["ci_mean", "ci_max"],
         ["cov_mean", "cov_median", "cov_std", "cov_iqr","cov_min", "cov_max"],
         ["cov_mean", "cov_std"],
         ["cov_std"],
+        ["cov_mean"],
+        ["cov_max"],
         ["cov_median", "cov_std", "cov_max"],
         ["cov_mean", "cov_std", "cov_max"],
         ["cov_mean", "cov_max"],
@@ -132,6 +137,12 @@ def main(args):
         ["cov_logdist_bins5"],
         ["cov_logdist_bins10"],
         ["cov_logdist_bins20"],
+        ["ci_regdist_bins5", "cov_regdist_bins5"],
+        ["ci_regdist_bins10", "cov_regdist_bins10"],
+        ["ci_regdist_bins20", "cov_regdist_bins20"],
+        ["ci_logdist_bins5", "cov_logdist_bins5"],
+        ["ci_logdist_bins10", "cov_logdist_bins10"],
+        ["ci_logdist_bins20", "cov_logdist_bins20"],
     ]
 
     results = {}
@@ -154,19 +165,67 @@ def main(args):
             y_pred_proba = log_reg.predict_proba(feature_vector_val)[:,1]
 
             # Evaluate the model
-            accuracy = accuracy_score(gen_labels_val, y_pred)
+            accuracy_classifier = accuracy_score(gen_labels_val, y_pred)
             report = classification_report(gen_labels_val, y_pred)
 
             fpr, tpr, thresholds = roc_curve(gen_labels_val, y_pred_proba)
             roc_auc = auc(fpr, tpr)
+            accuracies = []
+            for i, threshold in enumerate(thresholds):
+                tn_rate = 1 - fpr[i]  # True Negative Rate = 1 - FPR
+                fn_rate = 1 - tpr[i]  # False Negative Rate = 1 - TPR
+                accuracy = (tpr[i] + tn_rate) / 2  # This is a balanced accuracy
+                accuracies.append(accuracy)
+
+            # Find the maximum accuracy and the corresponding threshold
+            max_accuracy_index = np.argmax(accuracies)
+            max_accuracy = accuracies[max_accuracy_index]
 
             # print("\nClassification Report:\n", report)
-            results[f'{penalty}_{"-".join(sorted(cur_features))}'] = {'acc': accuracy,
+            results[f'{penalty}_{"-".join(sorted(cur_features))}'] = {'acc': accuracy_classifier,
+                                                                      'max_acc': max_accuracy,
                                                                       'roc_auc': roc_auc,
                                                                       'penalty': penalty,
                                                                       'features': cur_features,
                                                                       'features_coefficients': log_reg.coef_[0],
                                                                       'features_intercept': log_reg.intercept_[0]}
+
+        for hidden_size in [(10,), (20,), (50,), (100,), (3, 3), (5, 5), (10,10), (10,5), (5,5,5)]:
+            for alpha in [0.01, 0.1, 1, 10]:
+                # Define a simplified MLP model for small datasets
+                mlp = MLPClassifier(hidden_layer_sizes=hidden_size, solver='lbfgs', alpha=alpha, random_state=42, max_iter=1000)
+
+                # Train the MLP model
+                mlp.fit(feature_vector_train, gen_labels_train)
+
+                # Predict probabilities and labels
+                y_pred_proba = mlp.predict_proba(feature_vector_val)[:, 1]  # Probability of the positive class
+                y_pred = mlp.predict(feature_vector_val)
+
+                # Evaluate the model
+                accuracy = accuracy_score(gen_labels_val, y_pred)
+
+                fpr, tpr, thresholds = roc_curve(gen_labels_val, y_pred_proba)
+                roc_auc = auc(fpr, tpr)
+                accuracies = []
+                for i, threshold in enumerate(thresholds):
+                    tn_rate = 1 - fpr[i]  # True Negative Rate = 1 - FPR
+                    fn_rate = 1 - tpr[i]  # False Negative Rate = 1 - TPR
+                    accuracy = (tpr[i] + tn_rate) / 2  # This is a balanced accuracy
+                    accuracies.append(accuracy)
+
+                # Find the maximum accuracy and the corresponding threshold
+                max_accuracy_index = np.argmax(accuracies)
+                max_accuracy = accuracies[max_accuracy_index]
+
+                # print("\nClassification Report:\n", report)
+                results[f'mlp_{"-".join(str(h) for h in hidden_size)}_{alpha}_{"-".join(sorted(cur_features))}'] = {'acc': accuracy_classifier,
+                                                                            'max_acc': max_accuracy,
+                                                                            'roc_auc': roc_auc,
+                                                                            'penalty': "l2",
+                                                                            'features': cur_features,
+                                                                            "hidden_size": hidden_size,
+                                                                            "alpha": alpha}
 
     fpr, tpr, thresholds = roc_curve(gen_labels_val, [np.mean(c) for c in covs])
     roc_auc = auc(fpr, tpr)
@@ -181,7 +240,7 @@ def main(args):
     # Find the maximum accuracy and the corresponding threshold
     max_accuracy_index = np.argmax(accuracies)
     max_accuracy = accuracies[max_accuracy_index]
-    results["baseline"] = {"acc":max_accuracy, "roc_auc": roc_auc}
+    results["baseline"] = {"max_acc":max_accuracy, "roc_auc": roc_auc}
 
     df = pd.DataFrame.from_dict(results, orient='index').reset_index()
     df.rename(columns={'index': 'model_name'}, inplace=True)
@@ -190,7 +249,6 @@ def main(args):
     print(save_file)
     os.makedirs(os.path.dirname(save_file),exist_ok=True)
     df.to_csv(save_file, index=False)
-    embed()
 
 
 if __name__ == "__main__":
@@ -203,7 +261,7 @@ if __name__ == "__main__":
     main(parser.parse_args())
     """
     python3 -m experiments.ours.train_logistic_regression \
-    --min_ngram 5 \
+    --min_ngram 4 \
     --gen_path /gscratch/xlab/hallisky/membership-inference/experiments/ours/bookMIA/generations/train/gpt-4o-2024-05-13_maxTok512_minTok0_numSeq20_topP0.95_temp1.0_numSent3_startSent1_numWord-1_startWord-1_useSentF_promptIdx5_len494_2024-11-07-04:49:18.jsonl
     
     """
