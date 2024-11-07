@@ -56,7 +56,7 @@ class ModelGenerator:
             model=model,
             tensor_parallel_size=torch.cuda.device_count(), # Install ray if > 1 GPUs
             download_dir=cache_dir,
-            gpu_memory_utilization=0.85, # TODO fix this
+            gpu_memory_utilization=0.95, # TODO fix this
             max_model_len = 2048, # Set manually for large models which have large context lengths
         )
         
@@ -116,6 +116,11 @@ class ModelGenerator:
             if len(input_ids) + max_new_tokens <= max_length:
                 filtered_input_ids.append(input_ids)
                 final_prompts.append(prompt)
+            else:
+                print(f"Truncating from {len(input_ids)} to {max_length-max_new_tokens}")
+                shortened = self.tokenizer([prompt], truncation=True, max_length = max_length-max_new_tokens).input_ids[0]
+                filtered_input_ids.append(shortened)
+                final_prompts.append(self.tokenizer.decode(shortened))
 
         # Set up the sampling parameters
         stop_token_ids = list(set(extra_stop_tokens + [self.llm.get_tokenizer().eos_token_id]))
