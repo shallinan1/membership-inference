@@ -101,11 +101,11 @@ def process_combination(params):
     doc_string = "alldoc" if all_doc else "onedoc"
 
     # Make save folders
-    folder_path = "/gscratch/xlab/hallisky/membership-inference/tasks/bookMIA/plots/{split}"
-    ref_model = ref_models_dict.get(model, "gpt2-largeE")
+    folder_path = f"/gscratch/xlab/hallisky/membership-inference/tasks/bookMIA/plots/{split}"
+    ref_model = ref_models_dict.get(model, "gpt2")
 
-    # Save path
-    save_folder = os.path.join(folder_path, model_name, f"promptIdx{prompt_idx}_minNgram{min_ngram}_{doc_string}_numSent{num_sent}_{aggregate}_refModel{ref_model}_refPrompt{ref_prompt_idx}")
+    # Save path # TODO change this to accomodate multiple refs
+    save_folder = os.path.join(folder_path, model_name, f"promptIdx{prompt_idx}_minNgram{min_ngram}_{doc_string}_numSent{num_sent}_{aggregate}_ref-{ref_model}_refPrompt{ref_prompt_idx}")
 
     # Iterate through the found generation JSONL files and load their data
     for gen_path in gen_file_paths:
@@ -633,52 +633,24 @@ def process_combination(params):
     ### NEW PLOT: ROC AUC curves for cov
     fpr, tpr, thresholds = roc_curve(gen_labels, covs)
     roc_auc = auc(fpr, tpr)
-    # Calculate accuracy for each threshold
-    accuracy_scores = []
+    accuracy_scores = []     # Calculate accuracy for each threshold
     for threshold in thresholds:
         y_pred = np.where(covs >= threshold, 1, 0)
         accuracy_scores.append(accuracy_score(gen_labels, y_pred))
-    # Plot the ROC curve
     plot_roc_curve(fpr, tpr, roc_auc, 
                    f'Cov, BookMIA, {model_name}, min_ngram {min_ngram}, {doc_string}, prompt {prompt_idx}, agg {aggregate}',
                    save_path=os.path.join(save_folder, f"cov_rocauc.png"))
     
-    # plt.figure()
-    # plt.plot(fpr, tpr, color='blue', lw=2, label=f'ROC curve (area = {roc_auc:0.2f})')
-    # plt.plot([0, 1], [0, 1], color='red', lw=2, linestyle='--')  # Diagonal line for random guess
-    # plt.xlim([0.0, 1.0])
-    # plt.ylim([0.0, 1.05])
-    # plt.xlabel('False Positive Rate')
-    # plt.ylabel('True Positive Rate')
-    # plt.title(f'Cov ROC Curve, BookMIA, {model_name}, min_ngram {min_ngram}, {doc_string}, prompt {prompt_idx}, agg {aggregate}')
-    # plt.grid(alpha=0.15)
-    # plt.legend(loc="lower right")
-    # plt.tight_layout()
-    # plt.savefig(os.path.join(save_folder, f"cov_rocauc.png"), dpi=200, bbox_inches="tight")
-
     # ROC AUC curves for CI
     fpr, tpr, thresholds = roc_curve(gen_labels, -1 * cis)
     roc_auc = auc(fpr, tpr)
-
-    # Calculate accuracy for each threshold
-    accuracy_scores = []
+    accuracy_scores = [] # Calculate accuracy for each threshold
     for threshold in thresholds:
         y_pred = np.where(cis >= threshold, 1, 0)
         accuracy_scores.append(accuracy_score(gen_labels, y_pred))
-
-    # Plotting the ROC curve
-    plt.figure()
-    plt.plot(fpr, tpr, color='blue', lw=2, label=f'ROC curve (area = {roc_auc:0.2f})')
-    plt.plot([0, 1], [0, 1], color='red', lw=2, linestyle='--')  # Diagonal line for random guess
-    plt.xlim([0.0, 1.0])
-    plt.ylim([0.0, 1.05])
-    plt.xlabel('False Positive Rate')
-    plt.ylabel('True Positive Rate')
-    plt.title(f'CI ROC Curve, BookMIA, {model_name}, min_ngram {min_ngram}, {doc_string}, prompt {prompt_idx}, agg {aggregate}')
-    plt.grid(alpha=0.15)
-    plt.legend(loc="lower right")
-    plt.tight_layout()
-    plt.savefig(os.path.join(save_folder, f"CI{LOW_CI_BOUND}-{HIGH_CI_BOUND}_rocauc.png"), dpi=200, bbox_inches="tight")
+    plot_roc_curve(fpr, tpr, roc_auc, 
+                f'CI, BookMIA, {model_name}, min_ngram {min_ngram}, {doc_string}, prompt {prompt_idx}, agg {aggregate}',
+                save_path=os.path.join(save_folder, f"CI{LOW_CI_BOUND}-{HIGH_CI_BOUND}_rocauc.png"))
     
 
     if len(ref_coverage_data) == len(coverage_data):
@@ -786,13 +758,14 @@ if __name__ == "__main__":
 
     # # models = ["gpt-3.5-turbo-0125"]
     splits = ["train"]
-    models = ["Llama-2-7b-hf"] # "Llama-2-70b-hf"
+    models = ["Llama-2-70b-hf"] # "Llama-2-70b-hf"
     all_docs = [False, True]
     all_docs = [False]
     aggregates = ["max", "mean"]
     ref_prompt_idxs = [5]
     min_tokens = [0, 10]
     temps = [1.0, 0]
+    min_ngrams = [4,5,6]
 
     combinations = list(itertools.product(min_ngrams, prompt_idxs, start_sents, num_sents, models, all_docs, aggregates, ref_prompt_idxs, min_tokens, temps, splits))
 
