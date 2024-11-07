@@ -13,7 +13,7 @@ from scipy.stats import skew, kurtosis
 import argparse
 from utils import load_jsonl, load_json, combine_lists, combine_dicts, combine_list_of_dicts
 import pandas as pd
-
+from experiments.ours.utils import load_all_files, get_all_gen_paths, BookMIALength
 
 LOW_CI_BOUND=3
 HIGH_CI_BOUND=12
@@ -32,103 +32,57 @@ def calculate_statistics(data, prefix):
         f"{prefix}_max": np.max(data)
     }
 
+
+
 def main(args):
-    # Assemble all the gen_paths
-    gen_path_start = args.gen_path.rsplit("2024-", 1)[0]
+    all_stats = {}
+    all_metrics = {}
 
-    # Get all paths that might have the same starting filename, excluding the date
-    directory = os.path.dirname(args.gen_path)
-    gen_paths = []
+    for split in ["train", "val"]:
 
-    # Iterate through all files in the directory
-    for filename in os.listdir(directory):
-        # Check if the filename starts with the desired prefix
-        if filename.startswith(os.path.basename(gen_path_start)):
-            full_path = os.path.join(directory, filename)
-            gen_paths.append(full_path)
+        cur_path = args.gen_path
 
-    gen_paths = sorted(gen_paths) # Important - sort!
-
-    # Exit if we are not the alphabetically first one to reduce redandcy
-    if args.gen_path not in gen_paths[0]:
-        return
-
-    doc_string = "onedoc" if not args.all_doc else "alldoc"
-
-    coverage_paths = [cur_path.replace(".jsonl", f"_{args.min_ngram}_{doc_string}.jsonl").replace("generations", "coverages") for cur_path in gen_paths]
-    ci_paths = [cur_path.replace(".jsonl", f"_CI_{LOW_CI_BOUND}_{HIGH_CI_BOUND}.jsonl").replace("coverages", "cis") for cur_path in coverage_paths]
-    for c in coverage_paths:
-        assert os.path.exists(c)
-    for i, c in enumerate(ci_paths):
-        if i != 0:
-            assert not os.path.exists(c) # Shouldn't exist!
-    ci_path = ci_paths[0]
-
-    # Initialize empty lists for combined generation data and coverage data
-    combined_gen_data = []
-    combined_coverage_data = []
-    # Iterate through the found generation JSONL files and load their data
-    for gen_path, coverage_path in zip(gen_paths, coverage_paths):
-        # Load the jsonl for generation data
-        gen_data = load_jsonl(gen_path)
-        coverage_data = load_json(coverage_path)
-
-        # Combine the generation data
-        if not combined_gen_data:
-            combined_gen_data = gen_data
-        else:
-            combined_gen_data = combine_list_of_dicts(combined_gen_data, gen_data)
-
-        if not combined_coverage_data:
-            combined_coverage_data = coverage_data
-        else:
-            combined_coverage_data = combine_lists(combined_coverage_data, coverage_data)
-
-    combined_ci_data = load_jsonl(ci_path)
-
-    assert len(combined_gen_data) == len(combined_coverage_data) == len(combined_ci_data)
+        if split == "val":
+            cur_path = cur_path.replace("train", split)
+            cur_path = cur_path.replace(str(BookMIALength.TRAIN.value), str(BookMIALength.VAL.value))
+            cur_path = get_all_gen_paths(cur_path)[0]
     
-    # Update all stats dict
-    no_empty_gen_data = []
-    no_empty_coverage_data = []
-    no_empty_cis = []
-    omitted = 0
-    for i, c in enumerate(combined_coverage_data):
-        if len(c) > 0:
-            no_empty_gen_data.append(combined_gen_data[i])
-            no_empty_coverage_data.append(combined_coverage_data[i])
-            no_empty_cis.append(combined_ci_data[i])
-        else:
-            omitted += 1
-    if omitted > 0:
-        print(f"omitted something")
+        # Load in the train files
+        no_empty_gen_data, no_empty_coverage_data, no_empty_cis, ci_path = load_all_files(cur_path,
+                                                                                args.all_doc,
+                                                                                args.min_ngram,
+                                                                                LOW_CI_BOUND,
+                                                                                HIGH_CI_BOUND)
 
-    gen_labels = [g["label"] for g in no_empty_gen_data]
-    cis = [[n / CREATIVITY_CONSTANT for n in sublist] for sublist in no_empty_cis]
-    covs = [[c["coverage"] for c in cur_data] for cur_data in no_empty_coverage_data]
-    # TODO add lengths here as well
+        gen_labels = [g["label"] for g in no_empty_gen_data]
+        cis = [[n / CREATIVITY_CONSTANT for n in sublist] for sublist in no_empty_cis]
+        covs = [[c["coverage"] for c in cur_data] for cur_data in no_empty_coverage_data]
+        # TODO add lengths here as well
 
-    # Compute the descriptive statistics and store them in a dictionary
-    all_stats_list = []
+        # Compute the descriptive statistics and store them in a dictionary
+        all_stats_list = []
 
-    # Iterate over the zipped lists of data for each data_name
-    for data_elements in zip(cis, covs):  # Add more data lists if needed
-        combined_stats = {}
-        for data_name, data in zip(["ci", "cov"], data_elements):  # Adjust names as needed
-            combined_stats.update(calculate_statistics(data, data_name))
+        # Iterate over the zipped lists of data for each data_name
+        for data_elements in zip(cis, covs):  # Add more data lists if needed
+            combined_stats = {}
+            for data_name, data in zip(["ci", "cov"], data_elements):  # Adjust names as needed
+                combined_stats.update(calculate_statistics(data, data_name))
 
-            for bin_count in (5, 10, 20):
-                bins = np.linspace(0, 1, bin_count)
-                reg_dist = np.histogram(data, bins)[0] / len(data)
+                for bin_count in (5, 10, 20):
+                    bins = np.linspace(0, 1, bin_count)
+                    reg_dist = np.histogram(data, bins)[0] / len(data)
 
-                log_bins = np.geomspace(0.05,1.05,bin_count) - 0.05
-                log_dist = np.histogram(data, log_bins)[0] / len(data)
-                
-                combined_stats.update({f"{data_name}_regdist_bins{bin_count}": reg_dist})
-                combined_stats.update({f"{data_name}_logdist_bins{bin_count}": log_dist})
+                    log_bins = np.geomspace(0.05,1.05,bin_count) - 0.05
+                    log_dist = np.histogram(data, log_bins)[0] / len(data)
+                    
+                    combined_stats.update({f"{data_name}_regdist_bins{bin_count}": reg_dist})
+                    combined_stats.update({f"{data_name}_logdist_bins{bin_count}": log_dist})
 
-        all_stats_list.append(combined_stats)
+            all_stats_list.append(combined_stats)
 
+        all_stats[split] = all_stats_list
+        all_metrics[split] = {"cis": cis, "covs": covs, "gen_labels": gen_labels, "ci_path": ci_path}
+    
     # Function to build a feature vector from a selected list of features in alphabetical order
     def build_feature_vector(statistics_dict, selected_features):
         # Sort the selected features alphabetically
@@ -151,11 +105,13 @@ def main(args):
     feature_sets = [
         ["ci_mean", "ci_median", "ci_std", "ci_iqr","ci_min", "ci_max"],
         ["ci_mean", "ci_std"],
+        ["ci_std"],
         ["ci_median", "ci_std", "ci_max"],
         ["ci_mean", "ci_std", "ci_max"],
         ["ci_mean", "ci_max"],
         ["cov_mean", "cov_median", "cov_std", "cov_iqr","cov_min", "cov_max"],
         ["cov_mean", "cov_std"],
+        ["cov_std"],
         ["cov_median", "cov_std", "cov_max"],
         ["cov_mean", "cov_std", "cov_max"],
         ["cov_mean", "cov_max"],
@@ -183,33 +139,36 @@ def main(args):
         # TODO for penalty in l1, l2
         for penalty,solver in [("l1",'liblinear'), ("l2",'lbfgs')]:
             # Generate the feature vector
-            feature_vector = np.array([build_feature_vector(cur_stats, cur_features) for cur_stats in all_stats_list])
+            feature_vector_train = np.array([build_feature_vector(cur_stats, cur_features) for cur_stats in all_stats["train"]])
+            gen_labels_train = all_metrics["train"]["gen_labels"]
             log_reg = LogisticRegression(max_iter=1000, penalty=penalty, solver=solver)  # Initialize the Logistic Regression model
 
             # Train the model
-            log_reg.fit(feature_vector, gen_labels)
+            log_reg.fit(feature_vector_train, gen_labels_train)
 
             # Make predictions on the test set
-            y_pred = log_reg.predict(feature_vector)
-            y_pred_proba = log_reg.predict_proba(feature_vector)[:,1]
+            feature_vector_val = np.array([build_feature_vector(cur_stats, cur_features) for cur_stats in all_stats["val"]])
+            gen_labels_val = all_metrics["val"]["gen_labels"]
+
+            y_pred = log_reg.predict(feature_vector_val)
+            y_pred_proba = log_reg.predict_proba(feature_vector_val)[:,1]
 
             # Evaluate the model
-            accuracy = accuracy_score(gen_labels, y_pred)
-            report = classification_report(gen_labels, y_pred)
+            accuracy = accuracy_score(gen_labels_val, y_pred)
+            report = classification_report(gen_labels_val, y_pred)
 
-            fpr, tpr, thresholds = roc_curve(gen_labels, y_pred_proba)
+            fpr, tpr, thresholds = roc_curve(gen_labels_val, y_pred_proba)
             roc_auc = auc(fpr, tpr)
 
             # print("\nClassification Report:\n", report)
-            results[f'{penalty}_{"-".join(sorted(cur_features))}'] = {}
-            results[f'{penalty}_{"-".join(sorted(cur_features))}']['acc'] = accuracy
-            results[f'{penalty}_{"-".join(sorted(cur_features))}']['roc_auc'] = roc_auc
-            results[f'{penalty}_{"-".join(sorted(cur_features))}']['penalty'] = penalty
-            results[f'{penalty}_{"-".join(sorted(cur_features))}']['features'] = cur_features
-            results[f'{penalty}_{"-".join(sorted(cur_features))}']['feature_coefficients'] = log_reg.coef_[0]
-            results[f'{penalty}_{"-".join(sorted(cur_features))}']['feature_intercept'] = log_reg.intercept_[0]
+            results[f'{penalty}_{"-".join(sorted(cur_features))}'] = {'acc': accuracy,
+                                                                      'roc_auc': roc_auc,
+                                                                      'penalty': penalty,
+                                                                      'features': cur_features,
+                                                                      'features_coefficients': log_reg.coef_[0],
+                                                                      'features_intercept': log_reg.intercept_[0]}
 
-    fpr, tpr, thresholds = roc_curve(gen_labels, [np.mean(c) for c in covs])
+    fpr, tpr, thresholds = roc_curve(gen_labels_val, [np.mean(c) for c in covs])
     roc_auc = auc(fpr, tpr)
     # Compute accuracy for each threshold
     accuracies = []
@@ -227,7 +186,7 @@ def main(args):
     df = pd.DataFrame.from_dict(results, orient='index').reset_index()
     df.rename(columns={'index': 'model_name'}, inplace=True)
 
-    save_file = os.path.join(args.save_path, os.path.basename(ci_path).replace(".jsonl", ".csv"))
+    save_file = os.path.join(args.save_path, os.path.basename(all_metrics["train"]["ci_path"]).replace(".jsonl", ".csv"))
     print(save_file)
     os.makedirs(os.path.dirname(save_file),exist_ok=True)
     df.to_csv(save_file, index=False)
