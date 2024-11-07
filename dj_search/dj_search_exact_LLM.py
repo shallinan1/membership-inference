@@ -29,6 +29,17 @@ md = MosesDetokenizer(lang='en')
 tokenize_func = lambda x: nltk.tokenize.casual.casual_tokenize(x)
 detokenize = lambda x: md.detokenize(x)
 
+# BAD_START_STRINGS = [
+#     "I cannot create",
+#     "I cannot provide",
+#     "I cannot generate",
+#     "I'm sorry, but I can't",
+#     "I'm sorry, this doesn't",
+#     "I can't create content",
+#     "I cannot continue this passage",
+#     "I'm not able to provide a response.",
+# ]
+
 def find_exact_match(detokenize: Callable, doc: Document, min_ngram: int, source_data: Dataset, num_cpus: int):
     hypothesis = Hypothesis(doc, min_ngram)
 
@@ -153,6 +164,7 @@ def main(args):
             generations.append(json.loads(line.strip()))
 
     generation_texts = [g[args.generation_field] for g in generations]
+    # generation_texts = [[text for text in text_list if not any(text.startswith(bad_start) for bad_start in BAD_START_STRINGS)] for text_list in generation_texts]
 
     if args.task == "bookMIA":
         if args.source_docs is None: # Case when we want to reference only against the original text
