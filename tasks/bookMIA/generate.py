@@ -18,12 +18,18 @@ import numpy as np
 import random
 from datetime import datetime
 
-from tasks.utils import clean_snippet
+def extract_chunk_words(text, start_word, num_words):
+    pass
 
-def extract_sentence_chunk(text, start_sentence, num_sentences):
+def extract_chunk_sentence(text, start_sentence, num_sentences):
     text_sentences = sent_tokenize(text)
+
+    # Make it so we at least have the last sentence to generate
+    num_sentences = min(len(text_sentences) - start_sentence - 1, num_sentences)
+
     # Ignore first one, since it is often partial
-    if num_sentences == 1:
+    if len(text_sentences) == 1:
+        embed()
         try:
             prompt_text = text_sentences[args.start_sentence]
         except:
@@ -43,41 +49,23 @@ def main(args):
         print("Valid model not passed in. Try again")
     cur_task_prompts = task_prompts_dict_book[model_str][args.task_prompt_idx]
 
-    # Load dataset
-    ds = load_dataset("swj0419/BookMIA")
-    df = ds["train"].to_pandas()
-
-    # Jane Eyre is loaded incorrectly??
-    problematic_rows = df[df['snippet'].str.contains('\x00', regex=False)].index
-    for idx in problematic_rows: # Replace '\x00' with regex in problematic rows
-        df.at[idx, 'snippet'] = clean_snippet(df.at[idx, 'snippet'])
-
-    # Filter data based on snippet counts
-    snippet_value_counts = df.snippet_id.value_counts()
-    valid_snippet_ids = snippet_value_counts[snippet_value_counts >= 20].index
-    filtered_df = df[df.snippet_id.isin(valid_snippet_ids)]
-
-    subsets = []
-    # Extract k=20 snippets with the same "book_id" for 20 different "book_ids" (total 400).
-    # Half of book_ids should have label 0, the other half should have label 1
-    for label in [0,1]:
-        valid_ids = list(np.unique(filtered_df[filtered_df.label == label].book_id.tolist()))
-        cur_ids = random.sample(valid_ids, 20)
-
-        print(cur_ids)
-        # Filter the dataframe to include only selected book_ids for this label
-        selected_books_df = filtered_df[filtered_df.book_id.isin(cur_ids)]
-
-        # Take the same snippets
-        snippets_ids = list(np.arange(0, 99, 5))
-
-        subset_df = selected_books_df[selected_books_df.snippet_id.isin(snippets_ids)]
-        subsets.append(subset_df)
-
-    final_subset = pd.concat(subsets)
+    if args.task == "bookMIA":
+        data_path = f"data/bookMIA/split-random-overall/{args.data_split}.jsonl"
+    final_subset = pd.read_json(data_path, lines=True)
     print(f"Length: {len(final_subset)}")
-    save_folder = "tasks/bookMIA/generations"
+
+    save_folder = os.path.join(f"tasks/{args.task}/generations/{args.data_split}")
     os.makedirs(save_folder, exist_ok=True)
+
+    if args.prompt_with_words_not_sent:
+        args.start_sent = -1
+        args.num_sents = -1
+        prompt_with_sent_str = "T"
+    else:
+        args.start_word = -1
+        args.num_words = -1
+        prompt_with_sent_str = "F"
+
 
     # Add a column to save generations
     final_subset["generation"] = ""
@@ -103,7 +91,7 @@ def main(args):
     if args.openai:
         first_gen = True
         for index, row in tqdm(final_subset.iterrows(), total=len(final_subset), desc="Generating"):
-            prompt_text, rest_of_text = extract_sentence_chunk(row.snippet, args.start_sentence, args.num_sentences)
+            prompt_text, rest_of_text = extract_chunk_sentence(row.snippet, args.start_sentence, args.num_sentences)
             assert prompt_text is not None
                 
             prompt = make_prompts(
@@ -146,8 +134,13 @@ def main(args):
 
     else:
         passages = final_subset.snippet.tolist()
-        prompt_outputs = [extract_sentence_chunk(text, args.start_sentence, args.num_sentences) for text in passages]
         
+        if not args.prompt_with_words_not_sent:
+            prompt_outputs = [extract_chunk_sentence(text, args.start_sentence, args.num_sentences) for text in passages]        
+        else:
+            # TODO implement this
+            import sys; sys.exit()
+    
         prompt_texts, rest_of_texts = zip(*prompt_outputs)
         prompt_texts= list(prompt_texts)
         rest_of_texts = list(rest_of_texts)
@@ -186,7 +179,7 @@ def main(args):
     minTokStr = "minTok" + str(args.min_tokens) + "_"
     
     # Save DataFrame to CSV with detailed info in the filename
-    file_name = f"{model_str}_maxTok{args.max_tokens}_{minTokStr}numSeq{args.num_sequences}_topP{args.top_p}_temp{args.temperature}_numSent{args.num_sentences}_startSent{args.start_sentence}_promptIdx{args.task_prompt_idx}_len{len(final_subset)}_{date_str}.jsonl"
+    file_name = f"{model_str}_maxTok{args.max_tokens}_{minTokStr}numSeq{args.num_sequences}_topP{args.top_p}_temp{args.temperature}_numSent{args.num_sentences}_startSent{args.start_sentence}_numWord{args.num_words}_startWord{args.num_words}_useSent{prompt_with_sent_str}_promptIdx{args.task_prompt_idx}_len{len(final_subset)}_{date_str}.jsonl"
     file_path = os.path.join(save_folder, file_name)
     columns = [col for col in final_subset.columns if col != 'snippet'] + ['snippet']
     final_subset = final_subset[columns]
@@ -201,8 +194,14 @@ def parse_args():
     parser.add_argument('--max_length', type=int, default=2048, help='Maximum length')
     parser.add_argument('--num_sequences', type=int, default=1, help='Number of sequences to generate.')
     parser.add_argument('--top_p', type=float, default=0.95, help='Top-p sampling value.')
+
+    # What part of the samples to prompt with
     parser.add_argument('--num_sentences', type=int, default=1, help='Number of sentences to use from the snippet.')
-    parser.add_argument('--start_sentence', type=int, default=1, help='Number of sentences to use from the snippet.')
+    parser.add_argument('--start_sentence', type=int, default=1, help='Starting sentence to use from the snippet.')
+    parser.add_argument('--num_words', type=int, default=1, help='Number of words to use from the snippet.')
+    parser.add_argument('--start_word', type=int, default=1, help='Starting word to use from the snippet.')
+    parser.add_argument("--prompt_with_words_not_sent", action="store_true", help="whether or not to use words vs sentences")
+
     parser.add_argument('--task_prompt_idx', type=int, default=1, help='Index of the task prompt to use.')
     parser.add_argument('--model', type=str, default="davinci-002", help='Model to use for text generation.')
     parser.add_argument('--tokenizer', type=str, default=None, help='Pass in tokenizer manually. Optional.')
@@ -210,6 +209,9 @@ def parse_args():
     parser.add_argument('--hf_token', type=str, default=None, help='Pass in tokenizer manually. Optional.')
     parser.add_argument("--openai", action="store_true")
     parser.add_argument("--seed", type=int, default=0)
+    parser.add_argument("--task", type=str, default="bookMIA")
+    parser.add_argument("--data_split", type=str, default="train")
+    
     return parser.parse_args()
 
 if __name__ == "__main__":
@@ -451,20 +453,141 @@ CUDA_VISIBLE_DEVICES=0,1 python3 -m tasks.bookMIA.generate \
     --max_tokens 512 \
     --task_prompt_idx 5; 
 
+CUDA_VISIBLE_DEVICES=0 python3 -m tasks.bookMIA.generate \
+    --model meta-llama/Llama-2-7b-hf \
+    --start_sentence 1 \
+    --num_sentences 1 \
+    --num_sequences 20 \
+    --max_tokens 512 \
+    --task_prompt_idx 1 \
+    --task bookMIA \
+    --data_split val; 
+    
+CUDA_VISIBLE_DEVICES=1 python3 -m tasks.bookMIA.generate \
+    --model meta-llama/Llama-2-7b-hf \
+    --start_sentence 1 \
+    --num_sentences 3 \
+    --num_sequences 20 \
+    --max_tokens 512 \
+    --task_prompt_idx 1 \
+    --task bookMIA \
+    --data_split val;     
 
-CUDA_VISIBLE_DEVICES=0,1 python3 -m tasks.bookMIA.generate \
+CUDA_VISIBLE_DEVICES=0 python3 -m tasks.bookMIA.generate \
     --model meta-llama/Llama-2-7b-hf \
     --start_sentence 1 \
     --num_sentences 5 \
     --num_sequences 20 \
     --max_tokens 512 \
-    --task_prompt_idx 0; 
+    --task_prompt_idx 1 \
+    --task bookMIA \
+    --data_split val; 
 
-CUDA_VISIBLE_DEVICES=0,1 python3 -m tasks.bookMIA.generate \
+CUDA_VISIBLE_DEVICES=1 python3 -m tasks.bookMIA.generate \
+    --model meta-llama/Llama-2-7b-hf \
+    --start_sentence 1 \
+    --num_sentences 10 \
+    --num_sequences 20 \
+    --max_tokens 512 \
+    --task_prompt_idx 1 \
+    --task bookMIA \
+    --data_split val; 
+
+CUDA_VISIBLE_DEVICES=0 python3 -m tasks.bookMIA.generate \
+    --model meta-llama/Llama-2-7b-hf \
+    --start_sentence 1 \
+    --num_sentences 1 \
+    --num_sequences 20 \
+    --max_tokens 512 \
+    --task_prompt_idx 1 \
+    --task bookMIA \
+    --data_split train; 
+    
+CUDA_VISIBLE_DEVICES=1 python3 -m tasks.bookMIA.generate \
+    --model meta-llama/Llama-2-7b-hf \
+    --start_sentence 1 \
+    --num_sentences 3 \
+    --num_sequences 20 \
+    --max_tokens 512 \
+    --task_prompt_idx 1 \
+    --task bookMIA \
+    --data_split train;     
+
+CUDA_VISIBLE_DEVICES=0 python3 -m tasks.bookMIA.generate \
     --model meta-llama/Llama-2-7b-hf \
     --start_sentence 1 \
     --num_sentences 5 \
     --num_sequences 20 \
     --max_tokens 512 \
-    --task_prompt_idx 1; 
+    --task_prompt_idx 1 \
+    --task bookMIA \
+    --data_split train; 
+
+CUDA_VISIBLE_DEVICES=1 python3 -m tasks.bookMIA.generate \
+    --model meta-llama/Llama-2-7b-hf \
+    --start_sentence 1 \
+    --num_sentences 10 \
+    --num_sequences 20 \
+    --max_tokens 512 \
+    --task_prompt_idx 1 \
+    --task bookMIA \
+    --data_split train; 
+    
+
+CUDA_VISIBLE_DEVICES=0 python3 -m tasks.bookMIA.generate \
+    --model meta-llama/Llama-2-7b-hf \
+    --start_sentence 1 \
+    --num_sentences 5 \
+    --num_sequences 20 \
+    --max_tokens 512 \
+    --task_prompt_idx train; 
+
+CUDA_VISIBLE_DEVICES=0 python3 -m tasks.bookMIA.generate \
+    --model meta-llama/Llama-2-7b-hf \
+    --start_sentence 1 \
+    --num_sentences 5 \
+    --num_sequences 20 \
+    --max_tokens 512 \
+    --task_prompt_idx train; 
+
+
+ CUDA_VISIBLE_DEVICES=0,1,2,3 python3 -m tasks.bookMIA.generate \
+    --model meta-llama/Llama-2-70b-hf \
+    --start_sentence 1 \
+    --num_sentences 1 \
+    --num_sequences 20 \
+    --max_tokens 512 \
+    --task_prompt_idx 1 \
+    --task bookMIA \
+    --data_split train;   
+
+CUDA_VISIBLE_DEVICES=0,1,2,3 python3 -m tasks.bookMIA.generate \
+    --model meta-llama/Llama-2-70b-hf \
+    --start_sentence 1 \
+    --num_sentences 3 \
+    --num_sequences 20 \
+    --max_tokens 512 \
+    --task_prompt_idx 1 \
+    --task bookMIA \
+    --data_split train;     
+
+CUDA_VISIBLE_DEVICES=0,1,2,3 python3 -m tasks.bookMIA.generate \
+    --model meta-llama/Llama-2-70b-hf \
+    --start_sentence 1 \
+    --num_sentences 5 \
+    --num_sequences 20 \
+    --max_tokens 512 \
+    --task_prompt_idx 1 \
+    --task bookMIA \
+    --data_split train; 
+
+CUDA_VISIBLE_DEVICES=0,1,2,3 python3 -m tasks.bookMIA.generate \
+    --model meta-llama/Llama-2-70b-hf \
+    --start_sentence 1 \
+    --num_sentences 10 \
+    --num_sequences 20 \
+    --max_tokens 512 \
+    --task_prompt_idx 1 \
+    --task bookMIA \
+    --data_split train; 
 """
