@@ -4,3 +4,4 @@ unidecode
 matplotlib
 scikit-learn
 accelerate
+openai
