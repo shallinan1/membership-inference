@@ -11,7 +11,6 @@ from nltk import sent_tokenize
 import pandas as pd
 from IPython import embed
 from tqdm import tqdm
-import re
 from generate.vllm_generate import ModelGenerator 
 from generate.generate_utils import task_prompts_dict_book, make_prompts
 import numpy as np
@@ -54,7 +53,7 @@ def main(args):
     final_subset = pd.read_json(data_path, lines=True)
     print(f"Length: {len(final_subset)}")
 
-    save_folder = os.path.join(f"tasks/{args.task}/generations/{args.data_split}")
+    save_folder = os.path.join(f"experiments/ours/{args.task}/generations/{args.data_split}")
     os.makedirs(save_folder, exist_ok=True)
 
     if args.prompt_with_words_not_sent:
@@ -65,7 +64,6 @@ def main(args):
         args.start_word = -1
         args.num_words = -1
         prompt_with_sent_str = "F"
-
 
     # Add a column to save generations
     final_subset["generation"] = ""
@@ -112,6 +110,7 @@ def main(args):
                                               top_p=args.top_p)
             
             if args.model == 'gpt-3.5-turbo-instruct' or any([args.model.startswith(x) for x in ['babbage', 'davinci']]):
+                # TODO fix
                 generations = [r['text'] for r in full_generations['choices']]
 
                 # Store model too
@@ -120,11 +119,12 @@ def main(args):
                 # Can also store the logprobs
                 logprobs =  [r['logprobs'] for r in full_generations['choices']]
             else:
-                generations = [r['message']['content'] for r in full_generations['choices']]
+                generations = [r.message.content for r in full_generations.choices]
+
                 # Store model too
-                models = [full_generations["model"]] * len(generations)
+                models = [full_generations.model] * len(generations)
                 # Can also store the logprobs
-                logprobs =  [r['logprobs'] for r in full_generations['choices']]
+                logprobs =  [r.logprobs for r in full_generations.choices]
 
             # Save the generation in the DataFrame
             final_subset.at[index, "generation"] = generations
@@ -221,7 +221,7 @@ if __name__ == "__main__":
 
 
 """
-python3 -m tasks.bookMIA.generate \
+python3 -m experiments.ours.generate \
     --openai \
     --model gpt-4o-mini-2024-07-18 \
     --start_sentence 1 \
@@ -230,16 +230,7 @@ python3 -m tasks.bookMIA.generate \
     --max_tokens 512 \
     --task_prompt_idx 5;
 
-python3 -m tasks.bookMIA.generate \
-    --openai \
-    --model gpt-4o-mini-2024-07-18 \
-    --start_sentence 1 \
-    --num_sentences 3 \
-    --num_sequences 10 \
-    --max_tokens 512 \
-    --task_prompt_idx 5;
-
-python3 -m tasks.bookMIA.generate \
+python3 -m experiments.ours.generate \
     --openai \
     --model gpt-4o-2024-05-13 \
     --start_sentence 1 \
@@ -248,16 +239,7 @@ python3 -m tasks.bookMIA.generate \
     --max_tokens 512 \
     --task_prompt_idx 5;
 
-python3 -m tasks.bookMIA.generate \
-    --openai \
-    --model gpt-4o-2024-05-13 \
-    --start_sentence 1 \
-    --num_sentences 3 \
-    --num_sequences 10 \
-    --max_tokens 512 \
-    --task_prompt_idx 5;
-
-python3 -m tasks.bookMIA.generate \
+python3 -m experiments.ours.generate \
     --openai \
     --model gpt-3.5-turbo-0125 \
     --start_sentence 1 \
@@ -265,128 +247,10 @@ python3 -m tasks.bookMIA.generate \
     --num_sequences 10 \
     --max_tokens 512 \
     --task_prompt_idx 5;
-
-python3 -m tasks.bookMIA.generate \
-    --openai \
-    --model gpt-3.5-turbo-0125 \
-    --start_sentence 1 \
-    --num_sentences 3 \
-    --num_sequences 10 \
-    --max_tokens 512 \
-    --task_prompt_idx 5;
-    
-python3 -m tasks.bookMIA.generate \
-    --openai \
-    --model gpt-4o-mini-2024-07-18 \
-    --start_sentence 1 \
-    --num_sentences 5 \
-    --num_sequences 10 \
-    --max_tokens 512 \
-    --task_prompt_idx 0;
-
-python3 -m tasks.bookMIA.generate \
-    --openai \
-    --model gpt-4o-mini-2024-07-18 \
-    --start_sentence 1 \
-    --num_sentences 3 \
-    --num_sequences 10 \
-    --max_tokens 512 \
-    --task_prompt_idx 0;
-
-python3 -m tasks.bookMIA.generate \
-    --openai \
-    --model gpt-3.5-turbo-0125 \
-    --start_sentence 1 \
-    --num_sentences 5 \
-    --num_sequences 10 \
-    --max_tokens 512 \
-    --task_prompt_idx 0;
-
-python3 -m tasks.bookMIA.generate \
-    --openai \
-    --model gpt-3.5-turbo-0125 \
-    --start_sentence 1 \
-    --num_sentences 3 \
-    --num_sequences 10 \
-    --max_tokens 512 \
-    --task_prompt_idx 0;
-    
-python3 -m tasks.bookMIA.generate \
-    --openai \
-    --model gpt-4o-2024-05-13 \
-    --start_sentence 1 \
-    --num_sentences 5 \
-    --num_sequences 10 \
-    --max_tokens 512 \
-    --task_prompt_idx 0;
-
-python3 -m tasks.bookMIA.generate \
-    --openai \
-    --model gpt-4o-2024-05-13 \
-    --start_sentence 1 \
-    --num_sentences 3 \
-    --num_sequences 10 \
-    --max_tokens 512 \
-    --task_prompt_idx 0;
-
-
-python3 -m tasks.bookMIA.generate \
-    --openai \
-    --model gpt-4o-mini-2024-07-18 \
-    --start_sentence 1 \
-    --num_sentences 5 \
-    --num_sequences 10 \
-    --max_tokens 512 \
-    --task_prompt_idx 4;
-
-python3 -m tasks.bookMIA.generate \
-    --openai \
-    --model gpt-4o-mini-2024-07-18 \
-    --start_sentence 1 \
-    --num_sentences 3 \
-    --num_sequences 10 \
-    --max_tokens 512 \
-    --task_prompt_idx 4;
-
-python3 -m tasks.bookMIA.generate \
-    --openai \
-    --model gpt-3.5-turbo-0125 \
-    --start_sentence 1 \
-    --num_sentences 5 \
-    --num_sequences 10 \
-    --max_tokens 512 \
-    --task_prompt_idx 4;
-
-python3 -m tasks.bookMIA.generate \
-    --openai \
-    --model gpt-3.5-turbo-0125 \
-    --start_sentence 1 \
-    --num_sentences 3 \
-    --num_sequences 10 \
-    --max_tokens 512 \
-    --task_prompt_idx 4;
-    
-python3 -m tasks.bookMIA.generate \
-    --openai \
-    --model gpt-4o-2024-05-13 \
-    --start_sentence 1 \
-    --num_sentences 5 \
-    --num_sequences 10 \
-    --max_tokens 512 \
-    --task_prompt_idx 4;
-
-python3 -m tasks.bookMIA.generate \
-    --openai \
-    --model gpt-4o-2024-05-13 \
-    --start_sentence 1 \
-    --num_sentences 3 \
-    --num_sequences 10 \
-    --max_tokens 512 \
-    --task_prompt_idx 4;    
 
 # GPT2-large
 
-CUDA_VISIBLE_DEVICES=0 python3 -m tasks.bookMIA.generate \
+CUDA_VISIBLE_DEVICES=0 python3 -m experiments.ours.generate \
     --model openai-community/gpt2-large \
     --start_sentence 1 \
     --num_sentences 3 \
@@ -394,7 +258,7 @@ CUDA_VISIBLE_DEVICES=0 python3 -m tasks.bookMIA.generate \
     --max_tokens 512 \
     --task_prompt_idx 0;    
 
-CUDA_VISIBLE_DEVICES=1 python3 -m tasks.bookMIA.generate \
+CUDA_VISIBLE_DEVICES=1 python3 -m experiments.ours.generate \
     --model openai-community/gpt2-large \
     --start_sentence 1 \
     --num_sentences 3 \
@@ -402,7 +266,7 @@ CUDA_VISIBLE_DEVICES=1 python3 -m tasks.bookMIA.generate \
     --max_tokens 512 \
     --task_prompt_idx 1;
 
-CUDA_VISIBLE_DEVICES=2 python3 -m tasks.bookMIA.generate \
+CUDA_VISIBLE_DEVICES=2 python3 -m experiments.ours.generate \
     --model openai-community/gpt2-large \
     --start_sentence 1 \
     --num_sentences 5 \
@@ -410,7 +274,7 @@ CUDA_VISIBLE_DEVICES=2 python3 -m tasks.bookMIA.generate \
     --max_tokens 512 \
     --task_prompt_idx 0;   
 
-CUDA_VISIBLE_DEVICES=0 python3 -m tasks.bookMIA.generate \
+CUDA_VISIBLE_DEVICES=0 python3 -m experiments.ours.generate \
     --model meta-llama/Llama-3.1-8B-Instruct \
     --start_sentence 1 \
     --num_sentences 5 \
@@ -419,7 +283,7 @@ CUDA_VISIBLE_DEVICES=0 python3 -m tasks.bookMIA.generate \
     --min_tokens 10 \
     --task_prompt_idx 5;    
 
-CUDA_VISIBLE_DEVICES=0 python3 -m tasks.bookMIA.generate \
+CUDA_VISIBLE_DEVICES=0 python3 -m experiments.ours.generate \
     --model meta-llama/Llama-3.1-70B-Instruct \
     --start_sentence 1 \
     --num_sentences 5 \
@@ -428,7 +292,7 @@ CUDA_VISIBLE_DEVICES=0 python3 -m tasks.bookMIA.generate \
     --min_tokens 10 \
     --task_prompt_idx 5;      
 
-CUDA_VISIBLE_DEVICES=0 python3 -m tasks.bookMIA.generate \
+CUDA_VISIBLE_DEVICES=0 python3 -m experiments.ours.generate \
     --model meta-llama/Llama-3.1-8B-Instruct \
     --start_sentence 1 \
     --num_sentences 5 \
@@ -437,7 +301,7 @@ CUDA_VISIBLE_DEVICES=0 python3 -m tasks.bookMIA.generate \
     --min_tokens 10 \
     --task_prompt_idx 5;      
     
-CUDA_VISIBLE_DEVICES=0,1 python3 -m tasks.bookMIA.generate \
+CUDA_VISIBLE_DEVICES=0,1 python3 -m experiments.ours.generate \
     --model meta-llama/Llama-3.1-70B-Instruct \
     --start_sentence 1 \
     --num_sentences 5 \
@@ -445,7 +309,7 @@ CUDA_VISIBLE_DEVICES=0,1 python3 -m tasks.bookMIA.generate \
     --max_tokens 512 \
     --task_prompt_idx 5; 
 
-CUDA_VISIBLE_DEVICES=0,1 python3 -m tasks.bookMIA.generate \
+CUDA_VISIBLE_DEVICES=0,1 python3 -m experiments.ours.generate \
     --model meta-llama/Llama-2-70b-chat-hf \
     --start_sentence 1 \
     --num_sentences 5 \
@@ -453,7 +317,7 @@ CUDA_VISIBLE_DEVICES=0,1 python3 -m tasks.bookMIA.generate \
     --max_tokens 512 \
     --task_prompt_idx 5; 
 
-CUDA_VISIBLE_DEVICES=0 python3 -m tasks.bookMIA.generate \
+CUDA_VISIBLE_DEVICES=0 python3 -m experiments.ours.generate \
     --model meta-llama/Llama-2-7b-hf \
     --start_sentence 1 \
     --num_sentences 1 \
@@ -463,7 +327,7 @@ CUDA_VISIBLE_DEVICES=0 python3 -m tasks.bookMIA.generate \
     --task bookMIA \
     --data_split val; 
     
-CUDA_VISIBLE_DEVICES=1 python3 -m tasks.bookMIA.generate \
+CUDA_VISIBLE_DEVICES=1 python3 -m experiments.ours.generate \
     --model meta-llama/Llama-2-7b-hf \
     --start_sentence 1 \
     --num_sentences 3 \
@@ -473,7 +337,7 @@ CUDA_VISIBLE_DEVICES=1 python3 -m tasks.bookMIA.generate \
     --task bookMIA \
     --data_split val;     
 
-CUDA_VISIBLE_DEVICES=0 python3 -m tasks.bookMIA.generate \
+CUDA_VISIBLE_DEVICES=0 python3 -m experiments.ours.generate \
     --model meta-llama/Llama-2-7b-hf \
     --start_sentence 1 \
     --num_sentences 5 \
@@ -483,7 +347,7 @@ CUDA_VISIBLE_DEVICES=0 python3 -m tasks.bookMIA.generate \
     --task bookMIA \
     --data_split val; 
 
-CUDA_VISIBLE_DEVICES=1 python3 -m tasks.bookMIA.generate \
+CUDA_VISIBLE_DEVICES=1 python3 -m experiments.ours.generate \
     --model meta-llama/Llama-2-7b-hf \
     --start_sentence 1 \
     --num_sentences 10 \
@@ -493,7 +357,7 @@ CUDA_VISIBLE_DEVICES=1 python3 -m tasks.bookMIA.generate \
     --task bookMIA \
     --data_split val; 
 
-CUDA_VISIBLE_DEVICES=0 python3 -m tasks.bookMIA.generate \
+CUDA_VISIBLE_DEVICES=0 python3 -m experiments.ours.generate \
     --model meta-llama/Llama-2-7b-hf \
     --start_sentence 1 \
     --num_sentences 1 \
@@ -503,7 +367,7 @@ CUDA_VISIBLE_DEVICES=0 python3 -m tasks.bookMIA.generate \
     --task bookMIA \
     --data_split train; 
     
-CUDA_VISIBLE_DEVICES=1 python3 -m tasks.bookMIA.generate \
+CUDA_VISIBLE_DEVICES=1 python3 -m experiments.ours.generate \
     --model meta-llama/Llama-2-7b-hf \
     --start_sentence 1 \
     --num_sentences 3 \
@@ -513,7 +377,7 @@ CUDA_VISIBLE_DEVICES=1 python3 -m tasks.bookMIA.generate \
     --task bookMIA \
     --data_split train;     
 
-CUDA_VISIBLE_DEVICES=0 python3 -m tasks.bookMIA.generate \
+CUDA_VISIBLE_DEVICES=0 python3 -m experiments.ours.generate \
     --model meta-llama/Llama-2-7b-hf \
     --start_sentence 1 \
     --num_sentences 5 \
@@ -523,7 +387,7 @@ CUDA_VISIBLE_DEVICES=0 python3 -m tasks.bookMIA.generate \
     --task bookMIA \
     --data_split train; 
 
-CUDA_VISIBLE_DEVICES=1 python3 -m tasks.bookMIA.generate \
+CUDA_VISIBLE_DEVICES=1 python3 -m experiments.ours.generate \
     --model meta-llama/Llama-2-7b-hf \
     --start_sentence 1 \
     --num_sentences 10 \
@@ -534,7 +398,7 @@ CUDA_VISIBLE_DEVICES=1 python3 -m tasks.bookMIA.generate \
     --data_split train; 
     
 
-CUDA_VISIBLE_DEVICES=0 python3 -m tasks.bookMIA.generate \
+CUDA_VISIBLE_DEVICES=0 python3 -m experiments.ours.generate \
     --model meta-llama/Llama-2-7b-hf \
     --start_sentence 1 \
     --num_sentences 5 \
@@ -542,7 +406,7 @@ CUDA_VISIBLE_DEVICES=0 python3 -m tasks.bookMIA.generate \
     --max_tokens 512 \
     --task_prompt_idx train; 
 
-CUDA_VISIBLE_DEVICES=0 python3 -m tasks.bookMIA.generate \
+CUDA_VISIBLE_DEVICES=0 python3 -m experiments.ours.generate \
     --model meta-llama/Llama-2-7b-hf \
     --start_sentence 1 \
     --num_sentences 5 \
@@ -551,7 +415,7 @@ CUDA_VISIBLE_DEVICES=0 python3 -m tasks.bookMIA.generate \
     --task_prompt_idx train; 
 
 
- CUDA_VISIBLE_DEVICES=0,1,2,3 python3 -m tasks.bookMIA.generate \
+ CUDA_VISIBLE_DEVICES=0,1,2,3 python3 -m experiments.ours.generate \
     --model meta-llama/Llama-2-70b-hf \
     --start_sentence 1 \
     --num_sentences 1 \
@@ -561,7 +425,7 @@ CUDA_VISIBLE_DEVICES=0 python3 -m tasks.bookMIA.generate \
     --task bookMIA \
     --data_split train;   
 
-CUDA_VISIBLE_DEVICES=0,1,2,3 python3 -m tasks.bookMIA.generate \
+CUDA_VISIBLE_DEVICES=0,1,2,3 python3 -m experiments.ours.generate \
     --model meta-llama/Llama-2-70b-hf \
     --start_sentence 1 \
     --num_sentences 3 \
@@ -571,7 +435,7 @@ CUDA_VISIBLE_DEVICES=0,1,2,3 python3 -m tasks.bookMIA.generate \
     --task bookMIA \
     --data_split train;     
 
-CUDA_VISIBLE_DEVICES=0,1,2,3 python3 -m tasks.bookMIA.generate \
+CUDA_VISIBLE_DEVICES=0,1,2,3 python3 -m experiments.ours.generate \
     --model meta-llama/Llama-2-70b-hf \
     --start_sentence 1 \
     --num_sentences 5 \
@@ -581,7 +445,7 @@ CUDA_VISIBLE_DEVICES=0,1,2,3 python3 -m tasks.bookMIA.generate \
     --task bookMIA \
     --data_split train; 
 
-CUDA_VISIBLE_DEVICES=0,1,2,3 python3 -m tasks.bookMIA.generate \
+CUDA_VISIBLE_DEVICES=0,1,2,3 python3 -m experiments.ours.generate \
     --model meta-llama/Llama-2-70b-hf \
     --start_sentence 1 \
     --num_sentences 10 \
@@ -590,4 +454,118 @@ CUDA_VISIBLE_DEVICES=0,1,2,3 python3 -m tasks.bookMIA.generate \
     --task_prompt_idx 1 \
     --task bookMIA \
     --data_split train; 
+
+python3 -m experiments.ours.generate \
+    --openai \
+    --model gpt-4o-2024-05-13 \
+    --start_sentence 1 \
+    --num_sentences 5 \
+    --num_sequences 20 \
+    --max_tokens 512 \
+    --task_prompt_idx 5 \
+    --task bookMIA \
+    --data_split train;
+
+python3 -m experiments.ours.generate \
+    --openai \
+    --model gpt-4o-2024-05-13 \
+    --start_sentence 1 \
+    --num_sentences 5 \
+    --num_sequences 20 \
+    --max_tokens 512 \
+    --task_prompt_idx 5 \
+    --task bookMIA \
+    --data_split val;
+
+python3 -m experiments.ours.generate \
+    --openai \
+    --model gpt-3.5-turbo-0125 \
+    --start_sentence 1 \
+    --num_sentences 5 \
+    --num_sequences 20 \
+    --max_tokens 512 \
+    --task_prompt_idx 5 \
+    --task bookMIA \
+    --data_split train;
+
+python3 -m experiments.ours.generate \
+    --openai \
+    --model gpt-3.5-turbo-0125 \
+    --start_sentence 1 \
+    --num_sentences 5 \
+    --num_sequences 20 \
+    --max_tokens 512 \
+    --task_prompt_idx 5 \
+    --task bookMIA \
+    --data_split val;
+
+python3 -m experiments.ours.generate \
+    --openai \
+    --model gpt-4o-2024-05-13 \
+    --start_sentence 1 \
+    --num_sentences 3 \
+    --num_sequences 20 \
+    --max_tokens 512 \
+    --task_prompt_idx 5 \
+    --task bookMIA \
+    --data_split train;
+
+python3 -m experiments.ours.generate \
+    --openai \
+    --model gpt-4o-2024-05-13 \
+    --start_sentence 1 \
+    --num_sentences 3 \
+    --num_sequences 20 \
+    --max_tokens 512 \
+    --task_prompt_idx 5 \
+    --task bookMIA \
+    --data_split val;
+
+python3 -m experiments.ours.generate \
+    --openai \
+    --model gpt-3.5-turbo-0125 \
+    --start_sentence 1 \
+    --num_sentences 3 \
+    --num_sequences 20 \
+    --max_tokens 512 \
+    --task_prompt_idx 5 \
+    --task bookMIA \
+    --data_split train;
+
+python3 -m experiments.ours.generate \
+    --openai \
+    --model gpt-3.5-turbo-0125 \
+    --start_sentence 1 \
+    --num_sentences 3 \
+    --num_sequences 20 \
+    --max_tokens 512 \
+    --task_prompt_idx 5 \
+    --task bookMIA \
+    --data_split val;
+
+    
+# 4 turbo
+python3 -m experiments.ours.generate \
+    --openai \
+    --model gpt-4-turbo-2024-04-09 \
+    --start_sentence 1 \
+    --num_sentences 3 \
+    --num_sequences 20 \
+    --max_tokens 512 \
+    --task_prompt_idx 5 \
+    --task bookMIA \
+    --data_split val;
+
+# o1 mini
+python3 -m experiments.ours.generate \
+    --openai \
+    --model o1-mini-2024-09-12 \
+    --start_sentence 1 \
+    --num_sentences 3 \
+    --num_sequences 20 \
+    --max_tokens 512 \
+    --task_prompt_idx 5 \
+    --task bookMIA \
+    --data_split val;
+
 """
