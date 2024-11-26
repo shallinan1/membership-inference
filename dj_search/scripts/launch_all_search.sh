@@ -1,10 +1,10 @@
 #!/bin/bash
 
 # User-specified folder for gen_data files
-GEN_DATA_FOLDER="/gscratch/xlab/hallisky/membership-inference/tasks/bookMIA/generations"
+GEN_DATA_FOLDER="/gscratch/xlab/hallisky/membership-inference/experiments/ours/bookMIA/generations/train"
 
 # Fixed output directory
-OUTPUT_DIR="/gscratch/xlab/hallisky/membership-inference/tasks/bookMIA/coverages/"
+OUTPUT_DIR="/gscratch/xlab/hallisky/membership-inference/experiments/ours/bookMIA/coverages/train/"
 
 # Fixed task
 TASK="bookMIA"
@@ -14,7 +14,7 @@ SOURCE_DOCS="swj0419/BookMIA"
 
 # Min ngram values to try
 MIN_NGRAM_VALUES=(3 4 5 6)
-MIN_NGRAM_VALUES=(4 5)
+MIN_NGRAM_VALUES=(4 5 6)
 
 # Command to activate the environment
 ACTIVATE_ENV="source activate vllminf"
