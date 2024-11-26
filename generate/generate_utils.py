@@ -140,148 +140,7 @@ task_prompts_dict_book = {
                 "task_preprompt": ""
             },
         ],
-    "gpt-3.5-turbo-instruct": # GPT3 instruct style
-        ["Write a novel: ",
-         "" # Blank string
-         "Given some text from part of a novel, continue the narrative while keeping the style and context consistent:"
-         ],
-    "gpt-3.5-turbo-0125": # Lates ChatGPT model
-        [{
-            "task_prompt": "Write a novel: ",
-            "task_postprompt": "",
-            "task_preprompt": ""
-        },
-        {
-            "task_prompt": "", # Blank
-            "task_postprompt": "",
-            "task_preprompt": ""
-        },
-        {
-            "task_prompt": "Given some text from part of a novel, continue the narrative while keeping the style and context consistent: ",
-            "task_postprompt": "",
-            "task_preprompt": ""
-        },
-        {
-            "task_prompt": "You will be shown part of a passage from a famous novel. Please try to generate the rest of the passage as accurately as possible. Do not generate any other text.\n\n",
-            "task_postprompt": "",
-            "task_preprompt": ""
-        },
-        {
-            "task_prompt": "You will be shown part of a passage from a novel. Please try to generate the rest of the passage as accurately as possible. Do not generate any other text.\n\n",
-            "task_postprompt": "",
-            "task_preprompt": ""
-        },
-        {
-            "task_prompt": """You will be shown a series of passages from famous literary works. After these examples, \
-you will receive a prefix from another passage and be asked to complete it based on the \
-text of a famous work. Provide only the continuation for the last given prefix without any \
-extra commentary, formatting, or additional text.\n\nComplete the prefix: """,
-            "task_postprompt": "",
-            "task_preprompt": ""
-        }],
-    "gpt-4o-mini-2024-07-18": # Can be abstracted to prompts for non-instruction tuned models
-        [{
-            "task_prompt": "Write a novel: ",
-            "task_postprompt": "",
-            "task_preprompt": ""
-        },
-        {
-            "task_prompt": "", # Blank
-            "task_postprompt": "",
-            "task_preprompt": ""
-        },
-        {
-            "task_prompt": "Given some text from part of a novel, continue the narrative while keeping the style and context consistent:",
-            "task_postprompt": "",
-            "task_preprompt": ""
-        },
-        {
-            "task_prompt": "You will be shown part of a passage from a famous novel. Please try to generate the rest of the passage as accurately as possible. Do not generate any other text.\n\n",
-            "task_postprompt": "",
-            "task_preprompt": ""
-        },
-        {
-            "task_prompt": "You will be shown part of a passage from a novel. Please try to generate the rest of the passage as accurately as possible. Do not generate any other text.\n\n",
-            "task_postprompt": "",
-            "task_preprompt": ""
-        },
-        {
-            "task_prompt": """You will be shown a series of passages from famous literary works. After these examples, \
-you will receive a prefix from another passage and be asked to complete it based on the \
-text of a famous work. Provide only the continuation for the last given prefix without any \
-extra commentary, formatting, or additional text.\n\nComplete the prefix: """,
-            "task_postprompt": "",
-            "task_preprompt": ""
-        }],
-        "gpt-4o-2024-05-13": # Can be abstracted to prompts for non-instruction tuned models
-        [{
-            "task_prompt": "Write a novel: ",
-            "task_postprompt": "",
-            "task_preprompt": ""
-        },
-        {
-            "task_prompt": "", # Blank
-            "task_postprompt": "",
-            "task_preprompt": ""
-        },
-        {
-            "task_prompt": "Given some text from part of a novel, continue the narrative while keeping the style and context consistent:",
-            "task_postprompt": "",
-            "task_preprompt": ""
-        },
-        {
-            "task_prompt": "You will be shown part of a passage from a famous novel. Please try to generate the rest of the passage as accurately as possible. Do not generate any other text.\n\n",
-            "task_postprompt": "",
-            "task_preprompt": ""
-        },
-        {
-            "task_prompt": "You will be shown part of a passage from a novel. Please try to generate the rest of the passage as accurately as possible. Do not generate any other text.\n\n",
-            "task_postprompt": "",
-            "task_preprompt": ""
-        },
-        {
-            "task_prompt": """You will be shown a series of passages from famous literary works. After these examples, \
-you will receive a prefix from another passage and be asked to complete it based on the \
-text of a famous work. Provide only the continuation for the last given prefix without any \
-extra commentary, formatting, or additional text.\n\nComplete the prefix: """,
-            "task_postprompt": "",
-            "task_preprompt": ""
-        }],
-        "Llama-3.1-8B-Instruct": 
-                [{
-            "task_prompt": "Write a novel: ",
-            "task_postprompt": "",
-            "task_preprompt": ""
-        },
-        {
-            "task_prompt": "", # Blank
-            "task_postprompt": "",
-            "task_preprompt": ""
-        },
-        {
-            "task_prompt": "Given some text from part of a novel, continue the narrative while keeping the style and context consistent:",
-            "task_postprompt": "",
-            "task_preprompt": ""
-        },
-        {
-            "task_prompt": "You will be shown part of a passage from a famous novel. Please try to generate the rest of the passage as accurately as possible. Do not generate any other text.\n\n",
-            "task_postprompt": "",
-            "task_preprompt": ""
-        },
-        {
-            "task_prompt": "You will be shown part of a passage from a novel. Please try to generate the rest of the passage as accurately as possible. Do not generate any other text.\n\n",
-            "task_postprompt": "",
-            "task_preprompt": ""
-        },
-        {
-            "task_prompt": """You will be shown a series of passages from famous literary works. After these examples, \
-you will receive a prefix from another passage and be asked to complete it based on the \
-text of a famous work. Provide only the continuation for the last given prefix without any \
-extra commentary, formatting, or additional text.\n\nComplete the prefix: """,
-            "task_postprompt": "",
-            "task_preprompt": ""
-        }],
-        "gpt-4o-2024-05-13": # Can be abstracted to prompts for non-instruction tuned models
+    "instruct-autoregressive": # Prompts for instruction-tuned examples
         [{
             "task_prompt": "Write a novel: ",
             "task_postprompt": "",
@@ -317,8 +176,10 @@ extra commentary, formatting, or additional text.\n\nComplete the prefix: """,
         }],
     }
 
-for mod in ["davinci-002", "gpt2-large", "Llama-2-7b-hf", "Llama-2-70b-hf"]:
+for mod in ["davinci-002", "gpt2-large", "Llama-2-7b-hf", "Llama-2-70b-hf","gpt-3.5-turbo-instruct"]:
     task_prompts_dict_book[mod] = task_prompts_dict_book["noninstruct-autoregressive"]
+for mod in ["gpt-4o-2024-05-13", "Llama-3.1-8B-Instruct","gpt-4o-mini-2024-07-18","gpt-4-turbo-2024-04-09", "o1-mini-2024-09-12"]:
+    task_prompts_dict_book[mod] = task_prompts_dict_book["instruct-autoregressive"]
 
 task_prompts_dict_book["Llama-3.1-70B-Instruct"] = task_prompts_dict_book["Llama-3.1-8B-Instruct"]
 task_prompts_dict_book["Llama-2-70b-chat-hf"] = task_prompts_dict_book["Llama-3.1-8B-Instruct"]
