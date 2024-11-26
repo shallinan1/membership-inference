@@ -1,37 +1,33 @@
-import openai
-import time
 from user_secrets import OPENAI_API_KEY
+from openai import OpenAI
+client = OpenAI(api_key=OPENAI_API_KEY)
+import time
 
 # Create client with openAI key
-openai.api_key = OPENAI_API_KEY
 
 def get_gpt_output(query, model='davinci-002', temperature=1.0, max_tokens=256, top_p=0.9, n=1):
     attempts = 1
     while attempts <= 20:
         try:
             if model == 'gpt-3.5-turbo-instruct' or any([model.startswith(x) for x in ['babbage', 'davinci']]):
-                response = openai.Completion.create(
-                    model=model,
+                response = client.completions.create(model=model,
                     prompt=query,
                     temperature=temperature,
                     max_tokens=max_tokens,
                     top_p=top_p,
                     n=n,
-                    logprobs=True
-                )
+                    logprobs=True)
                 return response
             else:
                 messages = [{"role": "user", "content": query}]
 
-                response = openai.ChatCompletion.create(
-                    model=model,
+                response = client.chat.completions.create(model=model,
                     messages=messages,
                     temperature=temperature,
                     max_tokens=max_tokens,
                     top_p=top_p,
                     n=n,
-                    logprobs=True
-                )
+                    logprobs=True)
                 return response
         except Exception as e:
             attempts += 1
