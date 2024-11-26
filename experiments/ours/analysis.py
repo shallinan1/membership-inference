@@ -35,7 +35,7 @@ def get_ngram_coverage(text, spans, min_gram):
     coverage = len([f for f in flags if f]) / len(flags)
     return coverage
 
-def compute_ci_statistic(outputs, min_ngram, max_ngram, add_output_file=None, threshold=None):
+def compute_ci_statistic(outputs, min_ngram, max_ngram):
 
     avg_coverages, avg_std = [], []
     ngram_list = list(range(min_ngram, max_ngram + 1))
@@ -661,62 +661,32 @@ def process_combination(params):
         for threshold in thresholds:
             y_pred = np.where(normalized_covs_subtract >= threshold, 1, 0)
             accuracy_scores.append(accuracy_score(gen_labels, y_pred))
-        plt.figure()
-        plt.plot(fpr, tpr, color='blue', lw=2, label=f'ROC curve (area = {roc_auc:0.2f})')
-        plt.plot([0, 1], [0, 1], color='red', lw=2, linestyle='--')  # Diagonal line for random guess
-        plt.xlim([0.0, 1.0])
-        plt.ylim([0.0, 1.05])
-        plt.xlabel('False Positive Rate')
-        plt.ylabel('True Positive Rate')
-        plt.title(f'Norm Cov ROC Curve, BookMIA, {model_name}, min_ngram {min_ngram}, {doc_string}, prompt {prompt_idx}, agg {aggregate}')
-        plt.grid(alpha=0.15)
-        plt.legend(loc="lower right")
-        plt.tight_layout()
-        plt.savefig(os.path.join(save_folder, f"cov_rocauc_norm_subtract.png"), dpi=200, bbox_inches="tight")
+        plot_roc_curve(fpr, tpr, roc_auc, 
+            f'Norm Cov ROC Curve, BookMIA, {model_name}, min_ngram {min_ngram}, {doc_string}, prompt {prompt_idx}, agg {aggregate}',
+            save_path=os.path.join(save_folder, f"cov_rocauc_norm_subtract.png")))
 
         # ROC AUC curves for CI
         fpr, tpr, thresholds = roc_curve(gen_labels, -1 * normalized_cis_subtract)
         roc_auc = auc(fpr, tpr)
-
-        # Calculate accuracy for each threshold
+        
         accuracy_scores = []
         for threshold in thresholds:
             y_pred = np.where(normalized_cis_subtract >= threshold, 1, 0)
             accuracy_scores.append(accuracy_score(gen_labels, y_pred))
-
-        # Plotting the ROC curve
-        plt.figure()
-        plt.plot(fpr, tpr, color='blue', lw=2, label=f'ROC curve (area = {roc_auc:0.2f})')
-        plt.plot([0, 1], [0, 1], color='red', lw=2, linestyle='--')  # Diagonal line for random guess
-        plt.xlim([0.0, 1.0])
-        plt.ylim([0.0, 1.05])
-        plt.xlabel('False Positive Rate')
-        plt.ylabel('True Positive Rate')
-        plt.title(f'Norm CI ROC Curve, BookMIA, {model_name}, min_ngram {min_ngram}, {doc_string}, prompt {prompt_idx}, agg {aggregate}')
-        plt.grid(alpha=0.15)
-        plt.legend(loc="lower right")
-        plt.tight_layout()
-        plt.savefig(os.path.join(save_folder, f"CI{LOW_CI_BOUND}-{HIGH_CI_BOUND}_rocauc_norm_subtract.png"), dpi=200, bbox_inches="tight")
+        plot_roc_curve(fpr, tpr, roc_auc, 
+            f'Norm CI ROC Curve, BookMIA, {model_name}, min_ngram {min_ngram}, {doc_string}, prompt {prompt_idx}, agg {aggregate}',
+            save_path=os.path.join(save_folder, f"CI{LOW_CI_BOUND}-{HIGH_CI_BOUND}_rocauc_norm_subtract.png"))
 
         fpr, tpr, thresholds = roc_curve(gen_labels, normalized_covs_divide)
         roc_auc = auc(fpr, tpr)
-        # Calculate accuracy for each threshold
+
         accuracy_scores = []
         for threshold in thresholds:
             y_pred = np.where(normalized_covs_divide >= threshold, 1, 0)
             accuracy_scores.append(accuracy_score(gen_labels, y_pred))
-        plt.figure()
-        plt.plot(fpr, tpr, color='blue', lw=2, label=f'ROC curve (area = {roc_auc:0.2f})')
-        plt.plot([0, 1], [0, 1], color='red', lw=2, linestyle='--')  # Diagonal line for random guess
-        plt.xlim([0.0, 1.0])
-        plt.ylim([0.0, 1.05])
-        plt.xlabel('False Positive Rate')
-        plt.ylabel('True Positive Rate')
-        plt.title(f'Norm Cov ROC Curve, BookMIA, {model_name}, min_ngram {min_ngram}, {doc_string}, prompt {prompt_idx}, agg {aggregate}')
-        plt.grid(alpha=0.15)
-        plt.legend(loc="lower right")
-        plt.tight_layout()
-        plt.savefig(os.path.join(save_folder, f"cov_rocauc_norm_divide.png"), dpi=200, bbox_inches="tight")
+        plot_roc_curve(fpr, tpr, roc_auc, 
+            f'Norm Cov ROC Curve, BookMIA, {model_name}, min_ngram {min_ngram}, {doc_string}, prompt {prompt_idx}, agg {aggregate}',
+            save_path=os.path.join(save_folder, f"cov_rocauc_norm_divide.png"))
 
         # ROC AUC curves for CI
         fpr, tpr, thresholds = roc_curve(gen_labels, -1 * normalized_cis_divide)
@@ -728,20 +698,10 @@ def process_combination(params):
             y_pred = np.where(normalized_cis_divide >= threshold, 1, 0)
             accuracy_scores.append(accuracy_score(gen_labels, y_pred))
 
-        # Plotting the ROC curve
-        plt.figure()
-        plt.plot(fpr, tpr, color='blue', lw=2, label=f'ROC curve (area = {roc_auc:0.2f})')
-        plt.plot([0, 1], [0, 1], color='red', lw=2, linestyle='--')  # Diagonal line for random guess
-        plt.xlim([0.0, 1.0])
-        plt.ylim([0.0, 1.05])
-        plt.xlabel('False Positive Rate')
-        plt.ylabel('True Positive Rate')
-        plt.title(f'Norm CI ROC Curve, BookMIA, {model_name}, min_ngram {min_ngram}, {doc_string}, prompt {prompt_idx}, agg {aggregate}')
-        plt.grid(alpha=0.15)
-        plt.legend(loc="lower right")
-        plt.tight_layout()
-        plt.savefig(os.path.join(save_folder, f"CI{LOW_CI_BOUND}-{HIGH_CI_BOUND}_rocauc_norm_divide.png"), dpi=200, bbox_inches="tight")
-
+        plot_roc_curve(fpr, tpr, roc_auc, 
+                f'Norm CI ROC Curve, BookMIA, {model_name}, min_ngram {min_ngram}, {doc_string}, prompt {prompt_idx}, agg {aggregate}',
+                save_path=os.path.join(save_folder, f"CI{LOW_CI_BOUND}-{HIGH_CI_BOUND}_rocauc_norm_divide.png"))
+    
     plt.close('all')
     return 1
 
@@ -782,6 +742,6 @@ if __name__ == "__main__":
         print(total, len(combinations))
 
     """
-    python3 -m tasks.bookMIA.analysis
-    python3 -m tasks.bookMIA.analysis --parallel
+    python3 -m experiments.ours.analysis
+    python3 -m experiments.ours.analysis --parallel
     """
