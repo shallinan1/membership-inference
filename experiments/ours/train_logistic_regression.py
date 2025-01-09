@@ -144,6 +144,7 @@ def main(args):
         ["ci_logdist_bins10", "cov_logdist_bins10"],
         ["ci_logdist_bins20", "cov_logdist_bins20"],
     ]
+    # feature_sets = [0]
 
     results = {}
     for cur_features in tqdm(feature_sets):
@@ -260,6 +261,11 @@ if __name__ == "__main__":
 
     main(parser.parse_args())
     """
+    python3 -m experiments.ours.train_logistic_regression \
+    --min_ngram 4 \
+    --gen_path /gscratch/xlab/hallisky/membership-inference/experiments/ours/bookMIA/generations/train/gpt-4o-2024-05-13_maxTok512_minTok0_numSeq20_topP0.95_temp1.0_numSent3_startSent1_numWord-1_startWord-1_useSentF_promptIdx5_len494_2024-11-07-04:49:18.jsonl
+
+
     python3 -m experiments.ours.train_logistic_regression \
     --min_ngram 4 \
     --gen_path /gscratch/xlab/hallisky/membership-inference/experiments/ours/bookMIA/generations/train/gpt-4o-2024-05-13_maxTok512_minTok0_numSeq20_topP0.95_temp1.0_numSent3_startSent1_numWord-1_startWord-1_useSentF_promptIdx5_len494_2024-11-07-04:49:18.jsonl
