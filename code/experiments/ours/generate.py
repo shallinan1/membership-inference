@@ -6,13 +6,13 @@ os.environ["HF_HOME"] = CACHE_PATH
 os.environ["HF_DATASETS_PATH"] = CACHE_PATH
 
 from datasets import load_dataset
-from code.generation.openai_generate import get_gpt_output
+from code.helper.generation.openai_generate import get_gpt_output
 from nltk import sent_tokenize
 import pandas as pd
 from IPython import embed
 from tqdm import tqdm
-from code.generation.vllm_generate import ModelGenerator 
-from code.generation.generate_utils import task_prompts_dict_book, make_prompts
+from code.helper.generation.vllm_generate import ModelGenerator 
+from code.helper.generation.generate_utils import task_prompts_dict_book, make_prompts
 import numpy as np
 import random
 from datetime import datetime
