@@ -178,7 +178,7 @@ extra commentary, formatting, or additional text.\n\nComplete the prefix: """,
 
 for mod in ["davinci-002", "gpt2-large", "Llama-2-7b-hf", "Llama-2-70b-hf","gpt-3.5-turbo-instruct"]:
     task_prompts_dict_book[mod] = task_prompts_dict_book["noninstruct-autoregressive"]
-for mod in ["gpt-4o-2024-05-13", "Llama-3.1-8B-Instruct","gpt-4o-mini-2024-07-18","gpt-4-turbo-2024-04-09", "o1-mini-2024-09-12"]:
+for mod in ["gpt-4o-2024-05-13", "Llama-3.1-8B-Instruct","gpt-4o-mini-2024-07-18","gpt-4-turbo-2024-04-09", "o1-mini-2024-09-12", "gpt-3.5-turbo-0125"]:
     task_prompts_dict_book[mod] = task_prompts_dict_book["instruct-autoregressive"]
 
 task_prompts_dict_book["Llama-3.1-70B-Instruct"] = task_prompts_dict_book["Llama-3.1-8B-Instruct"]
