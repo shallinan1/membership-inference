@@ -6,13 +6,13 @@ os.environ["HF_HOME"] = CACHE_PATH
 os.environ["HF_DATASETS_PATH"] = CACHE_PATH
 
 from datasets import load_dataset
-from code.generate.openai_generate import get_gpt_output
+from code.generation.openai_generate import get_gpt_output
 from nltk import sent_tokenize
 import pandas as pd
 from IPython import embed
 from tqdm import tqdm
-from code.generate.vllm_generate import ModelGenerator 
-from code.generate.generate_utils import task_prompts_dict_book, make_prompts
+from code.generation.vllm_generate import ModelGenerator 
+from code.generation.generate_utils import task_prompts_dict_book, make_prompts
 import numpy as np
 import random
 from datetime import datetime
@@ -189,10 +189,10 @@ def main(args):
 # Argument parser setup
 def parse_args():
     parser = argparse.ArgumentParser(description="Generate text using GPT models.")
-    parser.add_argument('--max_tokens', type=int, default=512, help='Maximum number of tokens to generate.')
-    parser.add_argument('--min_tokens', type=int, default=0, help='Maximum number of tokens to generate.')
+    parser.add_argument('--max_tokens', type=int, default=512, help='Maximum number of tokens to generation.')
+    parser.add_argument('--min_tokens', type=int, default=0, help='Maximum number of tokens to generation.')
     parser.add_argument('--max_length', type=int, default=2048, help='Maximum length')
-    parser.add_argument('--num_sequences', type=int, default=1, help='Number of sequences to generate.')
+    parser.add_argument('--num_sequences', type=int, default=1, help='Number of sequences to generation.')
     parser.add_argument('--top_p', type=float, default=0.95, help='Top-p sampling value.')
 
     # What part of the samples to prompt with

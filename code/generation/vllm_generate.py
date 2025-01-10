@@ -5,7 +5,7 @@ import torch
 import os
 import json
 from IPython import embed
-from code.generate.generate_utils import make_prompts
+from code.generation.generate_utils import make_prompts
 from vllm import LLM, SamplingParams
 from typing import List, Tuple, Optional
 
