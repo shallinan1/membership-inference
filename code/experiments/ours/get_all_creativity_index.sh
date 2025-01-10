@@ -1,8 +1,8 @@
 #!/bin/bash
 
 # Define the directories containing the .jsonl files
-DIRECTORIES=("experiments/ours/bookMIA/coverages/train/" "experiments/ours/bookMIA/coverages/val/")
-OUTPUT_DIR="experiments/ours/bookMIA/cis"
+DIRECTORIES=("experiments/ours/outputs/bookMIA/coverages/train/" "experiments/ours/outputs/bookMIA/coverages/val/")
+OUTPUT_DIR="experiments/ours/outputs/bookMIA/cis"
 
 # Command to activate the environment
 ACTIVATE_ENV="source activate vllminf"

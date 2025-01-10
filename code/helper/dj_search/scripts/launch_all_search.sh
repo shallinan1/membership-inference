@@ -1,10 +1,10 @@
 #!/bin/bash
 
 # User-specified folder for gen_data files
-GEN_DATA_FOLDER="/gscratch/xlab/hallisky/membership-inference/experiments/ours/bookMIA/generations/train"
+GEN_DATA_FOLDER="/gscratch/xlab/hallisky/membership-inference/code/experiments/ours/outputs/bookMIA/generations/train"
 
 # Fixed output directory
-OUTPUT_DIR="/gscratch/xlab/hallisky/membership-inference/experiments/ours/bookMIA/coverages/train/"
+OUTPUT_DIR="/gscratch/xlab/hallisky/membership-inference/code/experiments/ours/outputs/bookMIA/coverages/train/"
 
 # Fixed task
 TASK="bookMIA"

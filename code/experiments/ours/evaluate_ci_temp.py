@@ -87,13 +87,13 @@ if __name__ == "__main__":
     parser = argparse.ArgumentParser()
     parser.add_argument('--min_ngram', default=5)
     parser.add_argument('--all_doc', action="store_true")
-    parser.add_argument('--save_path', type=str, default = "experiments/ours/bookMIA/logistic")
+    parser.add_argument('--save_path', type=str, default = "experiments/ours/outputs/bookMIA/logistic")
     parser.add_argument('--gen_path', type=str)
 
     main(parser.parse_args())
     """
     python3 -m code.experiments.ours.train_logistic_regression \
     --min_ngram 4 \
-    --gen_path /gscratch/xlab/hallisky/membership-inference/experiments/ours/bookMIA/generations/train/gpt-4o-2024-05-13_maxTok512_minTok0_numSeq20_topP0.95_temp1.0_numSent3_startSent1_numWord-1_startWord-1_useSentF_promptIdx5_len494_2024-11-07-04:49:18.jsonl
+    --gen_path /gscratch/xlab/hallisky/membership-inference/code/experiments/ours/outputs/bookMIA/generations/train/gpt-4o-2024-05-13_maxTok512_minTok0_numSeq20_topP0.95_temp1.0_numSent3_startSent1_numWord-1_startWord-1_useSentF_promptIdx5_len494_2024-11-07-04:49:18.jsonl
     
     """

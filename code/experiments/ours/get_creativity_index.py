@@ -102,7 +102,7 @@ def main(args):
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="Process JSONL file and compute statistics.")
     parser.add_argument("--coverage_path", type=str, help="Path to the input JSONL file.")
-    parser.add_argument("--output_dir", type=str, default = "experiments/ours/bookMIA/cis/")
+    parser.add_argument("--output_dir", type=str, default = "experiments/ours/outputs/bookMIA/cis/")
     parser.add_argument("--min_ngram", type=int, default=LOW_CI_BOUND, help="Minimum n-gram for coverage calculation.")
     parser.add_argument("--max_ngram", type=int, default=HIGH_CI_BOUND, help="Maximum n-gram for coverage calculation.")
     
@@ -111,6 +111,6 @@ if __name__ == "__main__":
 
     """
     python3 -m code.experiments.ours.get_creativity_index \
-    --coverage_path experiments/ours/bookMIA/coverages/train/Llama-2-7b-hf_maxTok512_minTok0_numSeq20_topP0.95_temp1.0_numSent1_startSent1_numWord-1_startWord-1_useSentF_promptIdx1_len494_2024-10-30-21:06:53_4_onedoc.jsonl
+    --coverage_path experiments/ours/outputs/bookMIA/coverages/train/Llama-2-7b-hf_maxTok512_minTok0_numSeq20_topP0.95_temp1.0_numSent1_startSent1_numWord-1_startWord-1_useSentF_promptIdx1_len494_2024-10-30-21:06:53_4_onedoc.jsonl
 
     """
