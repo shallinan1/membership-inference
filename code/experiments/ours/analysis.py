@@ -742,6 +742,6 @@ if __name__ == "__main__":
         print(total, len(combinations))
 
     """
-    python3 -m experiments.ours.analysis
-    python3 -m experiments.ours.analysis --parallel
+    python3 -m code.experiments.ours.analysis
+    python3 -m code.experiments.ours.analysis --parallel
     """

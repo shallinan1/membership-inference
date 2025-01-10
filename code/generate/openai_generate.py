@@ -1,4 +1,4 @@
-from user_secrets import OPENAI_API_KEY
+from code.user_secrets import OPENAI_API_KEY
 from openai import OpenAI
 client = OpenAI(api_key=OPENAI_API_KEY)
 import time

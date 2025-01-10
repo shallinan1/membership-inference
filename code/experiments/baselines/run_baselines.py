@@ -1,5 +1,5 @@
 
-from user_secrets import CACHE_PATH
+from code.user_secrets import CACHE_PATH
 import os
 # Set up environment variables
 os.environ["HF_HOME"] = CACHE_PATH
@@ -14,7 +14,7 @@ from IPython import embed
 import matplotlib.pyplot as plt
 import json
 import torch
-from experiments.utils import plot_roc_curve
+from code.experiments.utils import plot_roc_curve
 
 # def inference(model1, tokenizer1,text, ex, modelname1):
 

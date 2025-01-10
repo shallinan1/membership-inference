@@ -18,7 +18,7 @@ for DIRECTORY in "${DIRECTORIES[@]}"; do
     for gen_path in "$DIRECTORY"*.jsonl; do
         for ngram in "${NGRAM_VALUES[@]}"; do
             # Create a new tmux session for each file and run the Python script
-            cmd_with_source="python3  -m experiments.ours.train_logistic_regression --gen_path $gen_path --min_ngram $ngram"
+            cmd_with_source="python3  -m code.experiments.ours.train_logistic_regression --gen_path $gen_path --min_ngram $ngram"
             
             tmux new-session -d "$SLURM_COMMAND \"$ACTIVATE_ENV && $cmd_with_source\""
             

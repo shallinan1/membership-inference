@@ -1,4 +1,4 @@
-from user_secrets import CACHE_PATH
+from code.user_secrets import CACHE_PATH
 import os
 # Set up environment variables
 os.environ["HF_HOME"] = CACHE_PATH
@@ -69,20 +69,15 @@ def main(args):
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="Make data splits")
 
-    # Add arguments to the parser
     parser.add_argument("--datasets", type=str, nargs='+', help="List of dataset names to load", default=["bookMIA"]) # Others: wikiMIA, Pile?
     parser.add_argument("--val_split", type=float, default=0.05) # Others: wikiMIA, Pile?
     parser.add_argument("--test_split", type=float, default=0.05) # Others: wikiMIA, Pile?
     parser.add_argument("--seed", type=int, default=0, help="Random seed for reproducibility")
-
-    # Parse arguments
     args = parser.parse_args()
 
-    # Set the seed
     random.seed(args.seed)
     np.random.seed(args.seed)
 
-    # Run main function with parsed arguments
     main(args)
 
     """

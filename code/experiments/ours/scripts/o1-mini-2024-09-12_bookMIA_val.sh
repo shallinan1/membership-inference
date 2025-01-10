@@ -1,5 +1,5 @@
 # o1 mini
-python3 -m experiments.ours.generate \
+python3 -m code.experiments.ours.generate \
     --openai \
     --model o1-mini-2024-09-12 \
     --start_sentence 1 \

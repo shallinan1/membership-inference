@@ -110,7 +110,7 @@ if __name__ == "__main__":
     main(args)
 
     """
-    python3 -m experiments.ours.get_creativity_index \
+    python3 -m code.experiments.ours.get_creativity_index \
     --coverage_path experiments/ours/bookMIA/coverages/train/Llama-2-7b-hf_maxTok512_minTok0_numSeq20_topP0.95_temp1.0_numSent1_startSent1_numWord-1_startWord-1_useSentF_promptIdx1_len494_2024-10-30-21:06:53_4_onedoc.jsonl
 
     """

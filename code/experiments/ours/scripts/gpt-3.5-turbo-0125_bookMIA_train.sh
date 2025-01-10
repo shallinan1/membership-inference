@@ -1,4 +1,4 @@
-python3 -m experiments.ours.generate \
+python3 -m code.experiments.ours.generate \
     --openai \
     --model gpt-3.5-turbo-0125 \
     --start_sentence 1 \

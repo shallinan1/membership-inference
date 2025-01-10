@@ -1,4 +1,4 @@
-from user_secrets import CACHE_PATH
+from code.user_secrets import CACHE_PATH
 import os
 # Set up environment variables
 os.environ["HF_HOME"] = CACHE_PATH

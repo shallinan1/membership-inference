@@ -20,7 +20,7 @@ for DIRECTORY in "${DIRECTORIES[@]}"; do
         # fi
 
         # Create a new tmux session for each file and run the Python script
-        cmd_with_source="python3 -m experiments.ours.get_creativity_index --coverage_path $file_path --output_dir $OUTPUT_DIR"
+        cmd_with_source="python3 -m code.experiments.ours.get_creativity_index --coverage_path $file_path --output_dir $OUTPUT_DIR"
         
         tmux new-session -d "$SLURM_COMMAND \"$ACTIVATE_ENV && $cmd_with_source\""
         

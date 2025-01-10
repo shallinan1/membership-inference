@@ -1,4 +1,4 @@
-python3 -m experiments.ours.generate \
+python3 -m code.experiments.ours.generate \
     --openai \
     --model gpt-4o-2024-05-13 \
     --start_sentence 1 \

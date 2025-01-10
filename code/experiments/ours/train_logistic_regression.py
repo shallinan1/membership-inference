@@ -13,7 +13,7 @@ from scipy.stats import skew, kurtosis
 import argparse
 from utils import load_jsonl, load_json, combine_lists, combine_dicts, combine_list_of_dicts
 import pandas as pd
-from experiments.ours.utils import load_all_files, get_all_gen_paths, BookMIALength
+from code.experiments.ours.utils import load_all_files, get_all_gen_paths, BookMIALength
 from sklearn.neural_network import MLPClassifier
 
 LOW_CI_BOUND=3
@@ -261,12 +261,12 @@ if __name__ == "__main__":
 
     main(parser.parse_args())
     """
-    python3 -m experiments.ours.train_logistic_regression \
+    python3 -m code.experiments.ours.train_logistic_regression \
     --min_ngram 4 \
     --gen_path /gscratch/xlab/hallisky/membership-inference/experiments/ours/bookMIA/generations/train/gpt-4o-2024-05-13_maxTok512_minTok0_numSeq20_topP0.95_temp1.0_numSent3_startSent1_numWord-1_startWord-1_useSentF_promptIdx5_len494_2024-11-07-04:49:18.jsonl
 
 
-    python3 -m experiments.ours.train_logistic_regression \
+    python3 -m code.experiments.ours.train_logistic_regression \
     --min_ngram 4 \
     --gen_path /gscratch/xlab/hallisky/membership-inference/experiments/ours/bookMIA/generations/train/gpt-4o-2024-05-13_maxTok512_minTok0_numSeq20_topP0.95_temp1.0_numSent3_startSent1_numWord-1_startWord-1_useSentF_promptIdx5_len494_2024-11-07-04:49:18.jsonl
     

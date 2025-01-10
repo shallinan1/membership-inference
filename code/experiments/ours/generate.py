@@ -1,18 +1,18 @@
 import argparse
-from user_secrets import CACHE_PATH
+from code.user_secrets import CACHE_PATH
 import os
 # Set up environment variables
 os.environ["HF_HOME"] = CACHE_PATH
 os.environ["HF_DATASETS_PATH"] = CACHE_PATH
 
 from datasets import load_dataset
-from generate.openai_generate import get_gpt_output
+from code.generate.openai_generate import get_gpt_output
 from nltk import sent_tokenize
 import pandas as pd
 from IPython import embed
 from tqdm import tqdm
-from generate.vllm_generate import ModelGenerator 
-from generate.generate_utils import task_prompts_dict_book, make_prompts
+from code.generate.vllm_generate import ModelGenerator 
+from code.generate.generate_utils import task_prompts_dict_book, make_prompts
 import numpy as np
 import random
 from datetime import datetime
@@ -221,7 +221,7 @@ if __name__ == "__main__":
 
 
 """
-CUDA_VISIBLE_DEVICES=0 python3 -m experiments.ours.generate \
+CUDA_VISIBLE_DEVICES=0 python3 -m code.experiments.ours.generate \
     --model openai-community/gpt2-large \
     --start_sentence 1 \
     --num_sentences 3 \
@@ -229,7 +229,7 @@ CUDA_VISIBLE_DEVICES=0 python3 -m experiments.ours.generate \
     --max_tokens 512 \
     --task_prompt_idx 0;      
 
-CUDA_VISIBLE_DEVICES=0 python3 -m experiments.ours.generate \
+CUDA_VISIBLE_DEVICES=0 python3 -m code.experiments.ours.generate \
     --model meta-llama/Llama-3.1-8B-Instruct \
     --start_sentence 1 \
     --num_sentences 5 \
@@ -238,7 +238,7 @@ CUDA_VISIBLE_DEVICES=0 python3 -m experiments.ours.generate \
     --min_tokens 10 \
     --task_prompt_idx 5;    
 
-CUDA_VISIBLE_DEVICES=0 python3 -m experiments.ours.generate \
+CUDA_VISIBLE_DEVICES=0 python3 -m code.experiments.ours.generate \
     --model meta-llama/Llama-3.1-70B-Instruct \
     --start_sentence 1 \
     --num_sentences 5 \
@@ -247,7 +247,7 @@ CUDA_VISIBLE_DEVICES=0 python3 -m experiments.ours.generate \
     --min_tokens 10 \
     --task_prompt_idx 5;      
 
-CUDA_VISIBLE_DEVICES=0,1 python3 -m experiments.ours.generate \
+CUDA_VISIBLE_DEVICES=0,1 python3 -m code.experiments.ours.generate \
     --model meta-llama/Llama-2-70b-chat-hf \
     --start_sentence 1 \
     --num_sentences 5 \
@@ -255,7 +255,7 @@ CUDA_VISIBLE_DEVICES=0,1 python3 -m experiments.ours.generate \
     --max_tokens 512 \
     --task_prompt_idx 5; 
 
-CUDA_VISIBLE_DEVICES=0 python3 -m experiments.ours.generate \
+CUDA_VISIBLE_DEVICES=0 python3 -m code.experiments.ours.generate \
     --model meta-llama/Llama-2-7b-hf \
     --start_sentence 1 \
     --num_sentences 1 \
@@ -265,7 +265,7 @@ CUDA_VISIBLE_DEVICES=0 python3 -m experiments.ours.generate \
     --task bookMIA \
     --data_split val; 
 
- CUDA_VISIBLE_DEVICES=0,1,2,3 python3 -m experiments.ours.generate \
+ CUDA_VISIBLE_DEVICES=0,1,2,3 python3 -m code.experiments.ours.generate \
     --model meta-llama/Llama-2-70b-hf \
     --start_sentence 1 \
     --num_sentences 1 \
