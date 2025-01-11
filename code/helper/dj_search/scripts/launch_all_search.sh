@@ -36,7 +36,7 @@ for gen_data_file in "$GEN_DATA_FOLDER"/*.jsonl; do
       # Check if the output file without --source_docs exists
       if [ ! -f "$output_without_source" ]; then
          # Command without --source_docs
-         cmd_without_source="python3 -m dj_search.dj_search_exact_LLM \
+         cmd_without_source="python3 -m code.helper.dj_search.dj_search_exact_LLM \
             --task $TASK \
             --output_dir $OUTPUT_DIR \
             --gen_data $gen_data_file \
@@ -56,7 +56,7 @@ for gen_data_file in "$GEN_DATA_FOLDER"/*.jsonl; do
       # Check if the output file with --source_docs exists
       if [ ! -f "$output_with_source" ]; then
          # Command with --source_docs
-         cmd_with_source="python3 -m dj_search.dj_search_exact_LLM \
+         cmd_with_source="python3 -m code.helper.dj_search.dj_search_exact_LLM \
             --task $TASK \
             --output_dir $OUTPUT_DIR \
             --gen_data $gen_data_file \

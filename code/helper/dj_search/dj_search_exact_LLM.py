@@ -12,7 +12,7 @@ from tqdm import tqdm
 from typing import Callable
 from unidecode import unidecode
 from sacremoses import MosesDetokenizer
-from dj_search.dj_search_exact import Document, Span, Hypothesis
+from code.helper.dj_search.dj_search_exact import Document, Span, Hypothesis
 from datasets import load_dataset, Dataset
 import datasets
 from datasets.utils.logging import disable_progress_bar
@@ -231,7 +231,7 @@ if __name__ == '__main__':
 """
 Example commands to run:
 
-python3 -m dj_search.dj_search_exact_LLM \
+python3 -m code.helper.dj_search.dj_search_exact_LLM \
     --task bookMIA \
     --output_dir /gscratch/xlab/hallisky/membership-inference/tasks/bookMIA/coverages/ \
     --gen_data /gscratch/xlab/hallisky/membership-inference/tasks/bookMIA/generations/gpt-3.5-turbo-0125_maxTokens512_numSeq10_topP0.95_numSent3_startSent1_promptIdx5_len788.jsonl \
@@ -239,7 +239,7 @@ python3 -m dj_search.dj_search_exact_LLM \
     --source_docs swj0419/BookMIA \
     --parallel;
 
-python3 -m dj_search.dj_search_exact_LLM \
+python3 -m code.helper.dj_search.dj_search_exact_LLM \
     --task bookMIA \
     --output_dir /gscratch/xlab/hallisky/membership-inference/tasks/bookMIA/coverages/ \
     --gen_data /gscratch/xlab/hallisky/membership-inference/tasks/bookMIA/generations/gpt-3.5-turbo-0125_maxTokens512_numSeq10_topP0.95_numSent5_startSent_promptIdx5_len788.jsonl \
