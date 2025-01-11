@@ -5,13 +5,13 @@ from sklearn.metrics import accuracy_score, classification_report
 from sklearn.datasets import load_iris
 import os
 from IPython import embed
-from utils import load_jsonl, load_json
+from code.utils import load_jsonl, load_json
 from tqdm import tqdm
 import numpy as np
 from sklearn.metrics import roc_curve, auc, accuracy_score
 from scipy.stats import skew, kurtosis
 import argparse
-from utils import load_jsonl, load_json, combine_lists, combine_dicts, combine_list_of_dicts
+from code.utils import load_jsonl, load_json, combine_lists, combine_dicts, combine_list_of_dicts
 import pandas as pd
 from code.experiments.ours.utils import load_all_files, get_all_gen_paths, BookMIALength
 from sklearn.neural_network import MLPClassifier

@@ -1,6 +1,6 @@
     
 import os
-from utils import load_jsonl, load_json, combine_lists, combine_dicts, combine_list_of_dicts
+from code.utils import load_jsonl, load_json, combine_lists, combine_dicts, combine_list_of_dicts
 from enum import Enum
 
 class BookMIALength(Enum):

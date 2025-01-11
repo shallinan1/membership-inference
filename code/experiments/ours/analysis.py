@@ -13,7 +13,7 @@ from multiprocessing import Pool, cpu_count
 from sklearn.metrics import roc_curve, auc, accuracy_score
 from IPython import embed
 import argparse
-from utils import load_jsonl, load_json, combine_lists, combine_dicts, combine_list_of_dicts
+from code.utils import load_jsonl, load_json, combine_lists, combine_dicts, combine_list_of_dicts
 from baselines.run_baselines import plot_roc_curve
 
 LOW_CI_BOUND=3

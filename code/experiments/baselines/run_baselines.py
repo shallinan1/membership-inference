@@ -8,7 +8,7 @@ import argparse
 from sklearn.metrics import roc_curve, auc, accuracy_score
 import zlib
 from tqdm import tqdm
-from utils import load_jsonl
+from code.utils import load_jsonl
 import numpy as np
 from IPython import embed
 import matplotlib.pyplot as plt
