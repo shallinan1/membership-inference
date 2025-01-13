@@ -47,4 +47,15 @@ Generations will be stored in the `code/experiments/ours/[dataset]/generations/[
 
     Coverages will be stored in the `code/experiments/ours/[dataset]/coverages/[split]` folder
 
-3. 
+3. Get creativity index from coverages
+
+    ```
+        python3 -m code.experiments.ours.get_creativity_index \
+        --coverage_path code/experiments/ours/outputs/bookMIA/coverages/train/Llama-2-7b-hf_maxTok512_minTok0_numSeq20_topP0.95_temp1.0_numSent1_startSent1_numWord-1_startWord-1_useSentF_promptIdx1_len494_2024-10-30-21:06:53_4_onedoc.jsonl
+    ```
+
+Or to run them all:
+
+    ```
+    ./code/experiments/ours/get_all_creativity_index.sh
+    ```
