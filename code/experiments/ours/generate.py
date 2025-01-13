@@ -5,7 +5,6 @@ import os
 os.environ["HF_HOME"] = CACHE_PATH
 os.environ["HF_DATASETS_PATH"] = CACHE_PATH
 
-from datasets import load_dataset
 from code.helper.generation.openai_generate import get_gpt_output
 from nltk import sent_tokenize
 import pandas as pd
@@ -13,11 +12,11 @@ from IPython import embed
 from tqdm import tqdm
 from code.helper.generation.vllm_generate import ModelGenerator 
 from code.helper.generation.generate_utils import task_prompts_dict_book, make_prompts
-import numpy as np
 import random
 from datetime import datetime
 
 def extract_chunk_words(text, start_word, num_words):
+    # TODO fill
     pass
 
 def extract_chunk_sentence(text, start_sentence, num_sentences):
@@ -53,7 +52,7 @@ def main(args):
     final_subset = pd.read_json(data_path, lines=True)
     print(f"Length: {len(final_subset)}")
 
-    save_folder = os.path.join(f"experiments/ours/{args.task}/generations/{args.data_split}")
+    save_folder = os.path.join(f"outputs/ours/{args.task}/generations/{args.data_split}")
     os.makedirs(save_folder, exist_ok=True)
 
     if args.prompt_with_words_not_sent:
@@ -65,7 +64,6 @@ def main(args):
         args.num_words = -1
         prompt_with_sent_str = "F"
 
-    # Add a column to save generations
     final_subset["generation"] = ""
     final_subset["model"] = ""
     final_subset["logprobs"] = ""
@@ -77,7 +75,6 @@ def main(args):
         args.num_sequences = 1
 
     if not args.openai:
-        # Initialize ModelGenerator
         generator = ModelGenerator(
             model=args.model,
             tokenizer=args.model if not args.tokenizer else args.tokenizer,
@@ -100,8 +97,7 @@ def main(args):
                 )[0]
 
             if first_gen:
-                print(prompt)
-                first_gen=False
+                print(prompt); first_gen=False
 
             full_generations = get_gpt_output(prompt, 
                                               model=args.model, 
@@ -110,28 +106,23 @@ def main(args):
                                               top_p=args.top_p)
             
             if args.model == 'gpt-3.5-turbo-instruct' or any([args.model.startswith(x) for x in ['babbage', 'davinci']]):
-                # TODO fix
+                # TODO fix # TODO FIX WHAT?
                 generations = [r['text'] for r in full_generations['choices']]
-
-                # Store model too
                 models = [full_generations["model"]] * len(generations)
-                
-                # Can also store the logprobs
-                logprobs =  [r['logprobs'] for r in full_generations['choices']]
+                # Skip for now
+                # logprobs =  [r['logprobs'] for r in full_generations['choices']] # Can also store the logprobs
             else:
                 generations = [r.message.content for r in full_generations.choices]
-
-                # Store model too
                 models = [full_generations.model] * len(generations)
-                # Can also store the logprobs
-                logprobs =  [r.logprobs for r in full_generations.choices]
+                # Skip for now
+                # logprobs =  [r.logprobs for r in full_generations.choices] # Can also store the logprobs
 
-            # Save the generation in the DataFrame
             final_subset.at[index, "generation"] = generations
             final_subset.at[index, "model"] = models
-            final_subset.at[index, "logprobs"] = logprobs
             final_subset.at[index, "snippet_no_prompt"] = rest_of_text
 
+            # Skipping for now
+            # final_subset.at[index, "logprobs"] = logprobs
     else:
         passages = final_subset.snippet.tolist()
         
@@ -169,13 +160,15 @@ def main(args):
 
         final_subset["generation"] =all_text_outputs
         final_subset["model"] = [model_str] * len(final_subset)
-        final_subset["logprobs"] = all_output_logprobs
-        final_subset["logprobs_prompt"] = all_prompt_logprobs
         final_subset["snippet_no_prompt"] = rest_of_texts
+
+        # We don't need to save this right now
+
+        # final_subset["logprobs"] = all_output_logprobs
+        # final_subset["logprobs_prompt"] = all_prompt_logprobs
 
     # Convert current datetime to string in 'YYYY-MM-DD HH:MM:SS' format
     date_str = datetime.now().strftime("%Y-%m-%d-%H:%M:%S").strip()
-
     minTokStr = "minTok" + str(args.min_tokens) + "_"
     
     # Save DataFrame to CSV with detailed info in the filename
@@ -184,11 +177,10 @@ def main(args):
     columns = [col for col in final_subset.columns if col != 'snippet'] + ['snippet']
     final_subset = final_subset[columns]
     final_subset.to_json(file_path, index=False, lines=True, orient='records')
-    
 
-# Argument parser setup
-def parse_args():
-    parser = argparse.ArgumentParser(description="Generate text using GPT models.")
+if __name__ == "__main__":
+    parser = argparse.ArgumentParser(description="Generate text")
+
     parser.add_argument('--max_tokens', type=int, default=512, help='Maximum number of tokens to generation.')
     parser.add_argument('--min_tokens', type=int, default=0, help='Maximum number of tokens to generation.')
     parser.add_argument('--max_length', type=int, default=2048, help='Maximum length')
@@ -212,12 +204,7 @@ def parse_args():
     parser.add_argument("--task", type=str, default="bookMIA")
     parser.add_argument("--data_split", type=str, default="train")
     
-    return parser.parse_args()
-
-if __name__ == "__main__":
-    # Parse arguments and call main function
-    args = parse_args()
-    main(args)
+    main(parser.parse_args())
 
 
 """
