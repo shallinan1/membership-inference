@@ -86,13 +86,14 @@ def process_single_doc(t_idx, all_gens, min_ngram, source_docs):
     for t_doc in tqdm(all_gens, leave=False, position=1):
         tokenized_text = tokenize_func(unidecode(t_doc["text"]))
         tgt_doc = Document(f'tgt_{t_idx}', tokenized_text)
-        if len(tgt_doc.tokens) <= min_ngram:
-            continue
-
-        output = find_exact_match(detokenize, tgt_doc, min_ngram, source_docs[t_idx], 1) # Hardcode 1 CPU here
+        if len(tgt_doc.tokens) <= min_ngram: # Edge case if gen is too short
+            output = {'matched_spans': [], 'coverage': 0, 'avg_span_len': 0, 'too_short': True}
+        else:
+            output = find_exact_match(detokenize, tgt_doc, min_ngram, source_docs[t_idx], 1) # Hardcode 1 CPU here
+        # Add it to the existing dict which stores the text
         t_doc.update(output)
         outputs.append(t_doc)
-    
+
     # avg_coverage = np.average([x['coverage'] for x in outputs]) if outputs else 0
     # std = np.std([x['coverage'] for x in outputs]) if outputs else 0
     # avg_len = np.average([x['avg_span_len'] for x in outputs]) if outputs else 0
@@ -104,7 +105,7 @@ def process_single_doc(t_idx, all_gens, min_ngram, source_docs):
 #     return process_single_doc(*args)
 
 def dj_search(generation_texts_list: List[List[str]],
-              source_docs, output_file: str, 
+              source_docs, 
               min_ngram: int, 
               subset: int = None, 
               num_cpus: int = 1):
@@ -114,7 +115,6 @@ def dj_search(generation_texts_list: List[List[str]],
     Args:
         generation_texts_list (List[List[str]]): A list of lists containing generated text strings to be processed.
         source_docs: A collection of source documents to match against the generated texts.
-        output_file (str): The path to the output file where results will be saved.
         min_ngram (int): The minimum n-gram length for considering a match.
         subset (int, optional): The number of items to process from the generation_texts_list. Defaults to None (process all).
         num_cpus (int, optional): The number of CPU cores to use for multiprocessing. Defaults to 1.
@@ -141,11 +141,8 @@ def dj_search(generation_texts_list: List[List[str]],
         for t_idx, all_gens in tqdm(enumerate(data), desc='target gens', total=len(data)):         
             outputs = process_single_doc(t_idx, all_gens, min_ngram, source_docs)
             all_outputs.append(outputs)
-    
-    # Can't save in progress if we're using multiprocessing - too complex
-    with open(output_file, 'w') as f:
-        json.dump(all_outputs, f, indent=4)
-        f.flush()
+
+    return all_outputs
 
 def main(args):
     start_time = time.time()
@@ -202,12 +199,22 @@ def main(args):
             args.output_file = args.output_file.replace(".jsonl", "_alldoc.jsonl")
 
     num_workers = min(cpu_count(), 4) if args.parallel else 1 # Set to 16 since it will get killed with too many cpus
-    dj_search(generation_texts, source_docs, args.output_file, args.min_ngram, args.subset, num_workers)
+    all_outputs = dj_search(generation_texts, source_docs, args.min_ngram, args.subset, num_workers)
 
     execution_time = time.time() - start_time
     minutes = int(execution_time // 60)
     seconds = int(execution_time % 60)
     print(f"Program executed in {minutes}:{seconds} ({execution_time:.4f} seconds)")
+
+    assert len(all_outputs) == len(generations)
+
+    for cur_generation, cur_all_output in zip(generations, all_outputs):
+        cur_generation["coverage"] = cur_all_output
+
+    # Can't save in progress if we're using multiprocessing - too complex
+    with open(args.output_file, 'w') as f:
+        json.dump(generations, f, indent=4)
+        f.flush()
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser()
@@ -233,17 +240,17 @@ Example commands to run:
 
 python3 -m code.helper.dj_search.dj_search_exact_LLM \
     --task bookMIA \
-    --output_dir /gscratch/xlab/hallisky/membership-inference/tasks/bookMIA/coverages/ \
-    --gen_data /gscratch/xlab/hallisky/membership-inference/tasks/bookMIA/generations/gpt-3.5-turbo-0125_maxTokens512_numSeq10_topP0.95_numSent3_startSent1_promptIdx5_len788.jsonl \
+    --output_dir /gscratch/xlab/hallisky/membership-inference/outputs/ours/bookMIA/coverages/train \
+    --gen_data /gscratch/xlab/hallisky/membership-inference/outputs/ours/bookMIA/generations/train/gpt-3.5-turbo-0125_maxTok512_minTok0_numSeq20_topP0.95_temp1.0_numSent5_startSent1_numWord-1_startWord-1_useSentF_promptIdx5_len494_2025-01-11-23:06:39.jsonl \
     --min_ngram 4 \
-    --source_docs swj0419/BookMIA \
-    --parallel;
+    --parallel \
+    --source_docs swj0419/BookMIA;
 
 python3 -m code.helper.dj_search.dj_search_exact_LLM \
     --task bookMIA \
-    --output_dir /gscratch/xlab/hallisky/membership-inference/tasks/bookMIA/coverages/ \
-    --gen_data /gscratch/xlab/hallisky/membership-inference/tasks/bookMIA/generations/gpt-3.5-turbo-0125_maxTokens512_numSeq10_topP0.95_numSent5_startSent_promptIdx5_len788.jsonl \
+    --output_dir /gscratch/xlab/hallisky/membership-inference/outputs/ours/bookMIA/coverages/train \
+    --gen_data /gscratch/xlab/hallisky/membership-inference/outputs/ours/bookMIA/generations/train/gpt-3.5-turbo-0125_maxTok512_minTok0_numSeq20_topP0.95_temp1.0_numSent5_startSent1_numWord-1_startWord-1_useSentF_promptIdx5_len494_2025-01-11-23:06:39.jsonl \
     --min_ngram 4 \
-    --parallel \
-    --source_docs swj0419/BookMIA;   
+    --parallel;
+
 """
