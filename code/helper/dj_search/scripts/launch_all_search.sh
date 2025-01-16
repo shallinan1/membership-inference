@@ -1,4 +1,5 @@
 #!/bin/bash
+# ./code/helper/dj_search/scripts/launch_all_search.sh
 
 # User-specified folder for gen_data files
 GEN_DATA_FOLDER="/gscratch/xlab/hallisky/membership-inference/outputs/ours/bookMIA/generations/train"
