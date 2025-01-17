@@ -25,6 +25,7 @@ import time
 datasets.logging.set_verbosity_error()
 disable_progress_bar() # Disable filter progress bar
 md = MosesDetokenizer(lang='en')
+from pylcs import lcs_string_length
 
 tokenize_func = lambda x: nltk.tokenize.casual.casual_tokenize(x)
 detokenize = lambda x: md.detokenize(x)
@@ -39,6 +40,50 @@ detokenize = lambda x: md.detokenize(x)
 #     "I cannot continue this passage",
 #     "I'm not able to provide a response.",
 # ]
+
+def find_max_common_sublist_length(A: List, B: List):
+    n = len(A); m = len(B)
+    
+    # Auxiliary dp[] list
+    dp = [0] * (m + 1)
+    maxm = 0
+ 
+    # Updating the dp[] list in Bottom Up approach
+    for i in range(n - 1, -1, -1):
+        prev = 0
+        for j in range(m - 1, -1, -1):
+            temp = dp[j]
+            if A[i] == B[j]:
+                dp[j] = prev + 1
+                maxm = max(maxm, dp[j])
+            else:
+                dp[j] = 0
+            prev = temp
+ 
+    return maxm  # Return the maximum length
+
+def process_single_sublist_pair(g_list_tokenized, source_docs_tokenized):
+    return [longest_sublist(g, source_docs_tokenized) for g in g_list_tokenized]
+
+def longest_sublist(text_tokenized: List[str], 
+                    source_docs_tokenized: List[List[str]] ):
+    longest_sublist_overall = 0
+    for s in source_docs_tokenized:
+        match_length = find_max_common_sublist_length(text_tokenized, s)
+        longest_sublist_overall = max(longest_sublist_overall, match_length)
+    
+    return longest_sublist_overall
+
+def process_single_substring_pair(g_list, source_docs):
+    return [longest_substring(g, source_docs) for g in g_list]
+
+def longest_substring(text: str, source_docs: List[str]):
+    longest_substring_overall = 0
+    for s in source_docs:
+        match_length = lcs_string_length(text, s)
+        longest_substring_overall = max(longest_substring_overall, match_length)
+    
+    return longest_substring_overall
 
 def find_exact_match(detokenize: Callable, doc: Document, min_ngram: int, source_data: Dataset, num_cpus: int):
     hypothesis = Hypothesis(doc, min_ngram)
@@ -124,7 +169,6 @@ def dj_search(generation_texts_list: List[List[str]],
     """
     data = [[{"text": g} for g in generation_texts] for generation_texts in generation_texts_list]
     data = data[:subset] if subset is not None else data
-    # embed()
 
     all_outputs = []
 
@@ -207,15 +251,43 @@ def main(args):
     print(f"Program executed in {minutes}:{seconds} ({execution_time:.4f} seconds)")
 
     assert len(all_outputs) == len(generations)
-
     for cur_generation, cur_all_output in zip(generations, all_outputs):
         cur_generation["coverage"] = cur_all_output
+
+    generation_texts_word_tokenized = [[tokenize_func(g) for g in g_list] for g_list in generation_texts] 
+    source_docs_word_tokenized = [[tokenize_func(s) for s in source["text"]] for source in source_docs]
+    
+    # Length (number of words) and characters
+    generation_texts_length_chars = [[len(g) for g in g_list] for g_list in generation_texts]
+    generation_texts_length_words = [[len(g) for g in g_list] for g_list in generation_texts_word_tokenized]
+
+    if num_workers > 1:
+        combinations_substring = [(g_list, source["text"]) for g_list, source in zip(generation_texts, source_docs)]
+        with Pool(num_workers) as pool:
+            longest_substring_chars = list(pool.starmap(process_single_substring_pair, tqdm(combinations_substring, total=len(combinations_substring), desc="maximum substring", position=0))) 
+    
+        combinations_sublist = list(zip(generation_texts_word_tokenized, source_docs_word_tokenized))
+
+        with Pool(num_workers) as pool:
+            longest_sublist_words = list(pool.starmap(process_single_sublist_pair, tqdm(combinations_sublist,total=len(combinations_sublist), desc="maximum sublist", position=0)))
+    else:
+        # TODO check this
+        longest_substring_chars = [[longest_substring(g,source["text"]) for g in g_list] for g_list,source in tqdm(zip(generation_texts, source_docs))]
+        longest_sublist_words = [[longest_sublist(g, source_doc_word_tokenized) for g in g_list_tokenized] 
+                                 for g_list_tokenized, source_doc_word_tokenized in tqdm(zip(generation_texts_word_tokenized, source_docs_word_tokenized))]
+
+    for cur_generation, gen_text_length_char, gen_text_length_word, longest_substring_char, longest_sublist_word in zip(generations, generation_texts_length_chars, generation_texts_length_words, longest_substring_chars, longest_sublist_words):
+        cur_generation["gen_text_length_char"] = gen_text_length_char
+        cur_generation["gen_text_length_word"] = gen_text_length_word
+        cur_generation["longest_substring_char"] = longest_substring_char
+        cur_generation["longest_sublist_word"] = longest_sublist_word
 
     # Can't save in progress if we're using multiprocessing - too complex
     with open(args.output_file, 'w') as f:
         json.dump(generations, f, indent=4)
         f.flush()
 
+    # embed()
 if __name__ == '__main__':
     parser = argparse.ArgumentParser()
     parser.add_argument('--task', type=str, default='bookMIA',
