@@ -65,5 +65,5 @@ if __name__ == "__main__":
 
     """
     # To run this file, use:
-    python3 -m data.pile_external.preprocess
+    python3 -m data.pile-external.preprocess
     """
