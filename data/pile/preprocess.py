@@ -10,21 +10,24 @@ import argparse
 import os
 from sklearn.model_selection import train_test_split
 from code.utils import load_jsonl, save_to_jsonl
+from data.pile.pile_info import pile_categories
 
 from IPython import embed
 
-def main(args):
-    subset = "books3" # TODO change this
-   
+# This code is for if we want our own pile data
+
+def main(args):   
     base_data_path = "/data/pile"
     data_nonmember = load_jsonl(os.path.join(base_data_path, "test.jsonl"))
     # Filter the data into the subsets
     subset_data_nonmember = []
+    
     for d in data_nonmember:
+        subsets.add(d['meta']['pile_set_name'])
         if d['meta']['pile_set_name'] == "Books3":
             subset_data_nonmember.append({"snippet": d["text"], "label": 0})
-            if len(subset_data_nonmember) == 100:
-                break
+            # if len(subset_data_nonmember) == 100:
+            #     break
     del data_nonmember # Memory saving
 
     # subset_data_member = []
