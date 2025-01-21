@@ -1,5 +1,5 @@
 python3 -m code.experiments.ours.generate \
-    --model EleutherAI/pythia-1.4b \
+    --model EleutherAI/pythia-2.8b \
     --start_sentence 0 \
     --num_sentences 10 \
     --num_sequences 20 \
@@ -9,7 +9,7 @@ python3 -m code.experiments.ours.generate \
     --data_split train;
 
 python3 -m code.experiments.ours.generate \
-    --model EleutherAI/pythia-1.4b \
+    --model EleutherAI/pythia-2.8b \
     --start_sentence 0 \
     --num_sentences 5 \
     --num_sequences 20 \
@@ -19,7 +19,7 @@ python3 -m code.experiments.ours.generate \
     --data_split train;
 
 python3 -m code.experiments.ours.generate \
-    --model EleutherAI/pythia-1.4b \
+    --model EleutherAI/pythia-2.8b \
     --start_sentence 0 \
     --num_sentences 5 \
     --num_sequences 20 \

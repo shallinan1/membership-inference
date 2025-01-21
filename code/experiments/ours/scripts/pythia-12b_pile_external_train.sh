@@ -1,5 +1,5 @@
-python3 -m code.experiments.ours.generate \
-    --model EleutherAI/pythia-1.4b \
+CUDA_VISIBLE_DEVICES=0,1 python3 -m code.experiments.ours.generate \
+    --model EleutherAI/pythia-12b \
     --start_sentence 0 \
     --num_sentences 10 \
     --num_sequences 20 \
@@ -8,8 +8,8 @@ python3 -m code.experiments.ours.generate \
     --task pile_external \
     --data_split train;
 
-python3 -m code.experiments.ours.generate \
-    --model EleutherAI/pythia-1.4b \
+CUDA_VISIBLE_DEVICES=0,1 python3 -m code.experiments.ours.generate \
+    --model EleutherAI/pythia-12b \
     --start_sentence 0 \
     --num_sentences 5 \
     --num_sequences 20 \
@@ -18,8 +18,8 @@ python3 -m code.experiments.ours.generate \
     --task pile_external \
     --data_split train;
 
-python3 -m code.experiments.ours.generate \
-    --model EleutherAI/pythia-1.4b \
+CUDA_VISIBLE_DEVICES=0,1 python3 -m code.experiments.ours.generate \
+    --model EleutherAI/pythia-12b \
     --start_sentence 0 \
     --num_sentences 5 \
     --num_sequences 20 \
