@@ -21,15 +21,13 @@ def extract_chunk_words(text, start_word, num_words):
 
 def extract_chunk_sentence(text, start_sentence, num_sentences):
     text_sentences = sent_tokenize(text)
-
     # Make it so we at least have the last sentence to generate
     num_sentences = min(len(text_sentences) - start_sentence - 1, num_sentences)
-
     # Ignore first one, since it is often partial
     if len(text_sentences) == 1:
         embed()
         try:
-            prompt_text = text_sentences[args.start_sentence]
+            prompt_text = text_sentences[start_sentence]
         except:
             print("Something wrong")
             return None
@@ -43,12 +41,11 @@ def main(args):
     random.seed(0)
 
     model_str = args.model.split("/")[-1] # Splits to get actual model name
-    if model_str not in task_prompts_dict_book:
+    if model_str not in task_prompts_dict_book[args.task]:
         print("Valid model not passed in. Try again")
-    cur_task_prompts = task_prompts_dict_book[model_str][args.task_prompt_idx]
+    cur_task_prompts = task_prompts_dict_book[args.task][model_str][args.task_prompt_idx]
 
-    if args.task == "bookMIA":
-        data_path = f"data/bookMIA/split-random-overall/{args.data_split}.jsonl"
+    data_path = f"data/{args.task}/split-random-overall/{args.data_split}.jsonl"
     final_subset = pd.read_json(data_path, lines=True)
     print(f"Length: {len(final_subset)}")
 
@@ -64,24 +61,13 @@ def main(args):
         args.num_words = -1
         prompt_with_sent_str = "F"
 
-    final_subset["generation"] = ""
-    final_subset["model"] = ""
-    final_subset["logprobs"] = ""
-    final_subset["snippet_"] = ""
+    for subset_key in ["generation", "model", "logprobs", "snippet_no_prompt"]:
+        final_subset[subset_key] = ""
 
     # Reduce num_sequences if using greedy decoding
     if args.temperature == 0:
         print("GREEDY decoding - setting num_sequences to 1")
         args.num_sequences = 1
-
-    if not args.openai:
-        generator = ModelGenerator(
-            model=args.model,
-            tokenizer=args.model if not args.tokenizer else args.tokenizer,
-            seed=args.seed,
-            hf_token=args.hf_token,
-            cache_dir=CACHE_PATH,
-        )
 
     if args.openai:
         first_gen = True
@@ -124,6 +110,14 @@ def main(args):
             # Skipping for now
             # final_subset.at[index, "logprobs"] = logprobs
     else:
+        generator = ModelGenerator(
+            model=args.model,
+            tokenizer=args.model if not args.tokenizer else args.tokenizer,
+            seed=args.seed,
+            hf_token=args.hf_token,
+            cache_dir=CACHE_PATH,
+        )
+
         passages = final_subset.snippet.tolist()
         
         if not args.prompt_with_words_not_sent:
@@ -132,6 +126,8 @@ def main(args):
             # TODO implement this
             import sys; sys.exit()
     
+        embed()
+        
         prompt_texts, rest_of_texts = zip(*prompt_outputs)
         prompt_texts= list(prompt_texts)
         rest_of_texts = list(rest_of_texts)
