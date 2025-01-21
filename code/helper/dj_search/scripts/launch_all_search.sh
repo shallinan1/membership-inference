@@ -1,14 +1,14 @@
 #!/bin/bash
 # ./code/helper/dj_search/scripts/launch_all_search.sh
 
-# User-specified folder for gen_data files
-GEN_DATA_FOLDER="/gscratch/xlab/hallisky/membership-inference/outputs/ours/bookMIA/generations/train"
-
-# Fixed output directory
-OUTPUT_DIR="/gscratch/xlab/hallisky/membership-inference/outputs/ours/bookMIA/coverages/train"
-
 # Fixed task
 TASK="bookMIA"
+
+# User-specified folder for gen_data files
+GEN_DATA_FOLDER="outputs/ours/${TASK}/generations/train"
+
+# Fixed output directory
+OUTPUT_DIR="${GEN_DATA_FOLDER//generations/coverages}"
 
 # Source docs path
 SOURCE_DOCS="swj0419/BookMIA"
@@ -45,10 +45,10 @@ for gen_data_file in "$GEN_DATA_FOLDER"/*.jsonl; do
             --parallel"
 
          # Print the command without --source_docs
-         echo "Running command: $cmd_without_source"
+         echo "Running (no source) command: $cmd_without_source"
 
          # Create a new tmux session and run the SLURM command inside
-         tmux new-session -d "$SLURM_COMMAND \"$ACTIVATE_ENV && $cmd_without_source\""
+         # tmux new-session -d "$SLURM_COMMAND \"$ACTIVATE_ENV && $cmd_without_source\""
       else
          :
          # echo "Output file already exists: $output_without_source, skipping..."
@@ -66,10 +66,10 @@ for gen_data_file in "$GEN_DATA_FOLDER"/*.jsonl; do
             --source_docs $SOURCE_DOCS"
 
          # Print the command with --source_docs
-         echo "Running command: $cmd_with_source"
+         echo "Running (source) command: $cmd_with_source"
 
          # Create a new tmux session and run the SLURM command inside
-         tmux new-session -d "$SLURM_COMMAND \"$ACTIVATE_ENV && $cmd_with_source\""
+         # tmux new-session -d "$SLURM_COMMAND \"$ACTIVATE_ENV && $cmd_with_source\""
       else
          :
          # echo "Output file already exists: $output_with_source, skipping..."
