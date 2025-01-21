@@ -62,7 +62,7 @@ def main(args):
     else:
         print("Please use valid data path. See README for valid data after preprocssing/downloading.")
 
-    model = AutoModelForCausalLM.from_pretrained(args.target_model, device_map='auto')
+    model = AutoModelForCausalLM.from_pretrained(args.target_model, device_map='auto', trust_remote_code=True)
     model.eval()
     tokenizer = AutoTokenizer.from_pretrained(args.target_model)
 
