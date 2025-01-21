@@ -1,8 +1,10 @@
 #!/bin/bash
 # ./code/helper/dj_search/scripts/launch_all_search.sh
 
+# TODO FIX ALL DOCS 
+
 # Fixed task
-TASK="bookMIA"
+TASK="pile_external"
 
 # User-specified folder for gen_data files
 GEN_DATA_FOLDER="outputs/ours/${TASK}/generations/train"
@@ -11,11 +13,15 @@ GEN_DATA_FOLDER="outputs/ours/${TASK}/generations/train"
 OUTPUT_DIR="${GEN_DATA_FOLDER//generations/coverages}"
 
 # Source docs path
-SOURCE_DOCS="swj0419/BookMIA"
+if [ "$SOURCE_DOCS" == "BookMIA" ]; then
+   SOURCE_DOCS="swj0419/BookMIA"
+else
+   SOURCE_DOCS="empty"
+fi
 
 # Min ngram values to try
 MIN_NGRAM_VALUES=(3 4 5 6)
-MIN_NGRAM_VALUES=(3 4 5 6)
+MIN_NGRAM_VALUES=(2 3 4)
 
 # Command to activate the environment
 ACTIVATE_ENV="source activate vllminf"
@@ -48,14 +54,14 @@ for gen_data_file in "$GEN_DATA_FOLDER"/*.jsonl; do
          echo "Running (no source) command: $cmd_without_source"
 
          # Create a new tmux session and run the SLURM command inside
-         # tmux new-session -d "$SLURM_COMMAND \"$ACTIVATE_ENV && $cmd_without_source\""
+         tmux new-session -d "$SLURM_COMMAND \"$ACTIVATE_ENV && $cmd_without_source\""
       else
          :
          # echo "Output file already exists: $output_without_source, skipping..."
       fi
 
       # Check if the output file with --source_docs exists
-      if [ ! -f "$output_with_source" ]; then
+      if [ ! -f "$output_with_source" ] && [ "$SOURCE_DOCS" != "empty" ]; then
          # Command with --source_docs
          cmd_with_source="python3 -m code.helper.dj_search.dj_search_exact_LLM \
             --task $TASK \
@@ -69,7 +75,7 @@ for gen_data_file in "$GEN_DATA_FOLDER"/*.jsonl; do
          echo "Running (source) command: $cmd_with_source"
 
          # Create a new tmux session and run the SLURM command inside
-         # tmux new-session -d "$SLURM_COMMAND \"$ACTIVATE_ENV && $cmd_with_source\""
+         tmux new-session -d "$SLURM_COMMAND \"$ACTIVATE_ENV && $cmd_with_source\""
       else
          :
          # echo "Output file already exists: $output_with_source, skipping..."
