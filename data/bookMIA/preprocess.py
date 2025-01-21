@@ -10,7 +10,7 @@ import numpy as np
 import argparse
 import os
 import pandas as pd
-from data.utils import clean_snippet
+from data.bookMIA.utils import clean_snippet
 from sklearn.model_selection import train_test_split
 
 def main(args):
