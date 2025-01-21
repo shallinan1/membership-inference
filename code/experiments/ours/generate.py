@@ -125,9 +125,7 @@ def main(args):
         else:
             # TODO implement this
             import sys; sys.exit()
-    
-        embed()
-        
+            
         prompt_texts, rest_of_texts = zip(*prompt_outputs)
         prompt_texts= list(prompt_texts)
         rest_of_texts = list(rest_of_texts)
