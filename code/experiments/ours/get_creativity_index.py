@@ -1,3 +1,5 @@
+# TODO can we use multiprocessing here?
+
 import json
 from unidecode import unidecode
 from nltk.tokenize.casual import casual_tokenize
@@ -31,7 +33,6 @@ def get_ngram_coverage(text, spans, min_gram):
     return coverage
 
 def compute_ci_statistic(outputs, min_ngram, max_ngram):
-
     avg_coverages, avg_std = [], []
     ngram_list = list(range(min_ngram, max_ngram + 1))
     for output in outputs:
@@ -60,9 +61,7 @@ def main(args):
     prefix = filename_with_date[:match.start()]
     suffix = filename_with_date[match.end():]
 
-    # Initialize a list to store matching file paths
     matching_paths = []
-    
     # List all files in the directory and filter by matching prefix and suffix
     for filename in sorted(os.listdir(directory)):
         if filename.startswith(prefix) and filename.endswith(suffix):
@@ -83,7 +82,6 @@ def main(args):
         else:
             combined_coverage_data = combine_lists(combined_coverage_data, coverage_data)
 
-    # Further processing and output as needed
     print(len(matching_paths))
 
     if "train" in args.coverage_path:
@@ -96,6 +94,8 @@ def main(args):
     cis = [compute_ci_statistic(cur_data, args.min_ngram, args.max_ngram) for cur_data in tqdm(coverage_data, leave=False, desc = "Iterating through original data", position=1)]
 
     output_filename = os.path.join(args.output_dir, f"{filename_with_date.replace('.jsonl', '')}_CI_{args.min_ngram}_{args.max_ngram}.jsonl")
+
+#    embed()
 
     save_to_jsonl(cis, output_filename)
 
@@ -111,6 +111,6 @@ if __name__ == "__main__":
 
     """
     python3 -m code.experiments.ours.get_creativity_index \
-    --coverage_path experiments/ours/outputs/bookMIA/coverages/train/Llama-2-7b-hf_maxTok512_minTok0_numSeq20_topP0.95_temp1.0_numSent1_startSent1_numWord-1_startWord-1_useSentF_promptIdx1_len494_2024-10-30-21:06:53_4_onedoc.jsonl
+    --coverage_path code/experiments/ours/outputs/bookMIA/coverages/train/Llama-2-7b-hf_maxTok512_minTok0_numSeq20_topP0.95_temp1.0_numSent1_startSent1_numWord-1_startWord-1_useSentF_promptIdx1_len494_2024-10-30-21:06:53_4_onedoc.jsonl
 
     """
