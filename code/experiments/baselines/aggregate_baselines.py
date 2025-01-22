@@ -32,26 +32,19 @@ def main(args):
                 scores = json.load(f)
 
             # Flatten and extract the data
+            row = {"split": split, "model": model}
             for key, value in scores.items():
                 if key == "ReferenceLoss":
                     for sub_key, sub_value in value.items():
-                        rows.append({
-                            "split": split,
-                            "model": model,
-                            "metric": f"{key}-{sub_key}",
-                            "roc_auc": sub_value.get("roc_auc", None)
-                        })
+                        metric_name = f"{key}-{sub_key}"
+                        row[metric_name] = sub_value.get("roc_auc", None)
                 else:
-                    rows.append({
-                        "split": split,
-                        "model": model,
-                        "metric": key,
-                        "roc_auc": value.get("roc_auc", None)
-                    })
+                    row[key] = value.get("roc_auc", None)
+            rows.append(row)
 
     # Create a DataFrame and save to CSV
     output_csv = f"outputs/baselines/{args.task}/aggregated_scores.csv"
-    df = pd.DataFrame(rows).sort_values(by="split")
+    df = pd.DataFrame(rows).sort_values(by=["split", "model"])
     df.to_csv(output_csv, index=False)
 
     print(f"Aggregated scores saved to {output_csv}")
@@ -60,6 +53,7 @@ if __name__ == '__main__':
     parser = argparse.ArgumentParser(formatter_class=argparse.ArgumentDefaultsHelpFormatter)
     parser.add_argument('--task', type=str, default="pile_external")
     main(parser.parse_args())
+
     
 """
 python3 -m code.experiments.baselines.aggregate_baselines
