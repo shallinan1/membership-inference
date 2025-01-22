@@ -13,29 +13,19 @@ import numpy as np
 from IPython import embed
 import matplotlib.pyplot as plt
 import json
-import torch
 from code.experiments.utils import plot_roc_curve
 
 # def inference(model1, tokenizer1,text, ex, modelname1):
-
-#     perplexity, probabilities, loss = getPerplexityProbLoss(text, model1, tokenizer1, gpu=model1.device)
 #     p_lower, _, p_lower_likelihood = getPerplexityProbLoss(text.lower(), model1, tokenizer1, gpu=model1.device)
-
-#     # Ratio of log ppl of large and small models
-#     pred["ppl/Ref_ppl (calibrate PPL to the reference model)"] = p1_likelihood-p_ref_likelihood
- 
 #     # Ratio of log ppl of lower-case and normal-case
 #     pred["ppl/lowercase_ppl"] = -(np.log(p_lower) / np.log(p1)).item()
-
 #     return ex
-
-
 
 # TODO: need to get all log probs to run this method
 # def mink_pp(log_probs, all_log_probs, ratio):
 #     mu = (torch.exp(log_probs) * log_probs).sum(-1)
 #     sigma = (torch.exp(log_probs) * torch.square(log_probs)).sum(-1) - ch.square(mu)
-#     scores = (np.array(target_prob) - mu.numpy()) / sigma.sqrt().numpy()
+#     scores = (np.array(target _prob) - mu.numpy()) / sigma.sqrt().numpy()
     
 #     return -np.mean(sorted(scores)[:int(len(scores) * k)])
 
@@ -71,11 +61,9 @@ def main(args):
     print(f"Saving to {output_dir}")
 
     input_path_parts = args.target_model_probs.split(os.sep)
-    dataset = input_path_parts[1]   # 'bookMIA'
-    split = input_path_parts[2]     # 'val'
+    dataset, split = input_path_parts[2], input_path_parts[3]
 
-    # Load in the probs from file
-    results = load_jsonl(args.target_model_probs)
+    results = load_jsonl(args.target_model_probs) # Load in the probs from file
     gen_labels = [g["label"] for g in results]
 
     all_scores = {}
@@ -100,29 +88,22 @@ def main(args):
                     all_scores[strategy][ref_model_name] = {}
                     all_scores[strategy][ref_model_name]["roc_auc"] = roc_auc
 
-                    plot_roc_curve(fpr, tpr, roc_auc, f"{dataset} ({split}): {strategy}, {target_model_name} ({ref_model_name} ref)", f"{strategy}_{ref_model_name}", plot_dir)
+                    plot_title = f"{dataset} ({split}): {strategy}, {target_model_name} ({ref_model_name} ref)"
+                    plot_roc_curve(fpr, tpr, roc_auc, plot_title, os.path.join(plot_dir, f"{strategy}_{ref_model_name}"))
         else:
             scores = [strategy_values["func"](r) for r in results]
 
             fpr, tpr, thresholds = roc_curve(gen_labels, scores)
             roc_auc = auc(fpr, tpr)
             all_scores[strategy] = {}
-            # all_scores[strategy]["fpr"] = fpr
-            # all_scores[strategy]["tpr"] = tpr
-            # all_scores[strategy]["thresholds"] = thresholds
             all_scores[strategy]["roc_auc"] = roc_auc
 
-            plot_roc_curve(fpr, tpr, roc_auc, f"{dataset} ({split}): {strategy}, {target_model_name}", strategy, plot_dir)
+            plot_title=f"{dataset} ({split}): {strategy}, {target_model_name}"
+            plot_roc_curve(fpr, tpr, roc_auc, plot_title, os.path.join(plot_dir, f"{strategy}.png"))
 
     output_file_path = os.path.join(output_dir, f"scores.json")
     with open(output_file_path, 'w') as f:
         json.dump(all_scores, f, indent=4)
-
-        # # Calculate accuracy for each threshold
-        # accuracy_scores = []
-        # for threshold in thresholds:
-        #     y_pred = np.where(covs >= threshold, 1, 0)
-        #     accuracy_scores.append(accuracy_score(gen_labels, y_pred))
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser(formatter_class=argparse.ArgumentDefaultsHelpFormatter)
@@ -132,10 +113,8 @@ if __name__ == '__main__':
 
 
     """
-    python3 -m baselines.run_baselines \
-        --target_model_probs baselines/bookMIA/val/probs/Llama-2-7b-hf.jsonl ;
-    python3 -m baselines.run_baselines \
-        --target_model_probs baselines/bookMIA/val/probs/Llama-2-70b-hf.jsonl \
-        --ref_model_probs baselines/bookMIA/val/probs/Llama-2-7b-hf.jsonl \
+    python3 -m code.experiments.baselines.run_baselines \
+        --target_model_probs /gscratch/xlab/hallisky/membership-inference/outputs/baselines/pile_external/train/probs/pythia-1.4b.jsonl \
+        --ref_model_probs /gscratch/xlab/hallisky/membership-inference/outputs/baselines/pile_external/train/probs/stablelm-base-alpha-3b-v2.jsonl;
     """
 
