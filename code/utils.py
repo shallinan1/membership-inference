@@ -67,22 +67,3 @@ def save_to_jsonl(data, file_path):
         for entry in data:
             f.write(json.dumps(entry) + "\n")
     print(f"Data saved to {file_path} in JSONL format.")
-
-def split_text_and_newlines(text):
-    texts = []
-    newline_counts = []
-    parts = text.split("\n")
-    current_text = parts[0]
-    newline_count = 0
-
-    texts.append(current_text.strip())
-    
-    for part in parts[1:]:
-        newline_count += 1
-        
-        if part.strip() != "":
-            texts.append(part.strip())
-            newline_counts.append(newline_count)
-            newline_count = 0
-
-    return texts, newline_counts
