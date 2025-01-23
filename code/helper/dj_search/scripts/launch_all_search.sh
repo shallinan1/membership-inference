@@ -5,9 +5,10 @@
 
 # Fixed task
 TASK="pile_external"
+SPLIT="val"
 
 # User-specified folder for gen_data files
-GEN_DATA_FOLDER="outputs/ours/${TASK}/generations/train"
+GEN_DATA_FOLDER="outputs/ours/${TASK}/generations/${SPLIT}"
 
 # Fixed output directory
 OUTPUT_DIR="${GEN_DATA_FOLDER//generations/coverages}"
