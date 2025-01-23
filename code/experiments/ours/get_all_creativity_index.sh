@@ -5,7 +5,7 @@ DIRECTORIES=("experiments/ours/outputs/bookMIA/coverages/train/" "experiments/ou
 OUTPUT_DIR="experiments/ours/outputs/bookMIA/cis"
 
 # Command to activate the environment
-ACTIVATE_ENV="source activate vllminf"
+ACTIVATE_ENV="source activate vllmgen"
 
 # SLURM command to request resources (updated to run commands within it)
 SLURM_COMMAND="srun -p gpu-rtx6k -A xlab --time=4:00:00 --nodes=1 --cpus-per-task=4 --mem=25G --pty /bin/bash -c"

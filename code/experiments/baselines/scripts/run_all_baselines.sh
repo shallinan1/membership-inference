@@ -3,7 +3,7 @@
 # ./code/experiments/baselines/scripts/run_all_baselines.sh
 
 
-ACTIVATE_ENV="source activate vllminf"
+ACTIVATE_ENV="source activate vllmgen"
 SLURM_COMMAND="srun -p gpu-rtx6k -A xlab --time=1:00:00 --nodes=1 --cpus-per-task=4 --mem=25G --gres=gpu:rtx6k:0 --pty /bin/bash  -c"
 
 # Define dataset and split

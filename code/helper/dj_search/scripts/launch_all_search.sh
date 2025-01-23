@@ -5,7 +5,7 @@
 
 # Fixed task
 TASK="pile_external"
-SPLIT="val"
+SPLIT="test"
 
 # User-specified folder for gen_data files
 GEN_DATA_FOLDER="outputs/ours/${TASK}/generations/${SPLIT}"
@@ -25,7 +25,7 @@ MIN_NGRAM_VALUES=(3 4 5 6)
 MIN_NGRAM_VALUES=(2 3 4)
 
 # Command to activate the environment
-ACTIVATE_ENV="source activate vllminf"
+ACTIVATE_ENV="source activate vllmgen"
 
 # SLURM command to request resources (updated to run commands within it)
 SLURM_COMMAND="srun -p gpu-rtx6k -A xlab --time=8:00:00 --nodes=1 --cpus-per-task=4 --mem=25G --pty /bin/bash -c"
