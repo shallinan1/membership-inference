@@ -121,7 +121,6 @@ def main(args):
             prompt_key="lightest"
             )
 
-        embed()
         # Generate texts
         final_prompts, all_text_outputs, all_prompt_logprobs, all_output_logprobs = generator.generate_vllm(
             prompts=prompts,
