@@ -699,15 +699,60 @@ if __name__ == "__main__":
                 data_file="sharegpt_html_cleaned_and_split_2048.json",
                 num_examples=None
             )
+
+            non_tulu = ["super_ni", "baize", "stanford_alpaca", "unnatural_instructions", "self_instruct"]
+            
             # merge all the subsets
             print("Merging all the subsets to create tulu v1...")
             all_subsets = [f for f in os.listdir(os.path.join(args.output_dir, "tulu_v1")) if f.endswith("_subset")]
             with open(os.path.join(args.output_dir, "tulu_v1", "tulu_v1_data.jsonl"), "w") as fout:
                 for subset in all_subsets:
                     dataset_name = subset[:-len("_subset")]
-                    with open(os.path.join(args.output_dir, "tulu_v1", subset, f"{dataset_name}_data.jsonl"), "r") as fin:
-                        for line in fin:
-                            fout.write(line)
+                    if dataset_name not in non_tulu:
+                        print(dataset_name)
+                        with open(os.path.join(args.output_dir, "tulu_v1", subset, f"{dataset_name}_data.jsonl"), "r") as fin:
+                            for line in fin:
+                                fout.write(line)
+
+            # convert_super_ni_data()
+            convert_super_ni_data(
+                data_dir=os.path.join(args.raw_data_dir, "super_ni"),
+                output_dir=os.path.join(args.output_dir, "tulu_v1", "super_ni_subset")
+            )
+
+            convert_baize_data(
+                data_dir=os.path.join(args.raw_data_dir, "baize"),
+                output_dir=os.path.join(args.output_dir, "tulu_v1", "baize_subset")
+            )
+
+            convert_stanford_alpaca_data(
+                data_dir=os.path.join(args.raw_data_dir, "stanford_alpaca"),
+                output_dir=os.path.join(args.output_dir, "tulu_v1", "stanford_alpaca")
+            )
+
+            convert_unnatural_instructions_data(
+                data_dir=os.path.join(args.raw_data_dir, "unnatural_instructions"),
+                output_dir=os.path.join(args.output_dir, "tulu_v1", "unnatural_instructions")
+            )
+
+            convert_self_instruct_data(
+                data_dir=os.path.join(args.raw_data_dir, "self_instruct"),
+                output_dir=os.path.join(args.output_dir, "tulu_v1", "self_instruct")
+            )
+
+            # merge all the subsets
+            print("Merging all the subsets to create inverse tulu v1...")
+            all_subsets = [f for f in os.listdir(os.path.join(args.output_dir, "tulu_v1")) if f.endswith("_subset")]
+            with open(os.path.join(args.output_dir, "tulu_v1", "inverse_tulu_v1_data.jsonl"), "w") as fout:
+                for subset in all_subsets:
+                    dataset_name = subset[:-len("_subset")]
+                    if dataset_name in non_tulu:
+                        print(dataset_name)
+                        with open(os.path.join(args.output_dir, "tulu_v1", subset, f"{dataset_name}_data.jsonl"), "r") as fin:
+                            for line in fin:
+                                fout.write(line)
+
+
         elif dataset == "tulu_v2":
             print(f"Processing tulu_v2 subsets...")
             convert_flan_v2_data(
@@ -790,5 +835,5 @@ if __name__ == "__main__":
 
 
 """
-python scripts/data/sft/reformat_datasets.py --raw_data_dir data/raw_train/ --output_dir data/processed/
+python3 data/tulu_v1/reformat_datasets.py --raw_data_dir data/tulu_v1/raw_train/ --output_dir data/tulu_v1/processed/ --dataset tulu_v1
 """
