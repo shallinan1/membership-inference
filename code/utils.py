@@ -67,3 +67,19 @@ def save_to_jsonl(data, file_path):
         for entry in data:
             f.write(json.dumps(entry) + "\n")
     print(f"Data saved to {file_path} in JSONL format.")
+
+
+def convert_to_tulu_v1_format(messages, turns = 1):
+    messages = messages[:2*turns] # Check - does it always have to be user-assistnat or can it also be user-user-assistant?
+    # TODO for multi-turn conversations, do we add eos after every asssitant? 
+    # TODO look into training to see how the eos stuff adds up
+    final_text = ""
+    for c in messages:
+        if c["role"] == "user":
+            final_text += f"<|user|>\n"
+        else:
+            final_text += f"<|assistant|>\n"
+
+        final_text += c["content"] + "\n"
+
+    return final_text.strip()
