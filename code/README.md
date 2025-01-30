@@ -59,3 +59,9 @@ Or to run them all:
     ```
     ./code/experiments/ours/get_all_creativity_index.sh
     ```
+
+4. Aggregate results
+
+```
+python3 -m code.experiments.ours.aggregate_results
+```
