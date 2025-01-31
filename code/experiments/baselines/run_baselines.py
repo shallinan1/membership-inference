@@ -30,7 +30,7 @@ from code.experiments.utils import plot_roc_curve
 #     return -np.mean(sorted(scores)[:int(len(scores) * k)])
 
 def mink_attack(log_probs, ratio):
-    k_length = int(len(log_probs)*ratio)
+    k_length = max(int(len(log_probs)*ratio), 1)
     topk_prob = np.sort(log_probs)[:k_length]
     return -np.mean(topk_prob).item()
 
@@ -114,7 +114,7 @@ if __name__ == '__main__':
 
     """
     python3 -m code.experiments.baselines.run_baselines \
-        --target_model_probs /gscratch/xlab/hallisky/membership-inference/outputs/baselines/pile_external/train/probs/pythia-1.4b.jsonl \
-        --ref_model_probs /gscratch/xlab/hallisky/membership-inference/outputs/baselines/pile_external/train/probs/stablelm-base-alpha-3b-v2.jsonl;
+        --target_model_probs outputs/baselines/pile_external/train/probs/pythia-1.4b.jsonl \
+        --ref_model_probs outputs/baselines/pile_external/train/probs/stablelm-base-alpha-3b-v2.jsonl;
     """
 
