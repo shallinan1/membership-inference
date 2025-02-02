@@ -7,13 +7,12 @@ ACTIVATE_ENV="source activate vllmgen"
 SLURM_COMMAND="srun -p gpu-rtx6k -A xlab --time=1:00:00 --nodes=1 --cpus-per-task=4 --mem=25G --gres=gpu:rtx6k:0 --pty /bin/bash  -c"
 
 # Define dataset and split
-DATASET="tulu_v1"
+DATASET="pile_external"
 SPLIT="train"
 
 # Build paths dynamically
 TARGET_DIR="/gscratch/xlab/hallisky/membership-inference/outputs/baselines/${DATASET}/${SPLIT}/probs"
 REF_MODEL_PROBS="${TARGET_DIR}/stablelm-base-alpha-3b-v2.jsonl"
-REF_MODEL_PROBS="${TARGET_DIR}/tulu-7b-finalized.jsonl"
 
 # Iterate through each file in the target directory
 for TARGET_FILE in "$TARGET_DIR"/*.jsonl; do
