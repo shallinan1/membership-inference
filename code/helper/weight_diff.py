@@ -181,8 +181,11 @@ if __name__ == "__main__":
     fire.Fire(main)
 
     """
-    python3 -m code.helper.weight_diff recover --path_raw /gscratch/xlab/hallisky/cache/llama-7b --path_tuned /gscratch/xlab/hallisky/cache/tulu-7b-finalized  --path_diff /gscratch/xlab/hallisky/cache/tulu-7b --device cuda
+    python3 -m code.helper.weight_diff recover --path_raw /gscratch/xlab/hallisky/cache/llama-7b --path_tuned /gscratch/xlab/hallisky/cache/tulu-7b-finalized  --path_diff /gscratch/xlab/hallisky/cache/tulu-7b
 
+    python3 -m code.helper.weight_diff recover --path_raw /gscratch/xlab/hallisky/cache/llama-13b --path_tuned /gscratch/xlab/hallisky/cache/tulu-13b-finalized  --path_diff /gscratch/xlab/hallisky/cache/tulu-13b
 
-    python3 -m code.helper.weight_diff recover --path_raw /gscratch/xlab/hallisky/cache/llama-13b --path_tuned /gscratch/xlab/hallisky/cache/tulu-13b-finalized  --path_diff /gscratch/xlab/hallisky/cache/tulu-13b --device cuda
+    python3 -m code.helper.weight_diff recover --path_raw /gscratch/xlab/hallisky/cache/llama-30b --path_tuned /gscratch/xlab/hallisky/cache/tulu-30b-finalized  --path_diff /gscratch/xlab/hallisky/cache/tulu-30b
+
+    python3 -m code.helper.weight_diff recover --path_raw /gscratch/xlab/hallisky/cache/llama-65b --path_tuned /gscratch/xlab/hallisky/cache/tulu-65b-finalized  --path_diff /gscratch/xlab/hallisky/cache/tulu-65b  
     """
