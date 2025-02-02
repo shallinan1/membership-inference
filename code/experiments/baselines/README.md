@@ -18,8 +18,8 @@ Now run:
 
 ```
 python3 -m code.experiments.baselines.run_baselines \
-    --target_model_probs /gscratch/xlab/hallisky/membership-inference/outputs/baselines/pile_external/train/probs/pythia-1.4b.jsonl \
-    --ref_model_probs /gscratch/xlab/hallisky/membership-inference/outputs/baselines/pile_external/train/probs/stablelm-base-alpha-3b-v2.jsonl;
+    --target_model_probs outputs/baselines/pile_external/train/probs/pythia-1.4b.jsonl \
+    --ref_model_probs outputs/baselines/pile_external/train/probs/stablelm-base-alpha-3b-v2.jsonl;
 ```
 
 Alternatively to runch all evals run:
