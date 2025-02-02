@@ -8,7 +8,7 @@ SLURM_COMMAND="srun -p gpu-rtx6k -A xlab --time=1:00:00 --nodes=1 --cpus-per-tas
 
 # Define dataset and split
 DATASET="tulu_v1"
-SPLIT="train"
+SPLIT=${1:-test}
 
 # Build paths dynamically
 TARGET_DIR="/gscratch/xlab/hallisky/membership-inference/outputs/baselines/${DATASET}/${SPLIT}/probs"
