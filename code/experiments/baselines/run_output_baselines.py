@@ -1,24 +1,13 @@
-import pandas as pd
-from oversample_labels_fn import generate_permutations
-import sys
-import os
-from tqdm import tqdm
-
-from torch import nn
-import torch
-
-from openai import OpenAI
-# from anthropic import Anthropic, HUMAN_PROMPT, AI_PROMPT # Don't have this right now
 from datasets import load_dataset
+from code.user_secrets import CACHE_PATH, OPENAI_API_KEY
+from openai import OpenAI
+client = OpenAI(api_key=OPENAI_API_KEY)
 
-from code.user_secrets import CACHE_PATH
-import os
 # Set up environment variables
 os.environ["HF_HOME"] = CACHE_PATH
 os.environ["HF_DATASETS_PATH"] = CACHE_PATH
 import argparse
 from sklearn.metrics import roc_curve, auc, accuracy_score
-import zlib
 from tqdm import tqdm
 from code.utils import load_jsonl
 import numpy as np
@@ -26,7 +15,14 @@ from IPython import embed
 import matplotlib.pyplot as plt
 import json
 from code.experiments.utils import plot_roc_curve
-
+import pandas as pd
+from oversample_labels_fn import generate_permutations
+import sys
+import os
+from tqdm import tqdm
+from torch import nn
+import torch
+# from anthropic import Anthropic, HUMAN_PROMPT, AI_PROMPT # Don't have this right now
 
 softmax = nn.Softmax(dim=0)
 mapping = {0: 'A', 1: 'B', 2: 'C', 3: 'D'}
@@ -61,9 +57,6 @@ def Query_LLM(data_type, model_name, query_data, document_name, author_name):
             prompt=f"{HUMAN_PROMPT} {prompt} {AI_PROMPT} Answer: ",
             temperature=0)
         return completion.completion.strip()
-    
-
-
 
 # Function to extract float values from tensors
 def extract_float_values(tensor_list):
@@ -144,14 +137,7 @@ def process_files(data_type, passage_size, model):
                 Max_Label.append(Query_LLM(data_type = data_type, model_name=model, query_data=document_aux.iloc[j], document_name=document_name, author_name=author_name))
             document_aux["Claude2.1"] = Max_Label
 
-
-
-        document_aux.to_excel(fileOut, index=False)
-        print(f"Completed book - {document_name}!")
-
-
-
-
+        # TODO save the data
 
 if __name__ == "__main__":
     if len(sys.argv) < 5:
@@ -194,41 +180,9 @@ if __name__ == "__main__":
 
     process_files(data_type, passage_size, model)
 
-
-
-# def inference(model1, tokenizer1,text, ex, modelname1):
-#     p_lower, _, p_lower_likelihood = getPerplexityProbLoss(text.lower(), model1, tokenizer1, gpu=model1.device)
-#     # Ratio of log ppl of lower-case and normal-case
-#     pred["ppl/lowercase_ppl"] = -(np.log(p_lower) / np.log(p1)).item()
-#     return ex
-
-# TODO: need to get all log probs to run this method
-# def mink_pp(log_probs, all_log_probs, ratio):
-#     mu = (torch.exp(log_probs) * log_probs).sum(-1)
-#     sigma = (torch.exp(log_probs) * torch.square(log_probs)).sum(-1) - ch.square(mu)
-#     scores = (np.array(target _prob) - mu.numpy()) / sigma.sqrt().numpy()
-    
-#     return -np.mean(sorted(scores)[:int(len(scores) * k)])
-
-def mink_attack(log_probs, ratio):
-    k_length = max(int(len(log_probs)*ratio), 1)
-    topk_prob = np.sort(log_probs)[:k_length]
-    return -np.mean(topk_prob).item()
-
-def zlib_attack(loss, text):
-    return loss/len(zlib.compress(bytes(text, 'utf-8')))
-
 strategies = {# "Perplexity": { "func": lambda x: -x["loss"]}, # This is the same as loss
               "Loss": {"func": lambda x: -x["loss"]},
-              "Zlib": {"func": lambda x: -zlib_attack(x["loss"], x["snippet"])},
               "ReferenceLoss": {"func": lambda x, y: y - x},
-              "MinK-0.05": {"func": lambda x: -mink_attack(x["log_probs"], 0.05)},
-              "MinK-0.1": {"func": lambda x: -mink_attack(x["log_probs"], 0.1)},
-              "MinK-0.2": {"func": lambda x: -mink_attack(x["log_probs"], 0.2)},
-              "MinK-0.3": {"func": lambda x: -mink_attack(x["log_probs"], 0.3)},
-              "MinK-0.4": {"func": lambda x: -mink_attack(x["log_probs"], 0.4)},
-              "MinK-0.5": {"func": lambda x: -mink_attack(x["log_probs"], 0.5)},
-              "MinK-0.6": {"func": lambda x: -mink_attack(x["log_probs"], 0.6)},
               }
 
 def main(args):
