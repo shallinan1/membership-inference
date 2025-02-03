@@ -113,7 +113,7 @@ if __name__ == '__main__':
 
 
     """
-    python3 -m code.experiments.baselines.run_baselines \
+    python3 -m code.experiments.baselines.run_loss_baselines \
         --target_model_probs outputs/baselines/pile_external/train/probs/pythia-1.4b.jsonl \
         --ref_model_probs outputs/baselines/pile_external/train/probs/stablelm-base-alpha-3b-v2.jsonl;
     """
