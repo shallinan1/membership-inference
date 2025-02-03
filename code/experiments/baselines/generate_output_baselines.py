@@ -138,22 +138,11 @@ def process_files(data_type, passage_size, model):
 
         # TODO save the data
 
-if __name__ == "__main__":
-    if len(sys.argv) < 5:
-        print("Usage: python <name_of_file.py> --data <data_file> --target_model <model_name> [--length <passage_size>]")
-        print("<passage_size> is only mandatory for BookTection and should be one of: <small>, <medium>, or <large>")
-        sys.exit(1)
-
-    data_index = sys.argv.index("--data")
-    model_index = sys.argv.index("--target_model")
-    
-    data_type = sys.argv[data_index + 1]
-    model = sys.argv[model_index + 1]
-
-    if model == "ChatGPT":
+def main(args):
+    if args.target_model == "ChatGPT":
         api_key = "Insert your OpenAI key here"
         client = OpenAI(api_key=api_key)
-    elif model == "Claude":
+    elif args.target_model == "Claude":
         claude_api_key = "Insert yout Claude key here"
         anthropic = Anthropic(api_key=claude_api_key)
     else:
@@ -178,3 +167,11 @@ if __name__ == "__main__":
         sys.exit(1)
 
     process_files(data_type, passage_size, model)
+
+if __name__ == "__main__":
+    parser = argparse.ArgumentParser(formatter_class=argparse.ArgumentDefaultsHelpFormatter)
+    parser.add_argument('--target_model', type=str, default="text-davinci-003", help="the model to attack: huggyllama/llama-65b, text-davinci-003")
+    parser.add_argument('--task', type=str, default="pile_external", help="the task (dataset)")
+    parser.add_argument('--split', type=str, default="train", help="the data split")
+    parser.add_argument('--key_name', type=str, default="input", help="the key name corresponding to the input text. Selecting from: input, paraphrase")
+    main(parser.parse_args())
