@@ -1,7 +1,6 @@
 from datasets import load_dataset
 from code.user_secrets import CACHE_PATH, OPENAI_API_KEY
 from openai import OpenAI
-client = OpenAI(api_key=OPENAI_API_KEY)
 
 # Set up environment variables
 os.environ["HF_HOME"] = CACHE_PATH
@@ -179,77 +178,3 @@ if __name__ == "__main__":
         sys.exit(1)
 
     process_files(data_type, passage_size, model)
-
-strategies = {# "Perplexity": { "func": lambda x: -x["loss"]}, # This is the same as loss
-              "Loss": {"func": lambda x: -x["loss"]},
-              "ReferenceLoss": {"func": lambda x, y: y - x},
-              }
-
-def main(args):
-    target_model_name = args.target_model_probs.split(os.sep)[-1][:-6]
-
-    base_dir = os.path.dirname(os.path.dirname(args.target_model_probs))  # Up one level from 'probs'
-    output_dir = os.path.join(base_dir, 'results', target_model_name)
-    plot_dir = os.path.join(output_dir, 'plots')
-    os.makedirs(plot_dir, exist_ok=True)
-
-    print(f"Saving to {output_dir}")
-
-    input_path_parts = args.target_model_probs.split(os.sep)
-    dataset, split = input_path_parts[2], input_path_parts[3]
-
-    results = load_jsonl(args.target_model_probs) # Load in the probs from file
-    gen_labels = [g["label"] for g in results]
-
-    all_scores = {}
-    for strategy in strategies:
-        strategy_values = strategies[strategy]
-
-        if strategy == "ReferenceLoss":
-            if args.ref_model_probs is not None:
-                for ref_model_path in args.ref_model_probs:
-                    ref_model_name = ref_model_path.split(os.sep)[-1][:-6]
-                    if strategy not in all_scores:
-                        all_scores[strategy] = {}
-
-                    results_ref = load_jsonl(ref_model_path)
-                    assert len(results_ref) == len(results)
-                    assert [g["label"] for g in results] == gen_labels
-
-                    scores = [strategy_values["func"](orig["loss"], ref["loss"]) for orig, ref in zip(results, results_ref)]
-
-                    fpr, tpr, thresholds = roc_curve(gen_labels, scores)
-                    roc_auc = auc(fpr, tpr)
-                    all_scores[strategy][ref_model_name] = {}
-                    all_scores[strategy][ref_model_name]["roc_auc"] = roc_auc
-
-                    plot_title = f"{dataset} ({split}): {strategy}, {target_model_name} ({ref_model_name} ref)"
-                    plot_roc_curve(fpr, tpr, roc_auc, plot_title, os.path.join(plot_dir, f"{strategy}_{ref_model_name}"))
-        else:
-            scores = [strategy_values["func"](r) for r in results]
-
-            fpr, tpr, thresholds = roc_curve(gen_labels, scores)
-            roc_auc = auc(fpr, tpr)
-            all_scores[strategy] = {}
-            all_scores[strategy]["roc_auc"] = roc_auc
-
-            plot_title=f"{dataset} ({split}): {strategy}, {target_model_name}"
-            plot_roc_curve(fpr, tpr, roc_auc, plot_title, os.path.join(plot_dir, f"{strategy}.png"))
-
-    output_file_path = os.path.join(output_dir, f"scores.json")
-    with open(output_file_path, 'w') as f:
-        json.dump(all_scores, f, indent=4)
-
-if __name__ == '__main__':
-    parser = argparse.ArgumentParser(formatter_class=argparse.ArgumentDefaultsHelpFormatter)
-    parser.add_argument('--target_model_probs', type=str, default=None)
-    parser.add_argument('--ref_model_probs', type=str, nargs="+", default=None)
-    main(parser.parse_args())
-
-
-    """
-    python3 -m code.experiments.baselines.run_loss_baselines \
-        --target_model_probs outputs/baselines/pile_external/train/probs/pythia-1.4b.jsonl \
-        --ref_model_probs outputs/baselines/pile_external/train/probs/stablelm-base-alpha-3b-v2.jsonl;
-    """
-
