@@ -7,6 +7,7 @@ os.environ["HF_HOME"] = CACHE_PATH
 os.environ["HF_DATASETS_PATH"] = CACHE_PATH
 import argparse
 from sklearn.metrics import roc_curve, auc, accuracy_score
+from transformers import AutoTokenizer, AutoModelForCausalLM
 from tqdm import tqdm
 from code.utils import load_jsonl
 import numpy as np
@@ -15,7 +16,6 @@ import matplotlib.pyplot as plt
 import json
 from code.experiments.utils import plot_roc_curve
 import pandas as pd
-from oversample_labels_fn import generate_permutations
 import sys
 import os
 from tqdm import tqdm
@@ -23,10 +23,50 @@ from torch import nn
 import torch
 # from anthropic import Anthropic, HUMAN_PROMPT, AI_PROMPT # Don't have this right now
 
+import pandas as pd
+from itertools import permutations
+
+def generate_permutations(document_df):
+    variables = [0, 1, 2, 3]
+    permuted_variables = list(permutations(variables))
+    results = []
+
+    for perm in permuted_variables:
+        fifth_variable_position = perm.index(0)
+        fifth_variable = fifth_variable_position
+        result_row = list(perm) + [fifth_variable]
+        results.append(result_row)
+
+    columns = variables + ['Answer']
+    base_permutations_df = pd.DataFrame(results, columns=columns)
+    new_column_names = ['Example_A', 'Example_B', 'Example_C', 'Example_D', 'Answer']
+    base_permutations_df.columns = new_column_names
+
+
+    multiplication_factor = len(document_df)
+    full_base_permutations = pd.concat([base_permutations_df] * multiplication_factor, ignore_index=True)
+
+    new_df_aux = pd.DataFrame(index=range(len(base_permutations_df)), columns=base_permutations_df.columns[:-1])
+
+    new_df = pd.DataFrame(index=range(0), columns=base_permutations_df.columns[:-1])
+    mapping = {0: 'A', 1: 'B', 2: 'C', 3: 'D'}
+    for j in range(len(document_df)):
+        for i in range(len(base_permutations_df)):
+            new_df_aux.at[i, 'Example_A'] = document_df.iloc[j, full_base_permutations.at[i, 'Example_A']]
+            new_df_aux.at[i, 'Example_B'] = document_df.iloc[j, full_base_permutations.at[i, 'Example_B']]
+            new_df_aux.at[i, 'Example_C'] = document_df.iloc[j, full_base_permutations.at[i, 'Example_C']]
+            new_df_aux.at[i, 'Example_D'] = document_df.iloc[j, full_base_permutations.at[i, 'Example_D']]
+            new_df_aux.at[i, 'True Answer'] = mapping[full_base_permutations.at[i, 'Answer']]
+        new_df = pd.concat([new_df, new_df_aux], ignore_index=True)
+
+    new_df['ID'] = document_df.at[0, 'ID']
+    new_df['Label'] = document_df.at[0, 'Label']
+    return new_df
+
 softmax = nn.Softmax(dim=0)
 mapping = {0: 'A', 1: 'B', 2: 'C', 3: 'D'}
 QA_prompt = f"""You are entering a multiple choice questions exam. You should directly answer each question by choosing the correct option. Be concise and straight to the point in your answer. Output only the letter corresponding to the correct answer."""
-def Query_LLM(data_type, model_name, query_data, document_name, author_name):
+def Query_LLM_Closed(data_type, model_name, query_data, document_name, author_name):
     
     if(data_type == "BookTection"):
         extra_prompt = f"""Question: Which of the following passages is verbatim from the \"{document_name}\" book by {author_name}?\nOptions:\n"""
@@ -57,14 +97,24 @@ def Query_LLM(data_type, model_name, query_data, document_name, author_name):
             temperature=0)
         return completion.completion.strip()
 
+def Query_LLM_Open(data_type, query_data, document_name, author_name, model_args_name):
+
+    if(data_type == "BookTection"):
+        extra_prompt = f"""Question: Which of the following passages is verbatim from the \"{document_name}\" book by {author_name}?\nOptions:\n"""
+    elif(data_type == "arXivTection"):
+        extra_prompt = f"""Question: Which of the following passages is verbatim from the arXiv paper \"{document_name}\"?\nOptions:\n"""
+    
+    prompt = extra_prompt +  'A. ' + query_data[0] + '\n' + 'B. ' + query_data[1] + '\n' + 'C. ' + query_data[2] + '\n' + 'D. ' + query_data[3] + '\n\n' + 'Answer:'    
+    generated_text = generate(prompt, model_args_name)
+    return generated_text
+
+
 # Function to extract float values from tensors
 def extract_float_values(tensor_list):
     float_values = [tensor_item.item() for tensor_item in tensor_list]
     return float_values
 
 def process_files(data_type, passage_size, model):
-    
-
     script_dir = os.path.dirname(os.path.abspath(__file__))
     if (data_type == "BookTection"):
         document = load_dataset("avduarte333/BookTection")
@@ -77,8 +127,6 @@ def process_files(data_type, passage_size, model):
         document = document[document['Length'] == passage_size]
         document = document.reset_index(drop=True)
         
-
-
     for i in tqdm(range(len(unique_ids))):
 
         document_name = unique_ids[i]
@@ -139,34 +187,33 @@ def process_files(data_type, passage_size, model):
         # TODO save the data
 
 def main(args):
-    if args.target_model == "ChatGPT":
-        api_key = "Insert your OpenAI key here"
-        client = OpenAI(api_key=api_key)
-    elif args.target_model == "Claude":
-        claude_api_key = "Insert yout Claude key here"
-        anthropic = Anthropic(api_key=claude_api_key)
+    data_path = f"data/{args.task}/split-random-overall/{args.split}.jsonl"
+
+    # TODO Save all log probabilities for mink++ method
+    model_name = args.target_model.split(os.sep)[-1]
+
+    output_dir = f"outputs/baselines/{args.task}/{args.split}/probs"
+    os.makedirs(output_dir, exist_ok=True)
+
+    if os.path.exists(data_path):
+        data = load_jsonl(data_path)
     else:
-        print("Available models are: <ChatGPT> or <Claude>")
-        sys.exit()
+        print("Please use valid data path. See README for valid data after preprocssing/downloading.")
 
-    if data_type == "BookTection":
-        if "--length" not in sys.argv:
-            print("Passage size (--length) is mandatory for BookTection data.")
-            sys.exit(1)
-        passage_size_index = sys.argv.index("--length")
-        passage_size = sys.argv[passage_size_index + 1]
-
-        if passage_size not in ["small", "medium", "large"]:
-            print("Invalid passage_size. Available options are: <small>, <medium>, or <large>")
-            sys.exit(1)
-    elif data_type == "arXivTection":
-        # For arXivTection data, set passage_size to a default value
-        passage_size = "default_value"  # Replace with an appropriate default value
+    
+    if args.closed_model:
+        if args.target_model == "ChatGPT": # TODO change this
+            api_key = "Insert your OpenAI key here"
+            client = OpenAI(api_key=api_key)
+        elif args.target_model == "Claude": # TODO change type?
+            claude_api_key = "Insert yout Claude key here"
+            # anthropic = Anthropic(api_key=claude_api_key)
     else:
-        print("Invalid data_file. Available options are: BookTection or arXivTection")
-        sys.exit(1)
+        model = AutoModelForCausalLM.from_pretrained(args.target_model, device_map='auto', trust_remote_code=True)
+        model.eval()
+        tokenizer = AutoTokenizer.from_pretrained(args.target_model)
 
-    process_files(data_type, passage_size, model)
+    process_files(args.task, args.split, args.target_model)
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(formatter_class=argparse.ArgumentDefaultsHelpFormatter)
@@ -174,4 +221,6 @@ if __name__ == "__main__":
     parser.add_argument('--task', type=str, default="pile_external", help="the task (dataset)")
     parser.add_argument('--split', type=str, default="train", help="the data split")
     parser.add_argument('--key_name', type=str, default="input", help="the key name corresponding to the input text. Selecting from: input, paraphrase")
+    parser.add_argument('--closed_model', action="store_true")
+
     main(parser.parse_args())
