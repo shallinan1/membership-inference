@@ -113,6 +113,6 @@ if __name__ == '__main__':
     parser.add_argument('--target_model', type=str, default="text-davinci-003", help="the model to attack: huggyllama/llama-65b, text-davinci-003")
     parser.add_argument('--task', type=str, default="pile_external", help="the task (dataset)")
     parser.add_argument('--split', type=str, default="train", help="the data split")
-    parser.add_argument('--key_name', type=str, default="input", help="the key name corresponding to the input text. Selecting from: input, parapgrase")
+    parser.add_argument('--key_name', type=str, default="input", help="the key name corresponding to the input text. Selecting from: input, paraphrase")
     main(parser.parse_args())
 
