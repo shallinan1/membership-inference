@@ -58,6 +58,8 @@ class ModelGenerator:
             download_dir=cache_dir,
             gpu_memory_utilization=0.95, # TODO fix this
             max_model_len = 2048, # Set manually for large models which have large context lengths
+            # dtype="float32", # vllm sets fp32 to fp16 if this is auto 
+            # swap_space=10 #GiB # Getting error if we have dtype not auto: "Aborted due to the lack of CPU swap space. Please increase the swap space to avoid this error."
         )
         
         # Create the tokenizer
