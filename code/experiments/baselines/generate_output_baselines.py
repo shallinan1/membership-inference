@@ -22,7 +22,6 @@ from math import factorial
 from code.utils import load_jsonl, save_to_jsonl, convert_to_tulu_v1_open
 # from anthropic import Anthropic, HUMAN_PROMPT, AI_PROMPT # Don't have this right now
 
-
 system_prompts = {
     "tulu-7b-finalized": [
         """\
@@ -38,42 +37,6 @@ Format your answer as '<correct letter>'."""
 }
 for model in ["tulu-13b-finalized", "tulu-30b-finalized", "tulu-65b-finalized"]:
     system_prompts[model] = system_prompts["tulu-7b-finalized"]
-
-def generate_open(text, model_args_name):
-    prompt = get_prompt(text)
-    max_new_tokens = 4 if model_args_name == 'LLaMA2-7B' else 2
-    score_index = 2 if model_args_name == 'LLaMA2-7B' else 1
-    with torch.autocast('cuda', dtype=torch.float16):
-        inputs = tokenizer(prompt, return_tensors="pt").to('cuda')
-        try:
-            outputs = model.generate(**inputs,
-                                    max_new_tokens=max_new_tokens,
-                                    do_sample = False,
-                                    eos_token_id=model.config.eos_token_id,
-                                    pad_token_id=model.config.eos_token_id,
-                                    return_dict_in_generate=True, 
-                                    output_scores=True,)
-
-            try: 
-                a = outputs["scores"][score_index][0][tokenizer("A").input_ids[-1]]
-                b = outputs["scores"][score_index][0][tokenizer("B").input_ids[-1]]
-                c = outputs["scores"][score_index][0][tokenizer("C").input_ids[-1]]
-                d = outputs["scores"][score_index][0][tokenizer("D").input_ids[-1]]
-            except Exception as e:
-                print("Error in Probabilities")
-                result = {"Text Output": "None", "A_Logit": 0, "B_Logit": 0,"C_Logit": 0, "D_Logit":0}
-                return result
-        except Exception as e:
-            print("CUDA out of memory error, skipping here", e)
-            result = {"Text Output": "None", "A_Logit": 0, "B_Logit": 0,"C_Logit": 0, "D_Logit":0}
-            return result
-
-    result = {"Text Output": "",
-              "A_Logit": a,
-              "B_Logit": b,
-              "C_Logit": c,
-              "D_Logit": d}
-    return result
 
 softmax = nn.Softmax(dim=0)
 mapping = {0: 'A', 1: 'B', 2: 'C', 3: 'D'}
@@ -127,107 +90,54 @@ def format_multiple_choice(task, data):
         all_mc_prompts.append(cur_mc_prompts)
     return all_mc_prompts
 
-# Function to extract float values from tensors
-def extract_float_values(tensor_list):
-    float_values = [tensor_item.item() for tensor_item in tensor_list]
-    return float_values
-
-def process_files(data, passage_size, model):
-    document = pd.DataFrame(data)
-    unique_ids = document['ID'].unique().tolist()
-
-    for i in tqdm(range(len(unique_ids))):
-
-        document_name = unique_ids[i]
-
-        document_aux = document[(document['ID'] == unique_ids[i])]
-        document_aux = document_aux.reset_index(drop=True)
-        document_aux = generate_permutations(document_df = document_aux)
-
-        A_probabilities, B_probabilities, C_probabilities, D_probabilities, Max_Label = ([] for _ in range(5))
-
-        parts = document_name.split('_-_')
-        document_name = parts[0].replace('_', ' ')
-        print(f"Starting book - {document_name}")
-
-        if model == "ChatGPT":
-            for j in tqdm(range(len(document_aux))):
-                probabilities = Query_LLM(data_type = data_type, model_name=model, query_data=document_aux.iloc[j], document_name=document_name)
-                A_probabilities.append(probabilities[0])
-                B_probabilities.append(probabilities[1])
-                C_probabilities.append(probabilities[2])
-                D_probabilities.append(probabilities[3])
-                Max_Label.append(mapping.get(torch.argmax(probabilities).item(), 'Unknown'))
-            float_list1 = extract_float_values(A_probabilities)
-            float_list2 = extract_float_values(B_probabilities)
-            float_list3 = extract_float_values(C_probabilities)
-            float_list4 = extract_float_values(D_probabilities)
-            document_aux["A_Probability"] = float_list1
-            document_aux["B_Probability"] = float_list2
-            document_aux["C_Probability"] = float_list3
-            document_aux["D_Probability"] = float_list4
-            document_aux["Max_Label_NoDebias"] = Max_Label 
-
-        else:
-            pass
-            # for j in tqdm(range(len(document_aux))):
-            #     Max_Label.append(Query_LLM(data_type = data_type, model_name=model, query_data=document_aux.iloc[j], document_name=document_name))
-            # document_aux["Claude2.1"] = Max_Label
-
-        # TODO save the data
-
-def generate_batch(texts, model, tokenizer, batch_size=50):
-    embed()
+def generate_batch(texts, model, tokenizer, batch_size=6, max_length=2048):
     """Generates text for batches and extracts probabilities of A, B, C, D."""
     
-    # Convert text prompts to tokenized inputs
-    tokenized_inputs = tokenizer(texts, padding=True, truncation=True, return_tensors="pt").to("cuda")
-    
-    max_new_tokens = 5
-    all_results = []  # Store batch results
-    
-    with torch.no_grad():
-        for i in tqdm(range(0, len(texts), batch_size), desc="Processing batches"):
-            batch_inputs = {k: v[i:i + batch_size] for k, v in tokenized_inputs.items()}
+    max_new_tokens = 24
+    all_results = []
+    max_length_hit = 0
 
-            # Generate text outputs
-            outputs = model.generate(**batch_inputs,
-                                     max_new_tokens=max_new_tokens,
-                                     do_sample=False,
-                                     return_dict_in_generate=True,
-                                     output_scores=True)
+    # Iterate over the input texts in batches
+    for i in tqdm(range(0, len(texts), batch_size), "Iterating over batches"):
+        batch_texts = texts[i:i + batch_size]
+        
+        # Tokenize the batch
+        batch_inputs = tokenizer(batch_texts, 
+                                 truncation=True, 
+                                 max_length=max_length, 
+                                 padding=True, 
+                                 return_tensors="pt").to("cuda")
+        
+        if batch_inputs["input_ids"].shape == max_length:
+            max_length_hit += 1
 
-            embed()
+        # Generate text for the batch
+        with torch.no_grad():
+            outputs = model.generate(
+                **batch_inputs,
+                max_new_tokens=max_new_tokens,
+                output_scores=True,
+                return_dict_in_generate=True
+            )
+        
+        # Extract the logits for the generated tokens
+        logits = outputs.scores  # This is a tuple of logits for each generated token
+        first_new_token_logits = logits[0]  # Shape: [batch_size, vocab_size]
+        
+        # Get the probabilities for the tokens corresponding to A, B, C, D
+        probs = torch.softmax(first_new_token_logits, dim=-1)
+        token_ids = [tokenizer.convert_tokens_to_ids(token) for token in ['A', 'B', 'C', 'D']]
+        
+        # Extract the probabilities for A, B, C, D
+        option_probs = probs[:, token_ids]  # Shape: [batch_size, 4]
+        
+        # Store the results
+        all_results.append(option_probs.cpu().numpy())
 
-            decoded_texts = tokenizer.batch_decode(outputs.sequences, skip_special_tokens=True)
-            last_token_logits = outputs.scores[-1]  # Shape: (batch_size, vocab_size)
-
-            choices = ["A", "B", "C", "D"]
-            choice_token_ids = torch.tensor(
-                [tokenizer(choice, add_special_tokens=False).input_ids[-1] for choice in choices]
-            ).to("cuda")  # Shape: (4,)
-
-            # Compute softmax over vocab dimension (batched)
-            probs = torch.softmax(last_token_logits, dim=-1)  # Shape: (batch_size, vocab_size)
-
-            # Extract probabilities for "A", "B", "C", "D" (batched indexing)
-            choice_probs = probs[:, choice_token_ids]  # Shape: (batch_size, 4)
-
-            batch_results = [
-                {
-                    "Generated Text": decoded_texts[j],
-                    "A_Prob": choice_probs[j, 0].item(),
-                    "B_Prob": choice_probs[j, 1].item(),
-                    "C_Prob": choice_probs[j, 2].item(),
-                    "D_Prob": choice_probs[j, 3].item()
-                }
-                for j in range(len(decoded_texts))
-            ]
-
-            all_results.extend(batch_results)
-
+    print(f"Max length hit: {max_length_hit}")
+    # Concatenate all batch results
+    all_results = np.concatenate(all_results, axis=0)
     return all_results
-
 
 def make_permutations(original, paraphrases):
     items = [original] + paraphrases
@@ -247,7 +157,7 @@ def make_permutations(original, paraphrases):
     return result 
 
 def main(args):
-    data_path = f"outputs/baselines/{args.task}/{args.split}/paraphrases/{args.paraphrase_model}.jsonl"
+    data_path = f"outputs/baselines/{args.task}/{args.split}/paraphrases/{args.paraphrase_model}_keep{args.keep_n_sentences}.jsonl"
     if args.remove_bad_first:
         data_path = data_path.replace(".jsonl", "_remove-bad-first.jsonl")
 
@@ -262,7 +172,8 @@ def main(args):
     if os.path.exists(data_path):
         data = load_jsonl(data_path)
     else:
-        print("Please use valid data path. See README for valid data after preprocssing/downloading.")
+        print(f"Data path {data_path} does not exist. Please use valid data path. See README for valid data after preprocssing/downloading.")
+        import sys; sys.exit()
 
     if args.closed_model:
         if "claude" not in args.target_model:
@@ -299,17 +210,22 @@ def main(args):
                 d["decop_truth_index"] = [p["true_index"] for p in d["permutations"]]
 
             # Query the language model with the flattened prompts
-
             flattened_prompts = list(itertools.chain.from_iterable(d["decop_formatted_prompts"] for d in data))
-            outputs = generate_batch(flattened_prompts, model, tokenizer, batch_size=48)
+            print(len(data), len(flattened_prompts))
+            outputs = generate_batch(flattened_prompts, model, tokenizer, batch_size=args.batch_size, max_length=2048 if "tulu" in model_name else 4096)
 
             # Unflatten the generations - into batches of 24 length each
             perm_length = factorial(args.num_paraphrases + 1)
+            unflattened_probs = np.split(outputs, len(outputs) // perm_length)
 
-            embed()
+            for d, u in zip(data, unflattened_probs):
+                d["decop_probs"] = u.tolist()
 
-
-
+        output_path = data_path.replace("paraphrases", "decop_probs")
+        os.makedirs(os.path.dirname(output_path), exist_ok=True)
+        save_to_jsonl(data, output_path)
+        embed()
+        
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(formatter_class=argparse.ArgumentDefaultsHelpFormatter)
     parser.add_argument('--target_model', type=str)
@@ -319,8 +235,13 @@ if __name__ == "__main__":
     parser.add_argument('--key_name', type=str, default="input", help="the key name corresponding to the input text. Selecting from: input, paraphrase")
     parser.add_argument('--closed_model', action="store_true")
     parser.add_argument("--sys_prompt_idx", type=int, default=0)
-    parser.add_argument("--remove_bad_first", action="store_true")
+
     parser.add_argument("--num_paraphrases", type=int, default=3)
+    parser.add_argument("--batch_size", type=int, default=8)
+
+    parser.add_argument("--remove_bad_first", action="store_true")
+    parser.add_argument("--keep_n_sentences", type=int, default=-1)
+
     main(parser.parse_args())
 
     """
@@ -331,4 +252,16 @@ if __name__ == "__main__":
     --task tulu_v1 \
     --split val \
     --sys_prompt_idx 0 \
+    --batch_size 6 \
+    --keep_n_sentences 5
+
+    python3 -m code.experiments.baselines.generate_output_baselines \
+    --target_model /gscratch/xlab/hallisky/cache/tulu-7b-finalized \
+    --paraphrase_model gpt-4o-2024-11-20 \
+    --key_name snippet \
+    --task tulu_v1 \
+    --split train \
+    --sys_prompt_idx 0 \
+    --batch_size 12 \
+    --keep_n_sentences 5
     """
