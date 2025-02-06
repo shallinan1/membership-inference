@@ -106,6 +106,7 @@ from dataclasses import (
     field,
 )  # for storing API inputs, outputs, and metadata
 from tqdm import tqdm
+from tqdm.asyncio import tqdm as tqdm_async
 
 async def process_api_requests(
     requests: list,
@@ -151,12 +152,15 @@ async def process_api_requests(
     last_update_time = time.time()
 
     # initialize flags
-    requests_iterator = iter(requests)
+    requests_iterator = iter(tqdm(requests, desc="Progress of jobs *launched*"))
     file_not_finished = True  # after file is empty, we'll skip reading it
     logging.debug(f"Initialization complete.")
 
     # initialize results list
     results = []
+
+    # Initialize tqdm progress bar
+    pbar = tqdm_async(total=len(requests), desc="Progress of jobs *completed*")
 
     async with aiohttp.ClientSession() as session:  # Initialize ClientSession here
         while True:
@@ -220,6 +224,7 @@ async def process_api_requests(
                             retry_queue=queue_of_requests_to_retry,
                             status_tracker=status_tracker,
                             results=results,
+                            progress_bar=pbar,
                         )
                     )
                     next_request = None  # reset next_request to empty
@@ -295,6 +300,7 @@ class APIRequest:
         retry_queue: asyncio.Queue,
         status_tracker: StatusTracker,
         results: list,
+        progress_bar,
     ):
         """Calls the OpenAI API and saves results."""
         logging.info(f"Starting request #{self.task_id}")
@@ -348,6 +354,8 @@ class APIRequest:
             status_tracker.num_tasks_succeeded += 1
             logging.debug(f"Request {self.task_id} completed successfully.")
 
+        # Update tqdm progress bar
+        progress_bar.update(1)
 # functions
 
 
