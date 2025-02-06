@@ -1,10 +1,8 @@
 import os
-from code.user_secrets import CACHE_PATH
+from code.user_secrets import CACHE_PATH, OPENAI_API_KEY
 # Set up environment variables
 os.environ["HF_HOME"] = CACHE_PATH
 os.environ["HF_DATASETS_PATH"] = CACHE_PATH
-from code.helper.generation.openai_generate import get_gpt_output
-import torch
 from transformers import AutoTokenizer, AutoModelForCausalLM
 from tqdm import tqdm
 import argparse
@@ -15,14 +13,15 @@ import torch
 import string
 import argparse
 import re
+import asyncio
+import logging
+import time
+from code.helper.generation.api_request_parallel_processor import process_api_requests
 
 def extract_examples(text):
     pattern = r"(Example [A-Z]:\s*)(.*?)(?=\n\nExample [A-Z]:|$)"
     matches = re.findall(pattern, text, re.DOTALL)
-    
-    # Create a dictionary with example labels as keys and their respective texts as values
     examples = [match[1].removesuffix("---").removesuffix("\n\n") for match in matches]
-
     return examples
 
 # Reported in paper
@@ -38,6 +37,25 @@ Example D: <insert paraphrase D>
 
 -
 Example A: ${ref_text}""")
+
+async def generate_paraphrases(requests, args):
+    start_time = time.time()
+    
+    results = await process_api_requests(
+        requests=requests,
+        request_url="https://api.openai.com/v1/chat/completions",
+        api_key=OPENAI_API_KEY, 
+        max_requests_per_minute=10000, 
+        max_tokens_per_minute=30000000,  
+        token_encoding_name="cl100k_base",
+        max_attempts=5, 
+        logging_level=logging.WARNING 
+    )
+
+    end_time = time.time()
+    print(f"Total generation time: {end_time - start_time:.2f} seconds for {len(requests)} samples")
+
+    return results
 
 def main(args):
     # Load in the data
@@ -70,15 +88,45 @@ def main(args):
             elif "wikiMIA" in args.task:
                 pass
 
-            full_generations = get_gpt_output(prompt, 
-                           model=model, 
-                           temperature=args.temperature,
-                           max_tokens=args.max_tokens,
-                           top_p=args.top_p,
-                           n=1 # Hard code this
-                           )
-            generation = [r.message.content for r in full_generations.choices][0]            
-            d["paraphrases"] =  extract_examples(generation)
+            # Make the requests for the API
+            requests = []
+            for i, d in enumerate(data):
+                d["request_id"] = i
+                if args.remove_bad_first:
+                    d[args.key_name] = remove_first_sentence_if_needed(d[args.key_name])
+
+                prompt = prompt_template.substitute(ref_text=d[args.key_name])
+                requests.append({
+                    "model": args.paraphrase_model,
+                    "messages": [{"role": "user", "content": prompt}],
+                    "max_tokens": args.max_tokens,
+                    "temperature": args.temperature,
+                    "top_p": args.top_p,
+                    "n": 1, # Hardcode this
+                    "metadata": {"request_id": d["request_id"]},
+                })
+
+        full_generations = asyncio.run(generate_paraphrases(requests, args))
+
+        indexed_results = {}
+        for result in full_generations:
+            request_id = result[2]["request_id"] # Extract request_id from metadata
+            indexed_results[request_id] = result[1]  # API response is the second element
+
+        blank_paraphrases = 0
+        # Map results back to the original data order
+        for d in data:
+            request_id = d["request_id"]
+            assert request_id in indexed_results
+
+            generation = indexed_results[request_id]["choices"][0]["message"]["content"]
+            paraphrases = extract_examples(generation)
+            if len(paraphrases) == 0:
+                blank_paraphrases += 1
+                paraphrases = [d[args.key_name]] * 3
+            d["paraphrases"] = paraphrases
+
+        print(f"{blank_paraphrases} blank paraphrases out of {len(data)}")
     else:
         pass
 
