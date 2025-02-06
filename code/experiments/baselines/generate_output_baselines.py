@@ -90,7 +90,7 @@ def format_multiple_choice(task, data):
         all_mc_prompts.append(cur_mc_prompts)
     return all_mc_prompts
 
-def generate_batch(texts, model, tokenizer, batch_size=6, max_length=2048):
+def generate_batch(texts, model, tokenizer, batch_size=2, max_length=2048):
     """Generates text for batches and extracts probabilities of A, B, C, D."""
     
     max_new_tokens = 24
@@ -224,7 +224,6 @@ def main(args):
         output_path = data_path.replace("paraphrases", "decop_probs")
         os.makedirs(os.path.dirname(output_path), exist_ok=True)
         save_to_jsonl(data, output_path)
-        embed()
         
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(formatter_class=argparse.ArgumentDefaultsHelpFormatter)
@@ -256,12 +255,12 @@ if __name__ == "__main__":
     --keep_n_sentences 5
 
     python3 -m code.experiments.baselines.generate_output_baselines \
-    --target_model /gscratch/xlab/hallisky/cache/tulu-7b-finalized \
+    --target_model /gscratch/xlab/hallisky/cache/tulu-13b-finalized \
     --paraphrase_model gpt-4o-2024-11-20 \
     --key_name snippet \
     --task tulu_v1 \
-    --split train \
+    --split val \
     --sys_prompt_idx 0 \
-    --batch_size 12 \
+    --batch_size 6 \
     --keep_n_sentences 5
     """
