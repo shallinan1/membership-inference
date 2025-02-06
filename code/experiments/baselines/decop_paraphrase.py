@@ -84,27 +84,31 @@ def main(args):
             if "bookMIA" in args.task:
                 prompt = prompt_template.substitute(ref_text=d[args.key_name])
             elif "tulu_v1" in args.task:
-                pass
+                d["user_turn"] = d["messages"][0]["content"]
+                d[args.key_name] = d["messages"][1]["content"]
+
+                assert d["messages"][0]["role"] == "user"
+                assert d["messages"][1]["role"] == "assistant"
             elif "wikiMIA" in args.task:
                 pass
 
-            # Make the requests for the API
-            requests = []
-            for i, d in enumerate(data):
-                d["request_id"] = i
-                if args.remove_bad_first:
-                    d[args.key_name] = remove_first_sentence_if_needed(d[args.key_name])
+        # Make the requests for the API
+        requests = []
+        for i, d in enumerate(data):
+            d["request_id"] = i
+            if args.remove_bad_first:
+                d[args.key_name] = remove_first_sentence_if_needed(d[args.key_name])
 
-                prompt = prompt_template.substitute(ref_text=d[args.key_name])
-                requests.append({
-                    "model": args.paraphrase_model,
-                    "messages": [{"role": "user", "content": prompt}],
-                    "max_tokens": args.max_tokens,
-                    "temperature": args.temperature,
-                    "top_p": args.top_p,
-                    "n": 1, # Hardcode this
-                    "metadata": {"request_id": d["request_id"]},
-                })
+            prompt = prompt_template.substitute(ref_text=d[args.key_name])
+            requests.append({
+                "model": args.paraphrase_model,
+                "messages": [{"role": "user", "content": prompt}],
+                "max_tokens": args.max_tokens,
+                "temperature": args.temperature,
+                "top_p": args.top_p,
+                "n": 1, # Hardcode this
+                "metadata": {"request_id": d["request_id"]},
+            })
 
         full_generations = asyncio.run(generate_paraphrases(requests, args))
 
