@@ -52,7 +52,7 @@ def main(args):
     os.makedirs(output_dir, exist_ok=True)
 
     if os.path.exists(data_path):
-        data = load_jsonl(data_path)[:10]
+        data = load_jsonl(data_path)
         print(f"Length of data: {len(data)}")
     else:
         print("Please use valid data path. See README for valid data after preprocssing/downloading.")
