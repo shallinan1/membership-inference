@@ -1,67 +1,79 @@
-from datasets import load_dataset
 from code.user_secrets import CACHE_PATH, OPENAI_API_KEY
 from openai import OpenAI
 
+import os
 # Set up environment variables
 os.environ["HF_HOME"] = CACHE_PATH
 os.environ["HF_DATASETS_PATH"] = CACHE_PATH
 import argparse
-from sklearn.metrics import roc_curve, auc, accuracy_score
 from transformers import AutoTokenizer, AutoModelForCausalLM
 from tqdm import tqdm
 from code.utils import load_jsonl
 import numpy as np
 from IPython import embed
 import matplotlib.pyplot as plt
-import json
 from code.experiments.utils import plot_roc_curve
 import pandas as pd
-import sys
-import os
-from tqdm import tqdm
 from torch import nn
 import torch
+import itertools
+import pandas as pd
+from math import factorial
+from code.utils import load_jsonl, save_to_jsonl, convert_to_tulu_v1_open
 # from anthropic import Anthropic, HUMAN_PROMPT, AI_PROMPT # Don't have this right now
 
-import pandas as pd
-from itertools import permutations
 
-def generate_permutations(document_df):
-    variables = [0, 1, 2, 3]
-    permuted_variables = list(permutations(variables))
-    results = []
+system_prompts = {
+    "tulu-7b-finalized": [
+        """\
+You are entering a multiple choice questions exam. You should directly answer each question by choosing the correct option. Be concise and straight to the point in your answer. Output only the letter corresponding to the correct answer.
 
-    for perm in permuted_variables:
-        fifth_variable_position = perm.index(0)
-        fifth_variable = fifth_variable_position
-        result_row = list(perm) + [fifth_variable]
-        results.append(result_row)
+Format your answer as '<put correct answer here>.'""",
+       
+       """\
+You are entering a multiple choice questions exam. You should directly answer each question by choosing the correct option. Be concise and straight to the point in your answer. Output only the letter corresponding to the correct answer.
 
-    columns = variables + ['Answer']
-    base_permutations_df = pd.DataFrame(results, columns=columns)
-    new_column_names = ['Example_A', 'Example_B', 'Example_C', 'Example_D', 'Answer']
-    base_permutations_df.columns = new_column_names
+Format your answer as '<correct letter>'."""
+    ]
+}
+for model in ["tulu-13b-finalized", "tulu-30b-finalized", "tulu-65b-finalized"]:
+    system_prompts[model] = system_prompts["tulu-7b-finalized"]
 
+def generate_open(text, model_args_name):
+    prompt = get_prompt(text)
+    max_new_tokens = 4 if model_args_name == 'LLaMA2-7B' else 2
+    score_index = 2 if model_args_name == 'LLaMA2-7B' else 1
+    with torch.autocast('cuda', dtype=torch.float16):
+        inputs = tokenizer(prompt, return_tensors="pt").to('cuda')
+        try:
+            outputs = model.generate(**inputs,
+                                    max_new_tokens=max_new_tokens,
+                                    do_sample = False,
+                                    eos_token_id=model.config.eos_token_id,
+                                    pad_token_id=model.config.eos_token_id,
+                                    return_dict_in_generate=True, 
+                                    output_scores=True,)
 
-    multiplication_factor = len(document_df)
-    full_base_permutations = pd.concat([base_permutations_df] * multiplication_factor, ignore_index=True)
+            try: 
+                a = outputs["scores"][score_index][0][tokenizer("A").input_ids[-1]]
+                b = outputs["scores"][score_index][0][tokenizer("B").input_ids[-1]]
+                c = outputs["scores"][score_index][0][tokenizer("C").input_ids[-1]]
+                d = outputs["scores"][score_index][0][tokenizer("D").input_ids[-1]]
+            except Exception as e:
+                print("Error in Probabilities")
+                result = {"Text Output": "None", "A_Logit": 0, "B_Logit": 0,"C_Logit": 0, "D_Logit":0}
+                return result
+        except Exception as e:
+            print("CUDA out of memory error, skipping here", e)
+            result = {"Text Output": "None", "A_Logit": 0, "B_Logit": 0,"C_Logit": 0, "D_Logit":0}
+            return result
 
-    new_df_aux = pd.DataFrame(index=range(len(base_permutations_df)), columns=base_permutations_df.columns[:-1])
-
-    new_df = pd.DataFrame(index=range(0), columns=base_permutations_df.columns[:-1])
-    mapping = {0: 'A', 1: 'B', 2: 'C', 3: 'D'}
-    for j in range(len(document_df)):
-        for i in range(len(base_permutations_df)):
-            new_df_aux.at[i, 'Example_A'] = document_df.iloc[j, full_base_permutations.at[i, 'Example_A']]
-            new_df_aux.at[i, 'Example_B'] = document_df.iloc[j, full_base_permutations.at[i, 'Example_B']]
-            new_df_aux.at[i, 'Example_C'] = document_df.iloc[j, full_base_permutations.at[i, 'Example_C']]
-            new_df_aux.at[i, 'Example_D'] = document_df.iloc[j, full_base_permutations.at[i, 'Example_D']]
-            new_df_aux.at[i, 'True Answer'] = mapping[full_base_permutations.at[i, 'Answer']]
-        new_df = pd.concat([new_df, new_df_aux], ignore_index=True)
-
-    new_df['ID'] = document_df.at[0, 'ID']
-    new_df['Label'] = document_df.at[0, 'Label']
-    return new_df
+    result = {"Text Output": "",
+              "A_Logit": a,
+              "B_Logit": b,
+              "C_Logit": c,
+              "D_Logit": d}
+    return result
 
 softmax = nn.Softmax(dim=0)
 mapping = {0: 'A', 1: 'B', 2: 'C', 3: 'D'}
@@ -97,73 +109,50 @@ def Query_LLM_Closed(data_type, model_name, query_data, document_name, author_na
             temperature=0)
         return completion.completion.strip()
 
-def Query_LLM_Open(data_type, query_data, document_name, author_name, model_args_name):
+# TODO make this into indvidiaul functions for better style
+def format_multiple_choice(task, data):
+    all_mc_prompts = []
+    for d in data:
+        cur_mc_prompts = []
+        for perm in d["permutations"]:
+            if task == "bookMIA":
+                extra_prompt = f"""Question: Which of the following passages is verbatim from the book \"{d["book"].removesuffix(".txt")}\"?\nOptions:\n"""
+            elif task == "tulu_v1":
+                extra_prompt = f"""Question: Which of the following responses is verbatim from the prompt \"{d["user_turn"]}\"?\nOptions:\n"""
 
-    if(data_type == "BookTection"):
-        extra_prompt = f"""Question: Which of the following passages is verbatim from the \"{document_name}\" book by {author_name}?\nOptions:\n"""
-    elif(data_type == "arXivTection"):
-        extra_prompt = f"""Question: Which of the following passages is verbatim from the arXiv paper \"{document_name}\"?\nOptions:\n"""
-    
-    prompt = extra_prompt +  'A. ' + query_data[0] + '\n' + 'B. ' + query_data[1] + '\n' + 'C. ' + query_data[2] + '\n' + 'D. ' + query_data[3] + '\n\n' + 'Answer:'    
-    generated_text = generate(prompt, model_args_name)
-    return generated_text
+            cur_perm = perm["permutation"]
+            prompt = extra_prompt +  'A. ' + cur_perm[0] + '\n' + 'B. ' + cur_perm[1] + '\n' + 'C. ' + cur_perm[2] + '\n' + 'D. ' + cur_perm[3] + '\n\n' + 'Answer:'    
+            cur_mc_prompts.append(prompt)
 
+        all_mc_prompts.append(cur_mc_prompts)
+    return all_mc_prompts
 
 # Function to extract float values from tensors
 def extract_float_values(tensor_list):
     float_values = [tensor_item.item() for tensor_item in tensor_list]
     return float_values
 
-def process_files(data_type, passage_size, model):
-    script_dir = os.path.dirname(os.path.abspath(__file__))
-    if (data_type == "BookTection"):
-        document = load_dataset("avduarte333/BookTection")
-    else:
-        document = load_dataset("avduarte333/arXivTection")
-
-    document = pd.DataFrame(document["train"])
+def process_files(data, passage_size, model):
+    document = pd.DataFrame(data)
     unique_ids = document['ID'].unique().tolist()
-    if data_type == "BookTection":
-        document = document[document['Length'] == passage_size]
-        document = document.reset_index(drop=True)
-        
+
     for i in tqdm(range(len(unique_ids))):
 
         document_name = unique_ids[i]
-        if data_type == "BookTection":
-            out_dir = os.path.join(script_dir, f'DECOP_{data_type}_{passage_size}')
-        else:
-            out_dir = os.path.join(script_dir, f'DECOP_{data_type}')
 
-        if not os.path.exists(out_dir):
-            os.makedirs(out_dir)
-        if data_type == "BookTection":
-            fileOut = os.path.join(out_dir, f'{document_name}_Paraphrases_Oversampling_{passage_size}.xlsx')
-        else:
-            fileOut = os.path.join(out_dir, f'{document_name}_Paraphrases_Oversampling.xlsx')
-
-        #Check if file was previously create (i.e. already evaluated on ChatGPT or Claude)
-        if os.path.exists(fileOut):
-            document_aux = pd.read_excel(fileOut)
-        else:
-            document_aux = document[(document['ID'] == unique_ids[i])]
-            document_aux = document_aux.reset_index(drop=True)
-            document_aux = generate_permutations(document_df = document_aux)
-
+        document_aux = document[(document['ID'] == unique_ids[i])]
+        document_aux = document_aux.reset_index(drop=True)
+        document_aux = generate_permutations(document_df = document_aux)
 
         A_probabilities, B_probabilities, C_probabilities, D_probabilities, Max_Label = ([] for _ in range(5))
 
-        if data_type == "BookTection":
-            parts = document_name.split('_-_')
-            document_name = parts[0].replace('_', ' ')
-            author_name = parts[1].replace('_', ' ')
-            print(f"Starting book - {document_name} by {author_name}")
-        else:
-            author_name = ""
+        parts = document_name.split('_-_')
+        document_name = parts[0].replace('_', ' ')
+        print(f"Starting book - {document_name}")
 
         if model == "ChatGPT":
             for j in tqdm(range(len(document_aux))):
-                probabilities = Query_LLM(data_type = data_type, model_name=model, query_data=document_aux.iloc[j], document_name=document_name, author_name=author_name)
+                probabilities = Query_LLM(data_type = data_type, model_name=model, query_data=document_aux.iloc[j], document_name=document_name)
                 A_probabilities.append(probabilities[0])
                 B_probabilities.append(probabilities[1])
                 C_probabilities.append(probabilities[2])
@@ -180,17 +169,92 @@ def process_files(data_type, passage_size, model):
             document_aux["Max_Label_NoDebias"] = Max_Label 
 
         else:
-            for j in tqdm(range(len(document_aux))):
-                Max_Label.append(Query_LLM(data_type = data_type, model_name=model, query_data=document_aux.iloc[j], document_name=document_name, author_name=author_name))
-            document_aux["Claude2.1"] = Max_Label
+            pass
+            # for j in tqdm(range(len(document_aux))):
+            #     Max_Label.append(Query_LLM(data_type = data_type, model_name=model, query_data=document_aux.iloc[j], document_name=document_name))
+            # document_aux["Claude2.1"] = Max_Label
 
         # TODO save the data
 
-def main(args):
-    data_path = f"data/{args.task}/split-random-overall/{args.split}.jsonl"
+def generate_batch(texts, model, tokenizer, batch_size=50):
+    embed()
+    """Generates text for batches and extracts probabilities of A, B, C, D."""
+    
+    # Convert text prompts to tokenized inputs
+    tokenized_inputs = tokenizer(texts, padding=True, truncation=True, return_tensors="pt").to("cuda")
+    
+    max_new_tokens = 5
+    all_results = []  # Store batch results
+    
+    with torch.no_grad():
+        for i in tqdm(range(0, len(texts), batch_size), desc="Processing batches"):
+            batch_inputs = {k: v[i:i + batch_size] for k, v in tokenized_inputs.items()}
 
-    # TODO Save all log probabilities for mink++ method
-    model_name = args.target_model.split(os.sep)[-1]
+            # Generate text outputs
+            outputs = model.generate(**batch_inputs,
+                                     max_new_tokens=max_new_tokens,
+                                     do_sample=False,
+                                     return_dict_in_generate=True,
+                                     output_scores=True)
+
+            embed()
+
+            decoded_texts = tokenizer.batch_decode(outputs.sequences, skip_special_tokens=True)
+            last_token_logits = outputs.scores[-1]  # Shape: (batch_size, vocab_size)
+
+            choices = ["A", "B", "C", "D"]
+            choice_token_ids = torch.tensor(
+                [tokenizer(choice, add_special_tokens=False).input_ids[-1] for choice in choices]
+            ).to("cuda")  # Shape: (4,)
+
+            # Compute softmax over vocab dimension (batched)
+            probs = torch.softmax(last_token_logits, dim=-1)  # Shape: (batch_size, vocab_size)
+
+            # Extract probabilities for "A", "B", "C", "D" (batched indexing)
+            choice_probs = probs[:, choice_token_ids]  # Shape: (batch_size, 4)
+
+            batch_results = [
+                {
+                    "Generated Text": decoded_texts[j],
+                    "A_Prob": choice_probs[j, 0].item(),
+                    "B_Prob": choice_probs[j, 1].item(),
+                    "C_Prob": choice_probs[j, 2].item(),
+                    "D_Prob": choice_probs[j, 3].item()
+                }
+                for j in range(len(decoded_texts))
+            ]
+
+            all_results.extend(batch_results)
+
+    return all_results
+
+
+def make_permutations(original, paraphrases):
+    items = [original] + paraphrases
+    # Generate all permutations of the items
+    permutations = list(itertools.permutations(items))
+
+    result = []
+    for perm in permutations:
+        # Find the index of the true item in the current permutation
+        true_index = perm.index(original)
+        perm_dict = {
+            "permutation": perm,
+            "true_index": true_index
+        }
+        result.append(perm_dict)
+
+    return result 
+
+def main(args):
+    data_path = f"outputs/baselines/{args.task}/{args.split}/paraphrases/{args.paraphrase_model}.jsonl"
+    if args.remove_bad_first:
+        data_path = data_path.replace(".jsonl", "_remove-bad-first.jsonl")
+
+    if args.closed_model:
+        model_name = args.target_model
+    else:
+        model_name = args.target_model.split(os.sep)[-1]
 
     output_dir = f"outputs/baselines/{args.task}/{args.split}/probs"
     os.makedirs(output_dir, exist_ok=True)
@@ -200,27 +264,71 @@ def main(args):
     else:
         print("Please use valid data path. See README for valid data after preprocssing/downloading.")
 
-    
     if args.closed_model:
-        if args.target_model == "ChatGPT": # TODO change this
-            api_key = "Insert your OpenAI key here"
-            client = OpenAI(api_key=api_key)
-        elif args.target_model == "Claude": # TODO change type?
-            claude_api_key = "Insert yout Claude key here"
-            # anthropic = Anthropic(api_key=claude_api_key)
+        if "claude" not in args.target_model:
+            # Process bookMIA data
+            pass
+        else:
+            pass
+        # elif args.target_model == "Claude": # TODO change type?
+        #     claude_api_key = "Insert yout Claude key here"
+        #     # anthropic = Anthropic(api_key=claude_api_key)
     else:
         model = AutoModelForCausalLM.from_pretrained(args.target_model, device_map='auto', trust_remote_code=True)
         model.eval()
         tokenizer = AutoTokenizer.from_pretrained(args.target_model)
 
-    process_files(args.task, args.split, args.target_model)
+        if "tulu_v1" in args.task: 
+            bad_paraphrase_count = 0
+            for d in data:
+                if len(d["paraphrases"]) != 3: # Error generating paraphrases at previous step
+                    bad_paraphrase_count += 1
+                    d["paraphrases"] = [d[args.key_name]] * 3
+
+                d["permutations"] = make_permutations(d[args.key_name], d["paraphrases"])
+
+            print(f"Bad paraphrase count: {bad_paraphrase_count}")
+
+            # Make the prompts
+            system_prompt = system_prompts[model_name][args.sys_prompt_idx]
+            all_mc_prompts = format_multiple_choice(args.task, data)
+
+            for cur_mc_prompt, d in zip(all_mc_prompts, data):
+                formatted_prompts = [convert_to_tulu_v1_open(f"{system_prompt}\n\n{c}") for c in cur_mc_prompt]
+                d["decop_formatted_prompts"] = formatted_prompts
+                d["decop_truth_index"] = [p["true_index"] for p in d["permutations"]]
+
+            # Query the language model with the flattened prompts
+
+            flattened_prompts = list(itertools.chain.from_iterable(d["decop_formatted_prompts"] for d in data))
+            outputs = generate_batch(flattened_prompts, model, tokenizer, batch_size=48)
+
+            # Unflatten the generations - into batches of 24 length each
+            perm_length = factorial(args.num_paraphrases + 1)
+
+            embed()
+
+
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(formatter_class=argparse.ArgumentDefaultsHelpFormatter)
-    parser.add_argument('--target_model', type=str, default="text-davinci-003", help="the model to attack: huggyllama/llama-65b, text-davinci-003")
+    parser.add_argument('--target_model', type=str)
+    parser.add_argument('--paraphrase_model', type=str)
     parser.add_argument('--task', type=str, default="pile_external", help="the task (dataset)")
     parser.add_argument('--split', type=str, default="train", help="the data split")
     parser.add_argument('--key_name', type=str, default="input", help="the key name corresponding to the input text. Selecting from: input, paraphrase")
     parser.add_argument('--closed_model', action="store_true")
-
+    parser.add_argument("--sys_prompt_idx", type=int, default=0)
+    parser.add_argument("--remove_bad_first", action="store_true")
+    parser.add_argument("--num_paraphrases", type=int, default=3)
     main(parser.parse_args())
+
+    """
+    python3 -m code.experiments.baselines.generate_output_baselines \
+    --target_model /gscratch/xlab/hallisky/cache/tulu-7b-finalized \
+    --paraphrase_model gpt-4o-2024-11-20 \
+    --key_name snippet \
+    --task tulu_v1 \
+    --split val \
+    --sys_prompt_idx 0 \
+    """
