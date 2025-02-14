@@ -24,7 +24,7 @@ import os
 import pandas as pd
 import argparse
 from instruction_encode_templates import encode_instruction_example, encode_few_shot_example
-
+from IPython import embed
 
 def convert_super_ni_data(data_dir, output_dir, zero_shot_examples_per_task=60, few_shot_examples_per_task=20, n_few_shot=2):
     os.makedirs(output_dir, exist_ok=True)
@@ -727,17 +727,17 @@ if __name__ == "__main__":
 
             convert_stanford_alpaca_data(
                 data_dir=os.path.join(args.raw_data_dir, "stanford_alpaca"),
-                output_dir=os.path.join(args.output_dir, "tulu_v1", "stanford_alpaca")
+                output_dir=os.path.join(args.output_dir, "tulu_v1", "stanford_alpaca_subset")
             )
 
             convert_unnatural_instructions_data(
                 data_dir=os.path.join(args.raw_data_dir, "unnatural_instructions"),
-                output_dir=os.path.join(args.output_dir, "tulu_v1", "unnatural_instructions")
+                output_dir=os.path.join(args.output_dir, "tulu_v1", "unnatural_instructions_subset")
             )
 
             convert_self_instruct_data(
                 data_dir=os.path.join(args.raw_data_dir, "self_instruct"),
-                output_dir=os.path.join(args.output_dir, "tulu_v1", "self_instruct")
+                output_dir=os.path.join(args.output_dir, "tulu_v1", "self_instruct_subset")
             )
 
             # merge all the subsets
