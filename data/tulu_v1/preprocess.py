@@ -12,8 +12,75 @@ from sklearn.model_selection import train_test_split
 from code.utils import save_to_jsonl, load_jsonl
 from IPython import embed
 from datasets import load_dataset
+from tqdm import tqdm
+import seaborn as sns
+import matplotlib.pyplot as plt
 
-# This code is to re-use the Pile data from the "Do MIA work" paper
+def calculate_word_counts(sample):
+    user_message = sample["messages"][0]["content"]
+    response_message = sample["messages"][1]["content"]
+
+    user_length, response_length = len(user_message.split()), len(response_message.split())
+
+    return {
+        "user_length": user_length, 
+        "response_length": response_length, 
+        "total_length": user_length+response_length
+    }
+
+def calculate_percentiles(data, 
+                          fields=["user_length", "response_length", "total_length"], 
+                          percentiles=[0,1, 5, 50, 95, 99, 100]):
+    """
+    Calculate percentiles for specified fields in the dataset.
+    """
+    percentile_dict = {}
+    for field in fields:
+        values = [sample[field] for sample in data]
+        percentile_dict[field] = [int(x) for x in np.percentile(values, percentiles)]
+    return percentile_dict
+
+def plot_length_histogram(data_member, data_nonmember, field, title):
+    """
+    Plot histogram of lengths for a given field (e.g., "user_length", "response_length", "total_length").
+    The upper and lower ends are cut off at the 95th percentile.
+    Histograms for Member and Nonmember are displayed in separate subplots.
+    """
+    # Extract lengths from both datasets
+    member_lengths = [sample[field] for sample in data_member]
+    nonmember_lengths = [sample[field] for sample in data_nonmember]
+    
+    # Combine lengths to calculate percentiles
+    all_lengths = member_lengths + nonmember_lengths
+    
+    # Calculate 2.5th and 97.5th percentiles (to cut off 5% from both ends)
+    lower_cutoff = np.percentile(all_lengths, 2.5)
+    upper_cutoff = np.percentile(all_lengths, 97.5)
+    
+    # Filter lengths to include only values within the cutoffs
+    member_lengths_filtered = [x for x in member_lengths if lower_cutoff <= x <= upper_cutoff]
+    nonmember_lengths_filtered = [x for x in nonmember_lengths if lower_cutoff <= x <= upper_cutoff]
+    
+    # Create subplots
+    fig, (ax1, ax2) = plt.subplots(2, 1, figsize=(10, 8), sharex=True)
+    
+    # Plot Member histogram
+    ax1.hist(member_lengths_filtered, bins=30, alpha=0.5, label="Member", color="blue")
+    ax1.set_ylabel("Frequency")
+    ax1.set_title(f"Member: {title} (95th Percentile Cutoff)")
+    ax1.legend()
+    
+    # Plot Nonmember histogram
+    ax2.hist(nonmember_lengths_filtered, bins=30, alpha=0.5, label="Nonmember", color="orange")
+    ax2.set_xlabel(field)
+    ax2.set_ylabel("Frequency")
+    ax2.set_title(f"Nonmember: {title} (95th Percentile Cutoff)")
+    ax2.legend()
+    
+    # Adjust layout and save figure
+    plt.tight_layout()
+    plt.savefig(f"{title}.png", bbox_inches="tight", dpi=200)
+    
 def main(args):   
     random.seed(args.seed)
     np.random.seed(args.seed)
@@ -21,13 +88,40 @@ def main(args):
     data_member = load_jsonl("data/tulu_v1/processed/tulu_v1/tulu_v1_data.jsonl")
     data_nonmember = load_jsonl("data/tulu_v1/processed/tulu_v1/inverse_tulu_v1_data.jsonl")
     
-    # Sample data
-    data_member = random.sample(data_member, 1000)
-    data_nonmember = random.sample(data_nonmember, 1000)
+    data_member_classes, data_nonmember_classes = set(), set()
     for d in data_member:
         d["label"] = 1
+        data_member_classes.add(d["dataset"])
     for d in data_nonmember:
         d["label"] = 0
+        data_nonmember_classes.add(d["dataset"])
+
+    for sample in tqdm(data_member):
+        sample.update(calculate_word_counts(sample))
+    for sample in tqdm(data_nonmember):
+        sample.update(calculate_word_counts(sample))
+
+    # Calculate percentiles for non-merged data
+    percentiles_member = calculate_percentiles(data_member)
+    percentiles_nonmember = calculate_percentiles(data_nonmember)
+    percentiles_merged = calculate_percentiles(data_member + data_nonmember)
+
+    print("Percentiles for data_member:")
+    print(percentiles_member)
+
+    print("Percentiles for data_nonmember:")
+    print(percentiles_nonmember)
+
+    print("Percentiles for merged data:")
+    print(percentiles_merged)
+
+    # Example usage
+    plot_length_histogram(data_member, data_nonmember, "user_length", "Histogram of User Lengths")
+    plot_length_histogram(data_member, data_nonmember, "response_length", "Histogram of Response Lengths")
+    plot_length_histogram(data_member, data_nonmember, "total_length", "Histogram of Total Lengths")
+
+    # Sample data - uniform length
+    embed()
         
     member_train, member_temp = train_test_split(data_member, test_size=args.val_split + args.test_split, random_state=args.seed)
     val_split_adjusted = args.val_split / (args.val_split + args.test_split)
