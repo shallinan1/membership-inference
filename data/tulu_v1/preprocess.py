@@ -28,17 +28,21 @@ def calculate_word_counts(sample):
         "total_length": user_length+response_length
     }
 
-def calculate_percentiles(data, 
-                          fields=["user_length", "response_length", "total_length"], 
-                          percentiles=[0,1, 5, 50, 95, 99, 100]):
+def print_length_percentiles(sampled_member, sampled_nonmember):
     """
-    Calculate percentiles for specified fields in the dataset.
+    Print the mean values for user length, response length, and total length 
+    for both member and nonmember samples.
+    
+    Args:
+        sampled_member (list of dict): List of dictionaries containing 'user_length', 'response_length', and 'total_length'.
+        sampled_nonmember (list of dict): List of dictionaries containing 'user_length', 'response_length', and 'total_length'.
     """
-    percentile_dict = {}
-    for field in fields:
-        values = [sample[field] for sample in data]
-        percentile_dict[field] = [int(x) for x in np.percentile(values, percentiles)]
-    return percentile_dict
+    sampled_member_lengths = [(s["user_length"], s["response_length"], s["total_length"]) for s in sampled_member]
+    sampled_nonmember_lengths = [(s["user_length"], s["response_length"], s["total_length"]) for s in sampled_nonmember]
+    
+    for member_mean, nonmember_mean in zip(np.mean(sampled_member_lengths, axis=0), np.mean(sampled_nonmember_lengths, axis=0)):
+        print(f"Member: {member_mean:.2f} Nonmember: {nonmember_mean:.2f}")
+
 
 def plot_length_histogram(data_member, data_nonmember, field, title):
     """
@@ -53,35 +57,31 @@ def plot_length_histogram(data_member, data_nonmember, field, title):
     # Combine lengths to calculate percentiles
     all_lengths = member_lengths + nonmember_lengths
     
-    # Calculate 2.5th and 97.5th percentiles (to cut off 5% from both ends)
-    lower_cutoff = np.percentile(all_lengths, 5)
-    upper_cutoff = np.percentile(all_lengths, 95)
-    
-    # Filter lengths to include only values within the cutoffs
-    member_lengths_filtered = [x for x in member_lengths if lower_cutoff <= x <= upper_cutoff]
-    nonmember_lengths_filtered = [x for x in nonmember_lengths if lower_cutoff <= x <= upper_cutoff]
-    
     # Create subplots
-    fig, (ax1, ax2) = plt.subplots(2, 1, figsize=(10, 8), sharex=True)
+    fig, (ax1, ax2) = plt.subplots(2, 1, sharex=True)
     
     # Plot Member histogram
-    ax1.hist(member_lengths_filtered, bins=4, alpha=0.5, label="Member", color="blue")
+    ax1.hist(member_lengths, bins=10, alpha=0.5, label="Member", color="blue")
     ax1.set_ylabel("Frequency")
     ax1.set_title(f"Member: {title} (95th Percentile Cutoff)")
     ax1.legend()
+    ax1.grid(alpha=0.2, zorder=-1)
     
     # Plot Nonmember histogram
-    ax2.hist(nonmember_lengths_filtered, bins=4, alpha=0.5, label="Nonmember", color="orange")
+    ax2.hist(nonmember_lengths, bins=10, alpha=0.5, label="Nonmember", color="orange")
     ax2.set_xlabel(field)
     ax2.set_ylabel("Frequency")
     ax2.set_title(f"Nonmember: {title} (95th Percentile Cutoff)")
     ax2.legend()
+    ax2.grid(alpha=0.3, zorder=-1)
     
     # Adjust layout and save figure
     plt.tight_layout()
     plt.savefig(f"{title}.png", bbox_inches="tight", dpi=200)
     
 def main(args):   
+    n_bins = 4
+
     random.seed(args.seed)
     np.random.seed(args.seed)
 
@@ -103,30 +103,22 @@ def main(args):
     for sample in tqdm(data_nonmember):
         sample.update(calculate_word_counts(sample))
 
-    # Calculate percentiles for non-merged data
-    percentiles_member = calculate_percentiles(data_member)
-    percentiles_nonmember = calculate_percentiles(data_nonmember)
-    percentiles_merged = calculate_percentiles(data_member + data_nonmember)
-    print("Percentiles for data_member:", percentiles_member)
-    print("Percentiles for data_nonmember:", percentiles_nonmember)
-    print("Percentiles for merged data:", percentiles_merged)
-
-    # Example usage
-    plot_length_histogram(data_member, data_nonmember, "user_length", "Histogram of User Lengths")
-    plot_length_histogram(data_member, data_nonmember, "response_length", "Histogram of Response Lengths")
-    plot_length_histogram(data_member, data_nonmember, "total_length", "Histogram of Total Lengths")
-
-    n_bins = 4
-
     # Remove data that is too short or too long
-    all_user_lengths = [sample["user_length"] for sample in data_member + data_nonmember]
-    all_response_lengths = [sample["response_length"] for sample in data_member + data_nonmember]
+    member_user_lengths = [sample["user_length"] for sample in data_member]
+    nonmember_user_lengths = [sample["user_length"] for sample in data_nonmember]
+    member_response_lengths = [sample["response_length"] for sample in data_member]
+    nonmember_response_lengths = [sample["response_length"] for sample in data_nonmember]
+
+    # all_user_lengths = member_user_lengths + nonmember_user_lengths
+    # all_response_lengths = member_response_lengths + nonmember_response_lengths
     
+    tail_amount = 5
     # Prune extreme length responses
-    user_lower_cutoff = np.percentile(all_user_lengths, 5)
-    user_upper_cutoff = np.percentile(all_user_lengths, 95)
-    response_lower_cutoff = np.percentile(all_response_lengths, 5)
-    response_upper_cutoff = np.percentile(all_response_lengths, 95)
+    user_lower_cutoff = max(np.percentile(member_user_lengths, tail_amount), np.percentile(nonmember_user_lengths, tail_amount))
+    user_upper_cutoff = min(np.percentile(member_user_lengths, 100-tail_amount), np.percentile(nonmember_user_lengths, 100-tail_amount))
+    
+    response_lower_cutoff = max(np.percentile(member_response_lengths, tail_amount), np.percentile(nonmember_response_lengths, tail_amount))
+    response_upper_cutoff = min(np.percentile(member_response_lengths, 100-tail_amount),np.percentile(nonmember_response_lengths, 100-tail_amount))
 
     data_member_new, data_nonmember_new = [], []
     for d in data_member:
@@ -147,7 +139,12 @@ def main(args):
     data_member = data_member_new
     data_nonmember = data_nonmember_new
 
-    # TODO Sample equally from data to get uniformly distributed both user length and response length
+    # Plot lengths - before pruning
+    plot_length_histogram(data_member, data_nonmember, "user_length", "Histogram of User Lengths - Original")
+    plot_length_histogram(data_member, data_nonmember, "response_length", "Histogram of Response Lengths - Original")
+    plot_length_histogram(data_member, data_nonmember, "total_length", "Histogram of Total Lengths - Original")
+    print_length_percentiles(data_member, data_nonmember)
+
     def sample_uniformly_by_length(data_member, data_nonmember, n_bins=4):
         """
         Sample data uniformly based on user_length and response_length bins.
@@ -160,13 +157,10 @@ def main(args):
         plt.hist(all_user_lengths,bins=100)
         plt.tight_layout()
         plt.savefig("all_user_lengths.png", dpi=200,bbox_inches="tight")
-
-
         plt.figure()
         plt.hist(all_response_lengths,bins=100)
         plt.tight_layout()
         plt.savefig("all_response_lengths.png", dpi=200,bbox_inches="tight")
-
 
         # Create bins for user_length and response_length
         user_bin_edges = np.percentile(all_user_lengths, np.linspace(0, 100, n_bins + 1))
@@ -174,9 +168,6 @@ def main(args):
         
         user_bin_edges[-1] += 1 # Fix bug for longest sequence in assign_to_bins
         response_bin_edges[-1] += 1
-
-        print(user_bin_edges)
-        print(response_bin_edges)
 
         # Assign samples to bins
         def assign_to_bins(data, user_bin_edges, response_bin_edges):
@@ -207,47 +198,88 @@ def main(args):
                 member_samples = binned_member[i][j]
                 nonmember_samples = binned_nonmember[i][j]
 
-                sample_amount = int(500 * bin_counts_dict_total[i][j])
+                member_samples_by_dataset = {}
+                nonmember_samples_by_dataset = {}
+                for m in member_samples:
+                    cur_dataset = m["dataset"]
+                    if cur_dataset not in member_samples_by_dataset:
+                        member_samples_by_dataset[cur_dataset] = []
+                    member_samples_by_dataset[cur_dataset].append(m)
 
-                sampled_member.extend(random.sample(member_samples, sample_amount))
-                sampled_nonmember.extend(random.sample(nonmember_samples, sample_amount))
+                for nm in nonmember_samples:
+                    cur_dataset = nm["dataset"]
+                    if cur_dataset not in nonmember_samples_by_dataset:
+                        nonmember_samples_by_dataset[cur_dataset] = []
+                    nonmember_samples_by_dataset[cur_dataset].append(nm)
+                
+                sample_amount_member = int(30 * bin_counts_dict_total[i][j] * len(nonmember_samples_by_dataset))
+                sample_amount_nonmember = int(30 * bin_counts_dict_total[i][j] * len(member_samples_by_dataset))
+                
+                print(len(member_samples_by_dataset), len(nonmember_samples_by_dataset))
+                
+                for m in member_samples_by_dataset:
+                    cur_data = member_samples_by_dataset[m]
+                    if len(cur_data) < sample_amount_member:
+                        print(m, len(cur_data))
+                    sampled_member.extend(random.sample(cur_data, min(len(cur_data), sample_amount_member)))
+                
+                for nm in nonmember_samples_by_dataset:
+                    cur_data = nonmember_samples_by_dataset[nm]
+                    if len(cur_data) < sample_amount_nonmember:
+                        pass
+                        # print(nm, len(cur_data))
+                    sampled_nonmember.extend(random.sample(cur_data, min(len(cur_data), sample_amount_nonmember)))
         
         return sampled_member, sampled_nonmember
 
-
     sampled_member, sampled_nonmember = sample_uniformly_by_length(data_member, data_nonmember, n_bins)
-    embed()
-        
-    # member_train, member_temp = train_test_split(data_member, test_size=args.val_split + args.test_split, random_state=args.seed)
-    # val_split_adjusted = args.val_split / (args.val_split + args.test_split)
-    # member_val, member_test = train_test_split(member_temp, test_size=1 - val_split_adjusted, random_state=args.seed)
+    
+    # Summarize dataset splits
+    plot_length_histogram(sampled_member, sampled_nonmember, "user_length", "Histogram of User Lengths - Sampled")
+    plot_length_histogram(sampled_member, sampled_nonmember, "response_length", "Histogram of Response Lengths - Sampled")
+    plot_length_histogram(sampled_member, sampled_nonmember, "total_length", "Histogram of Total Lengths - Sampled")
+    print_length_percentiles(sampled_member, sampled_nonmember)
+    dataset_counts = {"member": {}, "nonmember": {}}
+    for sm, snm in zip(sampled_member, sampled_nonmember):
+        if sm["dataset"] not in dataset_counts["member"]:
+            dataset_counts["member"][sm["dataset"]] = 0
+        dataset_counts["member"][sm["dataset"]] += 1
 
-    # # Split nonmember and member data
-    # nonmember_train, nonmember_temp = train_test_split(data_nonmember, test_size=args.val_split + args.test_split, random_state=args.seed)
-    # val_split_adjusted = args.val_split / (args.val_split + args.test_split)
-    # nonmember_val, nonmember_test = train_test_split(nonmember_temp, test_size=1 - val_split_adjusted, random_state=args.seed)
+        if snm["dataset"] not in dataset_counts["nonmember"]:
+            dataset_counts["nonmember"][snm["dataset"]] = 0
+        dataset_counts["nonmember"][snm["dataset"]] += 1
+    print(dataset_counts["member"], "\n", dataset_counts["nonmember"])
 
-    # # Recombine and shuffle
-    # train_data = nonmember_train + member_train
-    # val_data = nonmember_val + member_val
-    # test_data = nonmember_test + member_test
+    # Make the train test splits
+    member_train, member_temp = train_test_split(sampled_member, test_size=args.val_split + args.test_split, random_state=args.seed)
+    val_split_adjusted = args.val_split / (args.val_split + args.test_split)
+    member_val, member_test = train_test_split(member_temp, test_size=1 - val_split_adjusted, random_state=args.seed)
 
-    # random.shuffle(train_data)
-    # random.shuffle(val_data)
-    # random.shuffle(test_data)
+    # Split nonmember and member data
+    nonmember_train, nonmember_temp = train_test_split(sampled_nonmember, test_size=args.val_split + args.test_split, random_state=args.seed)
+    val_split_adjusted = args.val_split / (args.val_split + args.test_split)
+    nonmember_val, nonmember_test = train_test_split(nonmember_temp, test_size=1 - val_split_adjusted, random_state=args.seed)
 
-    # save_folder = os.path.join("data", "tulu_v1", "split-random-overall")
-    # os.makedirs(save_folder, exist_ok=True)
+    # Recombine and shuffle
+    train_data = nonmember_train + member_train
+    val_data = nonmember_val + member_val
+    test_data = nonmember_test + member_test
 
-    # # Save train, val, and test splits
-    # save_to_jsonl(train_data, os.path.join(save_folder, "test.jsonl"))
-    # save_to_jsonl(test_data, os.path.join(save_folder, "train.jsonl")) # Make the "train set" the test set, since we want it to be the majority
-    # save_to_jsonl(val_data, os.path.join(save_folder, "val.jsonl"))
+    random.shuffle(train_data)
+    random.shuffle(val_data)
+    random.shuffle(test_data)
 
-    # print("Data splits saved in folder:", save_folder)        
-    # print(train_data[0])
-    # print(len(train_data), len(test_data), len(val_data))
-    # embed()
+    save_folder = os.path.join("data", "tulu_v1", "split-random-overall")
+    os.makedirs(save_folder, exist_ok=True)
+
+    # Save train, val, and test splits
+    save_to_jsonl(train_data, os.path.join(save_folder, "test.jsonl"))
+    save_to_jsonl(test_data, os.path.join(save_folder, "train.jsonl")) # Make the "train set" the test set, since we want it to be the majority
+    save_to_jsonl(val_data, os.path.join(save_folder, "val.jsonl"))
+
+    print("Data splits saved in folder:", save_folder)        
+    print(train_data[0])
+    print(len(train_data), len(test_data), len(val_data))
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="Make data splits")
