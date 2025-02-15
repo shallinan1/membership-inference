@@ -61,17 +61,17 @@ def plot_length_histogram(data_member, data_nonmember, field, title):
     fig, (ax1, ax2) = plt.subplots(2, 1, sharex=True)
     
     # Plot Member histogram
-    ax1.hist(member_lengths, bins=10, alpha=0.5, label="Member", color="blue")
+    ax1.hist(member_lengths, bins=10, alpha=0.5, label="Member", color="blue",zorder=3)
     ax1.set_ylabel("Frequency")
-    ax1.set_title(f"Member: {title} (95th Percentile Cutoff)")
+    ax1.set_title(f"Member: {title}")
     ax1.legend()
     ax1.grid(alpha=0.2, zorder=-1)
     
     # Plot Nonmember histogram
-    ax2.hist(nonmember_lengths, bins=10, alpha=0.5, label="Nonmember", color="orange")
+    ax2.hist(nonmember_lengths, bins=10, alpha=0.5, label="Nonmember", color="orange",zorder=3)
     ax2.set_xlabel(field)
     ax2.set_ylabel("Frequency")
-    ax2.set_title(f"Nonmember: {title} (95th Percentile Cutoff)")
+    ax2.set_title(f"Nonmember: {title}")
     ax2.legend()
     ax2.grid(alpha=0.3, zorder=-1)
     
@@ -214,9 +214,7 @@ def main(args):
                 
                 sample_amount_member = int(30 * bin_counts_dict_total[i][j] * len(nonmember_samples_by_dataset))
                 sample_amount_nonmember = int(30 * bin_counts_dict_total[i][j] * len(member_samples_by_dataset))
-                
-                print(len(member_samples_by_dataset), len(nonmember_samples_by_dataset))
-                
+                                
                 for m in member_samples_by_dataset:
                     cur_data = member_samples_by_dataset[m]
                     if len(cur_data) < sample_amount_member:
@@ -226,7 +224,7 @@ def main(args):
                 for nm in nonmember_samples_by_dataset:
                     cur_data = nonmember_samples_by_dataset[nm]
                     if len(cur_data) < sample_amount_nonmember:
-                        pass
+                        print(nm, len(cur_data))
                         # print(nm, len(cur_data))
                     sampled_nonmember.extend(random.sample(cur_data, min(len(cur_data), sample_amount_nonmember)))
         
@@ -249,6 +247,7 @@ def main(args):
             dataset_counts["nonmember"][snm["dataset"]] = 0
         dataset_counts["nonmember"][snm["dataset"]] += 1
     print(dataset_counts["member"], "\n", dataset_counts["nonmember"])
+    print(len(sampled_member), len(sampled_nonmember))
 
     # Make the train test splits
     member_train, member_temp = train_test_split(sampled_member, test_size=args.val_split + args.test_split, random_state=args.seed)
@@ -283,7 +282,6 @@ def main(args):
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="Make data splits")
-    parser.add_argument("--data_points", type=int, default=1000) # Others: wikiMIA, Pile?
     parser.add_argument("--val_split", type=float, default=0.05) # Others: wikiMIA, Pile?
     parser.add_argument("--test_split", type=float, default=0.05) # Others: wikiMIA, Pile?
     parser.add_argument("--seed", type=int, default=0, help="Random seed for reproducibility")
