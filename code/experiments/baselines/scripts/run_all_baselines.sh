@@ -17,7 +17,7 @@ REF_MODEL_PROBS="${TARGET_DIR}/tulu-7b-finalized.jsonl"
 
 # Iterate through each file in the target directory
 for TARGET_FILE in "$TARGET_DIR"/*.jsonl; do
-    cmd="python3 -m code.experiments.baselines.run_baselines \
+    cmd="python3 -m code.experiments.baselines.run_loss_baselines \
         --target_model_probs $TARGET_FILE \
         --ref_model_probs $REF_MODEL_PROBS"
 
