@@ -17,6 +17,7 @@ import asyncio
 import logging
 import time
 from code.helper.generation.api_request_parallel_processor import process_api_requests
+from code.experiments.ours.utils import extract_chunk_sentence
 
 def extract_examples(text):
     pattern = r"(Example [A-Z]:\s*)(.*?)(?=\n\nExample [A-Z]:|$)"
@@ -78,12 +79,7 @@ def main(args):
     outputs = []
     if args.closed_model and "claude" not in model:
         for d in tqdm(data, desc="Generating paraphrases"):
-            if args.remove_bad_first:
-                d[args.key_name] = remove_first_sentence_if_needed(d[args.key_name])
-
-            if "bookMIA" in args.task:
-                prompt = prompt_template.substitute(ref_text=d[args.key_name])
-            elif "tulu_v1" in args.task:
+            if "tulu_v1" in args.task:
                 d["user_turn"] = d["messages"][0]["content"]
                 d[args.key_name] = d["messages"][1]["content"]
 
@@ -91,7 +87,11 @@ def main(args):
                 assert d["messages"][1]["role"] == "assistant"
             elif "wikiMIA" in args.task:
                 pass
-
+        
+            if args.remove_bad_first:
+                d[args.key_name] = remove_first_sentence_if_needed(d[args.key_name])
+            if args.keep_n_sentences != -1:
+                d[args.key_name] = extract_chunk_sentence(d[args.key_name], 0, args.keep_n_sentences, use_last=True)[0]
         # Make the requests for the API
         requests = []
         for i, d in enumerate(data):
@@ -134,7 +134,7 @@ def main(args):
     else:
         pass
 
-    save_path= os.path.join(output_dir, f"{model}.jsonl")
+    save_path= os.path.join(output_dir, f"{model}_keep{args.keep_n_sentences}.jsonl")
     if args.remove_bad_first:
         save_path = save_path.replace(".jsonl", "_remove-bad-first.jsonl")
     save_to_jsonl(data, save_path)
@@ -154,5 +154,6 @@ if __name__ == "__main__":
 
     # Other hypers
     parser.add_argument("--remove_bad_first", action="store_true")
+    parser.add_argument("--keep_n_sentences", type=int, default=-1)
 
     main(parser.parse_args())
