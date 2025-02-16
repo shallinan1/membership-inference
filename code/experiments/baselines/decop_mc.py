@@ -33,6 +33,9 @@ Format your answer as '<put correct answer here>.'""",
 You are entering a multiple choice questions exam. You should directly answer each question by choosing the correct option. Be concise and straight to the point in your answer. Output only the letter corresponding to the correct answer.
 
 Format your answer as '<correct letter>'."""
+    ],
+    "gpt-3.5-turbo-0125": [
+        f"""You are entering a multiple choice questions exam. You should directly answer each question by choosing the correct option. Be concise and straight to the point in your answer. Output only the letter corresponding to the correct answer."""
     ]
 }
 for model in ["tulu-13b-finalized", "tulu-30b-finalized", "tulu-65b-finalized"]:
@@ -175,10 +178,23 @@ def main(args):
         print(f"Data path {data_path} does not exist. Please use valid data path. See README for valid data after preprocssing/downloading.")
         import sys; sys.exit()
 
+    bad_paraphrase_count = 0
+    for d in data:
+        if len(d["paraphrases"]) != 3: # Error generating paraphrases at previous step
+            bad_paraphrase_count += 1
+            d["paraphrases"] = [d[args.key_name]] * 3
+
+        d["permutations"] = make_permutations(d[args.key_name], d["paraphrases"])
+    print(f"Bad paraphrase count: {bad_paraphrase_count}")
+
+    # Make the prompts
+    system_prompt = system_prompts[model_name][args.sys_prompt_idx]
+    all_mc_prompts = format_multiple_choice(args.task, data)
+
     if args.closed_model:
         if "claude" not in args.target_model:
             # Process bookMIA data
-            pass
+            embed()
         else:
             pass
         # elif args.target_model == "Claude": # TODO change type?
@@ -190,20 +206,6 @@ def main(args):
         tokenizer = AutoTokenizer.from_pretrained(args.target_model)
 
         if "tulu_v1" in args.task: 
-            bad_paraphrase_count = 0
-            for d in data:
-                if len(d["paraphrases"]) != 3: # Error generating paraphrases at previous step
-                    bad_paraphrase_count += 1
-                    d["paraphrases"] = [d[args.key_name]] * 3
-
-                d["permutations"] = make_permutations(d[args.key_name], d["paraphrases"])
-
-            print(f"Bad paraphrase count: {bad_paraphrase_count}")
-
-            # Make the prompts
-            system_prompt = system_prompts[model_name][args.sys_prompt_idx]
-            all_mc_prompts = format_multiple_choice(args.task, data)
-
             for cur_mc_prompt, d in zip(all_mc_prompts, data):
                 formatted_prompts = [convert_to_tulu_v1_open(f"{system_prompt}\n\n{c}") for c in cur_mc_prompt]
                 d["decop_formatted_prompts"] = formatted_prompts
@@ -221,9 +223,9 @@ def main(args):
             for d, u in zip(data, unflattened_probs):
                 d["decop_probs"] = u.tolist()
 
-        output_path = data_path.replace("paraphrases", "decop_probs")
-        os.makedirs(os.path.dirname(output_path), exist_ok=True)
-        save_to_jsonl(data, output_path)
+    output_path = data_path.replace("paraphrases", "decop_probs")
+    os.makedirs(os.path.dirname(output_path), exist_ok=True)
+    save_to_jsonl(data, output_path)
         
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(formatter_class=argparse.ArgumentDefaultsHelpFormatter)
@@ -244,7 +246,7 @@ if __name__ == "__main__":
     main(parser.parse_args())
 
     """
-    python3 -m code.experiments.baselines.generate_output_baselines \
+    python3 -m code.experiments.baselines.decop_mc \
     --target_model /gscratch/xlab/hallisky/cache/tulu-7b-finalized \
     --paraphrase_model gpt-4o-2024-11-20 \
     --key_name snippet \
@@ -254,11 +256,22 @@ if __name__ == "__main__":
     --batch_size 6 \
     --keep_n_sentences 5
 
-    python3 -m code.experiments.baselines.generate_output_baselines \
+    python3 -m code.experiments.baselines.decop_mc \
     --target_model /gscratch/xlab/hallisky/cache/tulu-13b-finalized \
     --paraphrase_model gpt-4o-2024-11-20 \
     --key_name snippet \
     --task tulu_v1 \
+    --split val \
+    --sys_prompt_idx 0 \
+    --batch_size 6 \
+    --keep_n_sentences 5
+
+    python3 -m code.experiments.baselines.decop_mc \
+    --closed_model \
+    --target_model gpt-3.5-turbo-0125 \
+    --paraphrase_model gpt-4o-2024-11-20 \
+    --key_name snippet \
+    --task bookMIA \
     --split val \
     --sys_prompt_idx 0 \
     --batch_size 6 \
