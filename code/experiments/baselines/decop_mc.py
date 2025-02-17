@@ -11,8 +11,6 @@ from tqdm import tqdm
 from code.utils import load_jsonl
 import numpy as np
 from IPython import embed
-import matplotlib.pyplot as plt
-from code.experiments.utils import plot_roc_curve
 import pandas as pd
 from torch import nn
 import torch
@@ -21,6 +19,7 @@ import pandas as pd
 from math import factorial
 from code.utils import load_jsonl, save_to_jsonl, convert_to_tulu_v1_open
 # from anthropic import Anthropic, HUMAN_PROMPT, AI_PROMPT # Don't have this right now
+from code.helper.generation.vllm_generate import ModelGenerator 
 
 system_prompts = {
     "tulu-7b-finalized": [
@@ -201,9 +200,17 @@ def main(args):
         #     claude_api_key = "Insert yout Claude key here"
         #     # anthropic = Anthropic(api_key=claude_api_key)
     else:
-        model = AutoModelForCausalLM.from_pretrained(args.target_model, device_map='auto', trust_remote_code=True)
-        model.eval()
-        tokenizer = AutoTokenizer.from_pretrained(args.target_model)
+        # model = AutoModelForCausalLM.from_pretrained(args.target_model, device_map='auto', trust_remote_code=True)
+        # model.eval()
+        # tokenizer = AutoTokenizer.from_pretrained(args.target_model)
+
+        generator = ModelGenerator(
+            model=args.target_model,
+            tokenizer=args.target_model,
+            seed=args.seed,
+            hf_token=args.hf_token,
+            cache_dir=CACHE_PATH,
+        )
 
         if "tulu_v1" in args.task: 
             for cur_mc_prompt, d in zip(all_mc_prompts, data):
@@ -214,7 +221,46 @@ def main(args):
             # Query the language model with the flattened prompts
             flattened_prompts = list(itertools.chain.from_iterable(d["decop_formatted_prompts"] for d in data))
             print(len(data), len(flattened_prompts))
-            outputs = generate_batch(flattened_prompts, model, tokenizer, batch_size=args.batch_size, max_length=2048 if "tulu" in model_name else 4096)
+
+            # Get tokenized letters
+            letter_tokens = []
+            for letter in ["A","B","C","D"]:
+                letter_tokens.append(generator.tokenizer.convert_tokens_to_ids(letter))
+
+            # Generation
+            final_prompts, all_text_outputs, all_prompt_logprobs, all_output_logprobs = generator.generate_vllm(
+                prompts=flattened_prompts,
+                temperature=0,
+                sample=False,
+                max_new_tokens=2,
+                min_tokens=1,
+                n=1
+            )
+
+            # Get the probs
+            outputs = []
+            for output_logprobs in all_output_logprobs:
+                current_logprobs = output_logprobs[0][0] # Generation 1, Index 1
+
+                logprobs_list = []
+                cur_keys = list(current_logprobs.keys())
+                for key in cur_keys:
+                    logprobs_list.append(current_logprobs[key].logprob)
+                probs_list = torch.softmax(torch.tensor(logprobs_list), dim=0).tolist()
+                for key, prob in zip(cur_keys, probs_list):
+                    setattr(current_logprobs[key], "prob", prob)
+
+                inner_outputs = []
+                for letter_token in letter_tokens:
+                    letter_token_prob = 0
+                    if letter_token in current_logprobs:
+                        letter_token_prob = current_logprobs[letter_token].prob
+                    inner_outputs.append(letter_token_prob)
+                outputs.append(inner_outputs)
+
+            outputs = np.array(outputs)
+
+            # outputs = generate_batch(flattened_prompts, model, tokenizer, batch_size=args.batch_size, max_length=2048 if "tulu" in model_name else 4096)
 
             # Unflatten the generations - into batches of 24 length each
             perm_length = factorial(args.num_paraphrases + 1)
@@ -224,6 +270,9 @@ def main(args):
                 d["decop_probs"] = u.tolist()
 
     output_path = data_path.replace("paraphrases", "decop_probs")
+    output_path = output_path.replace(".jsonl", f"_{model_name}.jsonl")
+    print(output_path)
+
     os.makedirs(os.path.dirname(output_path), exist_ok=True)
     save_to_jsonl(data, output_path)
         
@@ -238,10 +287,12 @@ if __name__ == "__main__":
     parser.add_argument("--sys_prompt_idx", type=int, default=0)
 
     parser.add_argument("--num_paraphrases", type=int, default=3)
-    parser.add_argument("--batch_size", type=int, default=8)
 
     parser.add_argument("--remove_bad_first", action="store_true")
     parser.add_argument("--keep_n_sentences", type=int, default=-1)
+
+    parser.add_argument("--seed", type=int, default=0)
+    parser.add_argument('--hf_token', type=str, default=None, help='Pass in tokenizer manually. Optional.')
 
     main(parser.parse_args())
 
@@ -251,20 +302,16 @@ if __name__ == "__main__":
     --paraphrase_model gpt-4o-2024-11-20 \
     --key_name snippet \
     --task tulu_v1 \
-    --split val \
+    --split train \
     --sys_prompt_idx 0 \
-    --batch_size 6 \
-    --keep_n_sentences 5
 
     python3 -m code.experiments.baselines.decop_mc \
     --target_model /gscratch/xlab/hallisky/cache/tulu-13b-finalized \
     --paraphrase_model gpt-4o-2024-11-20 \
     --key_name snippet \
     --task tulu_v1 \
-    --split val \
+    --split train \
     --sys_prompt_idx 0 \
-    --batch_size 6 \
-    --keep_n_sentences 5
 
     python3 -m code.experiments.baselines.decop_mc \
     --closed_model \
@@ -274,6 +321,5 @@ if __name__ == "__main__":
     --task bookMIA \
     --split val \
     --sys_prompt_idx 0 \
-    --batch_size 6 \
     --keep_n_sentences 5
     """
