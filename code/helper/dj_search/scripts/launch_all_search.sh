@@ -4,8 +4,8 @@
 # TODO FIX ALL DOCS 
 
 # Fixed task
-TASK="pile_external"
-SPLIT="test"
+TASK="${1:-tulu_v1}"
+SPLIT="${2:-train}"
 
 # User-specified folder for gen_data files
 GEN_DATA_FOLDER="outputs/ours/${TASK}/generations/${SPLIT}"
@@ -14,7 +14,7 @@ GEN_DATA_FOLDER="outputs/ours/${TASK}/generations/${SPLIT}"
 OUTPUT_DIR="${GEN_DATA_FOLDER//generations/coverages}"
 
 # Source docs path
-if [ "$SOURCE_DOCS" == "BookMIA" ]; then
+if [ "$TASK" == "BookMIA" ]; then
    SOURCE_DOCS="swj0419/BookMIA"
 else
    SOURCE_DOCS="empty"
@@ -22,7 +22,7 @@ fi
 
 # Min ngram values to try
 MIN_NGRAM_VALUES=(3 4 5 6)
-MIN_NGRAM_VALUES=(2 3 4)
+MIN_NGRAM_VALUES=(2 3 4 5)
 
 # Command to activate the environment
 ACTIVATE_ENV="source activate vllmgen"
