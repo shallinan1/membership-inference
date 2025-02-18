@@ -111,6 +111,7 @@ class ModelGenerator:
         # Tokenize prompts without padding and truncate to max_length
         input_ids_list = self.tokenizer(prompts, truncation=True, max_length=max_length).input_ids
         filtered_input_ids = []
+        truncated = 0
 
         # Filter out prompts that are too long and check for padding tokens
         for prompt, input_ids in zip(prompts, input_ids_list):
@@ -119,11 +120,13 @@ class ModelGenerator:
                 filtered_input_ids.append(input_ids)
                 final_prompts.append(prompt)
             else:
-                print(f"Truncating from {len(input_ids)} to {max_length-max_new_tokens}")
+                truncated += 1
+                # print(f"Truncating from {len(input_ids)} to {max_length-max_new_tokens}")
                 shortened = self.tokenizer([prompt], truncation=True, max_length = max_length-max_new_tokens).input_ids[0]
                 filtered_input_ids.append(shortened)
                 final_prompts.append(self.tokenizer.decode(shortened))
-
+        print(f"Truncated {truncated} out of {len(final_prompts)}")
+        
         # Set up the sampling parameters
         stop_token_ids = list(set(extra_stop_tokens + [self.llm.get_tokenizer().eos_token_id]))
         if not sample:
@@ -136,7 +139,7 @@ class ModelGenerator:
             min_tokens=min_tokens,
             stop_token_ids=stop_token_ids,
             n=n,
-            logprobs=5,
+            logprobs=10,
             # prompt_logprobs=5
         )
 
