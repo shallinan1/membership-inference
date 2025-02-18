@@ -33,12 +33,10 @@ def main(args):
     os.makedirs(save_folder, exist_ok=True)
 
     if args.prompt_with_words_not_sent:
-        args.start_sent = -1
-        args.num_sents = -1
+        args.start_sent, args.num_sents = -1, -1
         prompt_with_sent_str = "T"
     else:
-        args.start_word = -1
-        args.num_words = -1
+        args.start_word, args.num_words = -1, -1
         prompt_with_sent_str = "F"
 
     for subset_key in ["generation", "model", "logprobs", "snippet_no_prompt"]:
@@ -52,6 +50,7 @@ def main(args):
     if args.openai:
         first_gen = True
         for index, row in tqdm(final_subset.iterrows(), total=len(final_subset), desc="Generating"):
+            # TODO make sure this is not deprecated - still works for bookMIA
             prompt_text, rest_of_text = extract_chunk_sentence(row.snippet, args.start_sentence, args.num_sentences)
             assert prompt_text is not None
                 
@@ -98,20 +97,28 @@ def main(args):
             cache_dir=CACHE_PATH,
         )
 
-        passages = final_subset.snippet.tolist()
-        
-        if not args.prompt_with_words_not_sent:
-            prompt_outputs = [extract_chunk_sentence(text, args.start_sentence, args.num_sentences) for text in passages]        
+        if args.task == "tulu_v1": # Special processing for tulu dataset
+            # Num turns = 1 by default for now
+            prompt_texts = final_subset.messages.apply(lambda x: x[0]['content']).tolist()
+            rest_of_texts = final_subset.messages.apply(lambda x: x[1]['content']).tolist()
+            # TODO some assertion to make sure these roles are correct
+
+            final_subset["snippet"] = [p + "\n" + r for p, r in zip(prompt_texts, rest_of_texts)]
+            args.start_sentence, args.num_sentence = -1, -1
         else:
-            # TODO implement this
-            import sys; sys.exit()
-            
-        prompt_texts, rest_of_texts = zip(*prompt_outputs)
-        prompt_texts= list(prompt_texts)
-        rest_of_texts = list(rest_of_texts)
+            passages = final_subset.snippet.tolist()
+
+            if not args.prompt_with_words_not_sent:
+                prompt_outputs = [extract_chunk_sentence(text, args.start_sentence, args.num_sentences) for text in passages]        
+            else:
+                # TODO implement this
+                import sys; sys.exit()
+                
+            prompt_texts, rest_of_texts = zip(*prompt_outputs)
+            prompt_texts= list(prompt_texts)
+            rest_of_texts = list(rest_of_texts)
 
         assert None not in prompt_texts
-
         prompts = make_prompts(
             prompt_texts, 
             cur_task_prompts["task_prompt"], 
@@ -119,9 +126,9 @@ def main(args):
             cur_task_prompts["task_postprompt"],
             model_name=model_str,
             prompt_key="lightest"
-            )
+        )
 
-        # Generate texts
+        # Generation
         final_prompts, all_text_outputs, all_prompt_logprobs, all_output_logprobs = generator.generate_vllm(
             prompts=prompts,
             temperature=args.temperature,
@@ -137,7 +144,6 @@ def main(args):
         final_subset["snippet_no_prompt"] = rest_of_texts
 
         # We don't need to save this right now
-
         # final_subset["logprobs"] = all_output_logprobs
         # final_subset["logprobs_prompt"] = all_prompt_logprobs
 
@@ -181,58 +187,38 @@ if __name__ == "__main__":
     main(parser.parse_args())
 
 
-"""
-CUDA_VISIBLE_DEVICES=0 python3 -m code.experiments.ours.generate \
-    --model openai-community/gpt2-large \
-    --start_sentence 1 \
-    --num_sentences 3 \
-    --num_sequences 20 \
-    --max_tokens 512 \
-    --task_prompt_idx 0;      
+    """
+    CUDA_VISIBLE_DEVICES=0 python3 -m code.experiments.ours.generate \
+        --model openai-community/gpt2-large \
+        --start_sentence 1 \
+        --num_sentences 3 \
+        --num_sequences 20 \
+        --max_tokens 512 \
+        --task_prompt_idx 0;      
 
-CUDA_VISIBLE_DEVICES=0 python3 -m code.experiments.ours.generate \
-    --model meta-llama/Llama-3.1-8B-Instruct \
-    --start_sentence 1 \
-    --num_sentences 5 \
-    --num_sequences 20 \
-    --max_tokens 512 \
-    --min_tokens 10 \
-    --task_prompt_idx 5;    
+    CUDA_VISIBLE_DEVICES=0 python3 -m code.experiments.ours.generate \
+        --model meta-llama/Llama-3.1-8B-Instruct \
+        --start_sentence 1 \
+        --num_sentences 5 \
+        --num_sequences 20 \
+        --max_tokens 512 \
+        --min_tokens 10 \
+        --task_prompt_idx 5;    
 
-CUDA_VISIBLE_DEVICES=0 python3 -m code.experiments.ours.generate \
-    --model meta-llama/Llama-3.1-70B-Instruct \
-    --start_sentence 1 \
-    --num_sentences 5 \
-    --num_sequences 20 \
-    --max_tokens 512 \
-    --min_tokens 10 \
-    --task_prompt_idx 5;      
+    CUDA_VISIBLE_DEVICES=0 python3 -m code.experiments.ours.generate \
+        --model meta-llama/Llama-3.1-70B-Instruct \
+        --start_sentence 1 \
+        --num_sentences 5 \
+        --num_sequences 20 \
+        --max_tokens 512 \
+        --min_tokens 10 \
+        --task_prompt_idx 5;      
 
-CUDA_VISIBLE_DEVICES=0,1 python3 -m code.experiments.ours.generate \
-    --model meta-llama/Llama-2-70b-chat-hf \
-    --start_sentence 1 \
-    --num_sentences 5 \
-    --num_sequences 20 \
-    --max_tokens 512 \
-    --task_prompt_idx 5; 
-
-CUDA_VISIBLE_DEVICES=0 python3 -m code.experiments.ours.generate \
-    --model meta-llama/Llama-2-7b-hf \
-    --start_sentence 1 \
-    --num_sentences 1 \
-    --num_sequences 20 \
-    --max_tokens 512 \
-    --task_prompt_idx 1 \
-    --task bookMIA \
-    --data_split val; 
-
- CUDA_VISIBLE_DEVICES=0,1,2,3 python3 -m code.experiments.ours.generate \
-    --model meta-llama/Llama-2-70b-hf \
-    --start_sentence 1 \
-    --num_sentences 1 \
-    --num_sequences 20 \
-    --max_tokens 512 \
-    --task_prompt_idx 1 \
-    --task bookMIA \
-    --data_split train;   
-"""
+    CUDA_VISIBLE_DEVICES=0,1 python3 -m code.experiments.ours.generate \
+        --model meta-llama/Llama-2-70b-chat-hf \
+        --start_sentence 1 \
+        --num_sentences 5 \
+        --num_sequences 20 \
+        --max_tokens 512 \
+        --task_prompt_idx 5; 
+    """

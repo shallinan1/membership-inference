@@ -62,9 +62,13 @@ def make_prompts(
         prompts = [prompts]
     lower_model_name = model_name.lower()
 
-    if "tulu" in lower_model_name: # Tulu Models, ie https://huggingface.co/allenai/tulu-2-dpo-70b
+    preproc = False # TODO make this an arg
+    if preproc:
+        prompts = [' '.join(p.strip().split()) for p in prompts]
+
+    if "tulu" in lower_model_name: # Tulu Models, ie tulu_v1, tulu_v2 https://huggingface.co/allenai/tulu-2-dpo-70b
         task_postprompt = task_postprompt.lstrip()
-        prompts = ["<|user|>\n" + task_prompt + ' '.join(p.strip().split()) + f"\n<|assistant|>\n{task_postprompt}" for p in prompts]
+        prompts = ["<|user|>\n" + task_prompt + p + f"\n<|assistant|>\n{task_postprompt}" for p in prompts]
     
     elif "olmo" in lower_model_name: # Olmo models, ie https://huggingface.co/allenai/OLMo-7B and for internal, instruction tuned variant
         if "internal" in lower_model_name or "instruct" in lower_model_name:
@@ -95,7 +99,6 @@ def make_prompts(
         else:
             prompts = [f"{task_prompt}{task_preprompt}{p}{task_postprompt}" for p in prompts]
     
-
     elif "llama-3-" in lower_model_name:
         if "inst" in lower_model_name:
             cur_instructions = llama3_chat_prompt_guide[prompt_key] if prompt_key in llama3_chat_prompt_guide else llama3_chat_prompt_guide["lightest"]
@@ -126,6 +129,16 @@ def make_prompts(
 
 # Task prompts
 task_prompts_dict_book = {
+    "tulu_v1":        
+        {"instruct-autoregressive":
+            [
+                {
+                    "task_prompt": "", # Blank string - Tulu data already has instrucitons,
+                    "task_postprompt": "",
+                    "task_preprompt": ""
+                },
+            ],
+        },
     "pile_external":        
         {"noninstruct-autoregressive": # GPT3 style - Can be abstracted to prompts for non-instruction tuned models
             [
@@ -197,8 +210,11 @@ for task_key in task_prompts_dict_book:
     cur_task_prompts_dict_book = task_prompts_dict_book[task_key]
 
     for mod in ["davinci-002", "gpt2-large", "Llama-2-7b-hf", "Llama-2-70b-hf","gpt-3.5-turbo-instruct", "pythia-1.4b","pythia-2.8b","pythia-6.9b", "pythia-12b"]:
-        cur_task_prompts_dict_book[mod] = cur_task_prompts_dict_book["noninstruct-autoregressive"]
-    for mod in ["gpt-4o-2024-05-13", "Llama-3.1-8B-Instruct","gpt-4o-mini-2024-07-18","gpt-4-turbo-2024-04-09", "o1-mini-2024-09-12", "gpt-3.5-turbo-0125", "Llama-3.1-70B-Instruct", "Llama-2-70b-chat-hf"]:
+        try:
+            cur_task_prompts_dict_book[mod] = cur_task_prompts_dict_book["noninstruct-autoregressive"]
+        except:
+            continue
+    for mod in ["gpt-4o-2024-05-13", "Llama-3.1-8B-Instruct","gpt-4o-mini-2024-07-18","gpt-4-turbo-2024-04-09", "o1-mini-2024-09-12", "gpt-3.5-turbo-0125", "Llama-3.1-70B-Instruct", "Llama-2-70b-chat-hf","tulu-7b-finalized", "tulu-13b-finalized", "tulu-30b-finalized", "tulu-65b-finalized"]:
         try:
             cur_task_prompts_dict_book[mod] = cur_task_prompts_dict_book["instruct-autoregressive"]
         except: 
