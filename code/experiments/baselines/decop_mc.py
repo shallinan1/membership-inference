@@ -92,55 +92,6 @@ def format_multiple_choice(task, data):
         all_mc_prompts.append(cur_mc_prompts)
     return all_mc_prompts
 
-def generate_batch(texts, model, tokenizer, batch_size=2, max_length=2048):
-    """Generates text for batches and extracts probabilities of A, B, C, D."""
-    
-    max_new_tokens = 24
-    all_results = []
-    max_length_hit = 0
-
-    # Iterate over the input texts in batches
-    for i in tqdm(range(0, len(texts), batch_size), "Iterating over batches"):
-        batch_texts = texts[i:i + batch_size]
-        
-        # Tokenize the batch
-        batch_inputs = tokenizer(batch_texts, 
-                                 truncation=True, 
-                                 max_length=max_length, 
-                                 padding=True, 
-                                 return_tensors="pt").to("cuda")
-        
-        if batch_inputs["input_ids"].shape == max_length:
-            max_length_hit += 1
-
-        # Generate text for the batch
-        with torch.no_grad():
-            outputs = model.generate(
-                **batch_inputs,
-                max_new_tokens=max_new_tokens,
-                output_scores=True,
-                return_dict_in_generate=True
-            )
-        
-        # Extract the logits for the generated tokens
-        logits = outputs.scores  # This is a tuple of logits for each generated token
-        first_new_token_logits = logits[0]  # Shape: [batch_size, vocab_size]
-        
-        # Get the probabilities for the tokens corresponding to A, B, C, D
-        probs = torch.softmax(first_new_token_logits, dim=-1)
-        token_ids = [tokenizer.convert_tokens_to_ids(token) for token in ['A', 'B', 'C', 'D']]
-        
-        # Extract the probabilities for A, B, C, D
-        option_probs = probs[:, token_ids]  # Shape: [batch_size, 4]
-        
-        # Store the results
-        all_results.append(option_probs.cpu().numpy())
-
-    print(f"Max length hit: {max_length_hit}")
-    # Concatenate all batch results
-    all_results = np.concatenate(all_results, axis=0)
-    return all_results
-
 def make_permutations(original, paraphrases):
     items = [original] + paraphrases
     # Generate all permutations of the items
@@ -200,10 +151,6 @@ def main(args):
         #     claude_api_key = "Insert yout Claude key here"
         #     # anthropic = Anthropic(api_key=claude_api_key)
     else:
-        # model = AutoModelForCausalLM.from_pretrained(args.target_model, device_map='auto', trust_remote_code=True)
-        # model.eval()
-        # tokenizer = AutoTokenizer.from_pretrained(args.target_model)
-
         generator = ModelGenerator(
             model=args.target_model,
             tokenizer=args.target_model,
@@ -260,8 +207,6 @@ def main(args):
 
             outputs = np.array(outputs)
 
-            # outputs = generate_batch(flattened_prompts, model, tokenizer, batch_size=args.batch_size, max_length=2048 if "tulu" in model_name else 4096)
-
             # Unflatten the generations - into batches of 24 length each
             perm_length = factorial(args.num_paraphrases + 1)
             unflattened_probs = np.split(outputs, len(outputs) // perm_length)
@@ -314,12 +259,26 @@ if __name__ == "__main__":
     --sys_prompt_idx 0 \
 
     python3 -m code.experiments.baselines.decop_mc \
-    --closed_model \
-    --target_model gpt-3.5-turbo-0125 \
+    --target_model /gscratch/xlab/hallisky/cache/tulu-30b-finalized \
     --paraphrase_model gpt-4o-2024-11-20 \
     --key_name snippet \
-    --task bookMIA \
+    --task tulu_v1 \
+    --split train \
+    --sys_prompt_idx 0;
+    
+        python3 -m code.experiments.baselines.decop_mc \
+    --target_model /gscratch/xlab/hallisky/cache/tulu-30b-finalized \
+    --paraphrase_model gpt-4o-2024-11-20 \
+    --key_name snippet \
+    --task tulu_v1 \
     --split val \
-    --sys_prompt_idx 0 \
-    --keep_n_sentences 5
+    --sys_prompt_idx 0;
+    
+        python3 -m code.experiments.baselines.decop_mc \
+    --target_model /gscratch/xlab/hallisky/cache/tulu-30b-finalized \
+    --paraphrase_model gpt-4o-2024-11-20 \
+    --key_name snippet \
+    --task tulu_v1 \
+    --split test \
+    --sys_prompt_idx 0;
     """
