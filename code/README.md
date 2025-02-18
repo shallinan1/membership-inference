@@ -60,7 +60,14 @@ Or to run them all:
     ./code/experiments/ours/get_all_creativity_index.sh
     ```
 
-4. Aggregate results
+4. Batch Scoring
+
+
+```
+./code/experiments/ours/scripts/run_all_scoring.sh
+```
+
+5. Aggregate results
 
 ```
 python3 -m code.experiments.ours.aggregate_results
