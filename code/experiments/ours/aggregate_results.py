@@ -21,9 +21,11 @@ def model_name_to_hypers(model_name):
         "use_sentence": False if model_name_split[10][-1] == "F" else True, 
         "prompt_index": int(''.join(re.findall(r'-?\d+\.?\d*',model_name_split[11]))),
         "data_length": int(''.join(re.findall(r'-?\d+\.?\d*',model_name_split[12]))),
-        "date": model_name_split[-3],
-        "min_ngram": int(model_name_split[-2]), 
-        "search_type": model_name_split[-1]
+        "date": model_name_split[13],
+        "min_ngram": int(model_name_split[14]), 
+        "search_type": model_name_split[15],
+        "creativity_min_ngram": int(re.findall(r'-?\d+\.?\d*', model_name_split[16].split("-")[0])[0]),
+        "creativity_max_ngram": model_name_split[16].split("-")[1]
     }
 
 # Define a custom sort key dynamically
@@ -90,5 +92,5 @@ if __name__ == '__main__':
 
     
 """
-python3 -m code.experiments.ours.aggregate_results
+python3 -m code.experiments.ours.aggregate_results --task tulu_v1
 """
