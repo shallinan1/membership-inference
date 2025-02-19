@@ -1,7 +1,5 @@
 #!/bin/bash
-
 # ./code/experiments/ours/scripts/run_all_scoring.sh
-
 
 ACTIVATE_ENV="source activate vllmgen"
 SLURM_COMMAND="srun -A cse-ckpt -p ckpt --time=1:00:00 --nodes=1 --cpus-per-task=1 --mem=25G --gres=gpu:rtx6k:0 --pty /bin/bash -c"
@@ -11,7 +9,7 @@ TASK="${1:-tulu_v1}"
 SPLIT="${2:-train}"
 
 # Build paths dynamically
-TARGET_DIR="outputs/ours/${TASK}/coverages/${SPLIT}"
+TARGET_DIR="outputs/ours/${TASK}/creativities/${SPLIT}"
 
 echo "Running"
 
