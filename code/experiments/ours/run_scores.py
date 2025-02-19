@@ -19,6 +19,11 @@ strategies = {
     "Median_Coverage": {"func": lambda x: np.median(x["coverages"])},
     "Mean_Coverage": {"func": lambda x: np.mean(x["coverages"])},
     
+    "Min_Creativity": {"func": lambda x: np.min(x["creativity"])},
+    "Max_Creativity": {"func": lambda x: np.max(x["creativity"])},
+    "Median_Creativity": {"func": lambda x: np.median(x["creativity"])},
+    "Mean_Creativity": {"func": lambda x: np.mean(x["creativity"])},
+
     "Min_GenTextLengthChar": {"func": lambda x: np.min(x["gen_text_length_char"])},
     "Max_GenTextLengthChar": {"func": lambda x: np.max(x["gen_text_length_char"])},
     "Median_GenTextLengthChar": {"func": lambda x: np.median(x["gen_text_length_char"])},
@@ -43,7 +48,7 @@ strategies = {
 def main(args):
     target_model_name = args.outputs_file.split(os.sep)[-1][:-6]
 
-    base_dir = os.path.dirname(args.outputs_file).replace("coverages", "scores")  # Up one level from 'probs'
+    base_dir = os.path.dirname(args.outputs_file).replace("creativities", "scores")  # Up one level from 'probs'
     output_dir = os.path.join(base_dir, target_model_name)
     plot_dir = os.path.join(output_dir, 'plots')
     os.makedirs(plot_dir, exist_ok=True)
@@ -76,6 +81,7 @@ def main(args):
             # plot_roc_curve(fpr, tpr, roc_auc, plot_title, os.path.join(plot_dir, f"{strategy}.png"))
 
     output_file_path = os.path.join(output_dir, f"scores.json")
+
     with open(output_file_path, 'w') as f:
         json.dump(all_scores, f, indent=4)
 
