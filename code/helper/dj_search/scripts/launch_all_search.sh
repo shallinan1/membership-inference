@@ -22,7 +22,7 @@ fi
 
 # Min ngram values to try
 MIN_NGRAM_VALUES=(3 4 5 6)
-MIN_NGRAM_VALUES=(2 3 4 5)
+MIN_NGRAM_VALUES=(1 2 3 4 5)
 
 # Command to activate the environment
 ACTIVATE_ENV="source activate vllmgen"
