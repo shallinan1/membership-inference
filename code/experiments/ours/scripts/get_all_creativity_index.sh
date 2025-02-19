@@ -3,8 +3,8 @@
 
 TASK="${1:-tulu_v1}"
 SPLIT="${2:-train}"
-MIN_NGRAM=2
-MAX_NGRAM=12  
+MIN_NGRAM=1
+MAX_NGRAM=12
 
 # Define the directories containing the .jsonl files
 DIRECTORY="outputs/ours/${TASK}/coverages/${SPLIT}/"
