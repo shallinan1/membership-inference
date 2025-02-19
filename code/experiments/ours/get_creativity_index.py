@@ -70,13 +70,4 @@ if __name__ == "__main__":
     --output_dir  /gscratch/xlab/hallisky/membership-inference/outputs/ours/tulu_v1/creativities/val/ \
     --min_ngram 2 \
     --max_ngram 12
-
-    python3 -m code.helper.dj_search.dj_search_exact_LLM \
-    --task bookMIA \
-    --output_dir /gscratch/xlab/hallisky/membership-inference/outputs/ours/bookMIA/coverages/train \
-    --gen_data /gscratch/xlab/hallisky/membership-inference/outputs/ours/bookMIA/generations/train/gpt-3.5-turbo-0125_maxTok512_minTok0_numSeq20_topP0.95_temp1.0_numSent5_startSent1_numWord-1_startWord-1_useSentF_promptIdx5_len494_2025-01-11-23:06:39.jsonl \
-    --min_ngram 4 \
-    --parallel \
-    --source_docs swj0419/BookMIA;
-
     """
