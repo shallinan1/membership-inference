@@ -53,7 +53,6 @@ def main(args):
     with open(output_file, 'w') as f:
         json.dump(data, f, indent=4)
         f.flush()
-    embed()
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="Process JSONL file and compute statistics.")
