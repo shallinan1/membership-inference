@@ -31,7 +31,10 @@ def model_name_to_hypers(model_name):
 # Define a custom sort key dynamically
 def custom_sort_key(model):
     # Extract the numeric part from the model name
-    size = float(re.search(r'(\d+\.?\d*)b', model).group(1))
+    try:
+        size = float(re.search(r'(\d+\.?\d*)b', model).group(1))
+    except:
+        size = model
     return size
 
 def main(args):
