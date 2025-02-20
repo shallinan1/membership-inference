@@ -6,6 +6,7 @@ import os
 from IPython import embed
 import matplotlib.pyplot as plt
 from tqdm import tqdm
+from sklearn.metrics import roc_curve, auc, accuracy_score
 
 def save_plot(data_member, data_nonmember, metric, stat, save_path):
     plt.figure(figsize=(6, 4))
@@ -15,13 +16,19 @@ def save_plot(data_member, data_nonmember, metric, stat, save_path):
     x_members = np.ones(len(data_member)) * 1.5 + np.random.normal(0, 0.05, len(data_member))
 
     # Scatter plot of all points
-    plt.scatter(x_members, data_member, label='Members', color='blue', alpha=0.6, zorder=3)
     plt.scatter(x_nonmembers, data_nonmember, label='Non-Members', color='red', alpha=0.6, zorder=3)
+    plt.scatter(x_members, data_member, label='Members', color='blue', alpha=0.6, zorder=3)
 
-    plt.xticks([1, 1.5], ['Members', 'Non-Members'])
+    gen_labels = [0] * len(x_nonmembers) + [1] * len(x_members)
+    fpr, tpr, thresholds = roc_curve(gen_labels, data_nonmember + data_member)
+    roc_auc = auc(fpr, tpr)
+
+    plt.text(1.05, max(max(data_member), max(data_nonmember)) * 0.95, 
+             f'ROC AUC = {roc_auc:.2f}', fontsize=10, bbox=dict(facecolor='white', alpha=0.5))
+
+    plt.xticks([1, 1.5], ['Non-Members', 'Members'])
     plt.ylabel(f'{metric} ({stat})')
     plt.title(f'Comparison of {metric} ({stat})')
-    plt.legend()
     plt.grid(alpha=0.1, zorder=-1)
     plt.tight_layout()
     plt.savefig(save_path, bbox_inches="tight", dpi=200)
