@@ -8,6 +8,9 @@ from IPython import embed
 import argparse
 from code.utils import load_json
 import re
+import nltk
+tokenize_func = lambda x: nltk.tokenize.casual.casual_tokenize(x)
+from unidecode import unidecode
 
 LOW_CI_BOUND=2
 HIGH_CI_BOUND=12
@@ -45,7 +48,23 @@ def main(args):
     CREATIVITY_CONSTANT = args.max_ngram - args.min_ngram + 1
     os.makedirs(args.output_dir, exist_ok=True)
 
-    for cur_data in tqdm(data, leave=False, desc = "Iterating through original data"):
+    for cur_data in tqdm(data, desc="Adding more coverages"):
+        cur_match_lengths = []
+        for coverage in cur_data["coverage"]:
+            match_length = 0
+            for m in coverage["matched_spans"]:
+                match_length += m["end_index"] - m["start_index"]
+            cur_match_lengths.append(match_length)
+
+        length_gen =[len(tokenize_func(unidecode(c))) for c in cur_data["generation"]]
+        length_ref = len(tokenize_func(unidecode(cur_data["snippet_no_prompt"])))
+        length_total = [l + length_ref for l in length_gen]
+
+        cur_data["coverages_gen_length"] = [cml/l if cml != 0 else 0 for cml, l in zip(cur_match_lengths, length_gen)]
+        cur_data["coverages_ref_length"] = [cml/length_ref if cml != 0 else 0 for cml in cur_match_lengths]
+        cur_data["coverages_total_length"] = [(2*cml)/l if cml != 0 else 0 for cml, l in zip(cur_match_lengths, length_total)]
+
+    for cur_data in tqdm(data, desc = "Iterating through original data"):
         cur_creativity = compute_ci_statistic(cur_data["coverage"], args.min_ngram, args.max_ngram)
         # cur_data["creativity"] = [CREATIVITY_CONSTANT - c for c in cur_creativity]
         cur_data["creativity"] = cur_creativity
@@ -69,6 +88,6 @@ if __name__ == "__main__":
     python3 -m code.experiments.ours.get_creativity_index \
     --coverage_path /gscratch/xlab/hallisky/membership-inference/outputs/ours/tulu_v1/coverages/val/tulu-7b-finalized_maxTok512_minTok0_numSeq20_topP0.95_temp1.0_numSent1_startSent-1_numWord-1_startWord-1_useSentF_promptIdx0_len92_2025-02-17-19:30:08_2_onedoc.jsonl \
     --output_dir  /gscratch/xlab/hallisky/membership-inference/outputs/ours/tulu_v1/creativities/val/ \
-    --min_ngram 2 \
+    --min_ngram 1 \
     --max_ngram 12
     """
