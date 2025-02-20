@@ -20,6 +20,10 @@ from math import factorial
 from code.utils import load_jsonl, save_to_jsonl, convert_to_tulu_v1_open
 # from anthropic import Anthropic, HUMAN_PROMPT, AI_PROMPT # Don't have this right now
 from code.helper.generation.vllm_generate import ModelGenerator 
+import time
+from code.helper.generation.api_request_parallel_processor import process_api_requests
+import logging
+import asyncio
 
 system_prompts = {
     "tulu-7b-finalized": [
@@ -39,40 +43,27 @@ Format your answer as '<correct letter>'."""
 }
 for model in ["tulu-13b-finalized", "tulu-30b-finalized", "tulu-65b-finalized"]:
     system_prompts[model] = system_prompts["tulu-7b-finalized"]
+for model in ["gpt-4-0613"]:
+    system_prompts[model] = system_prompts["gpt-3.5-turbo-0125"]
 
-softmax = nn.Softmax(dim=0)
-mapping = {0: 'A', 1: 'B', 2: 'C', 3: 'D'}
-QA_prompt = f"""You are entering a multiple choice questions exam. You should directly answer each question by choosing the correct option. Be concise and straight to the point in your answer. Output only the letter corresponding to the correct answer."""
-def Query_LLM_Closed(data_type, model_name, query_data, document_name, author_name):
+async def openai_generations(requests, args):
+    start_time = time.time()
     
-    if(data_type == "BookTection"):
-        extra_prompt = f"""Question: Which of the following passages is verbatim from the \"{document_name}\" book by {author_name}?\nOptions:\n"""
-    elif(data_type == "arXivTection"):
-        extra_prompt = f"""Question: Which of the following passages is verbatim from the arXiv paper \"{document_name}\"?"""
-    
-    if model_name == "ChatGPT":
-        prompt = extra_prompt + 'A. ' + query_data[0] + '\n' + 'B. ' + query_data[1] + '\n' + 'C. ' + query_data[2] + '\n' + 'D. ' + query_data[3] + '\n' + 'Answer: '
-        response = client.completions.create(
-            model="gpt-3.5-turbo-instruct",
-            prompt= prompt,
-            max_tokens=1,
-            temperature=0,
-            seed = 2319,
-            logprobs = 4,
-            logit_bias={32:+100, 33:+100, 34:+100, 35:+100}#Increase probabilities of tokens A,B,C,D equally, such that model answers one of those.
-        )
-        dict_probs = response.choices[0].logprobs.top_logprobs[0]
-        logits = torch.tensor([dict_probs["A"], dict_probs["B"], dict_probs["C"], dict_probs["D"]], dtype=torch.float32)
-        probabilities = softmax(logits)
-        return probabilities
-    else:
-        prompt = QA_prompt + extra_prompt + 'A. ' + query_data[0] + '\n' + 'B. ' + query_data[1] + '\n' + 'C. ' + query_data[2] + '\n' + 'D. ' + query_data[3]
-        completion = anthropic.completions.create(
-            model="claude-2",
-            max_tokens_to_sample=1,
-            prompt=f"{HUMAN_PROMPT} {prompt} {AI_PROMPT} Answer: ",
-            temperature=0)
-        return completion.completion.strip()
+    results = await process_api_requests(
+        requests=requests,
+        request_url="https://api.openai.com/v1/chat/completions",
+        api_key=OPENAI_API_KEY, 
+        max_requests_per_minute=10000, 
+        max_tokens_per_minute=30000000,  
+        token_encoding_name="cl100k_base",
+        max_attempts=5, 
+        logging_level=logging.WARNING 
+    )
+
+    end_time = time.time()
+    print(f"Total generation time: {end_time - start_time:.2f} seconds for {len(requests)} samples")
+
+    return results
 
 # TODO make this into indvidiaul functions for better style
 def format_multiple_choice(task, data):
@@ -80,24 +71,24 @@ def format_multiple_choice(task, data):
     for d in data:
         cur_mc_prompts = []
         for perm in d["permutations"]:
+            cur_perm = perm["permutation"]
+
             if task == "bookMIA":
-                extra_prompt = f"""Question: Which of the following passages is verbatim from the book \"{d["book"].removesuffix(".txt")}\"?\nOptions:\n"""
+                extra_prompt = f"""Question: Which of the following passages is verbatim from an existing book?\nOptions:\n""" # bookMIA doesn't store this metadata cleanly
+                prompt = extra_prompt +  'A. ' + cur_perm[0] + '\n' + 'B. ' + cur_perm[1] + '\n' + 'C. ' + cur_perm[2] + '\n' + 'D. ' + cur_perm[3] + '\n' + 'Answer:'    
             elif task == "tulu_v1":
                 extra_prompt = f"""Question: Which of the following responses is verbatim from the prompt \"{d["user_turn"]}\"?\nOptions:\n"""
-
-            cur_perm = perm["permutation"]
-            prompt = extra_prompt +  'A. ' + cur_perm[0] + '\n' + 'B. ' + cur_perm[1] + '\n' + 'C. ' + cur_perm[2] + '\n' + 'D. ' + cur_perm[3] + '\n\n' + 'Answer:'    
+                prompt = extra_prompt +  'A. ' + cur_perm[0] + '\n' + 'B. ' + cur_perm[1] + '\n' + 'C. ' + cur_perm[2] + '\n' + 'D. ' + cur_perm[3] + '\n\n' + 'Answer:'    
+            
             cur_mc_prompts.append(prompt)
-
         all_mc_prompts.append(cur_mc_prompts)
     return all_mc_prompts
 
 def make_permutations(original, paraphrases):
     items = [original] + paraphrases
-    # Generate all permutations of the items
     permutations = list(itertools.permutations(items))
-
     result = []
+
     for perm in permutations:
         # Find the index of the true item in the current permutation
         true_index = perm.index(original)
@@ -144,12 +135,65 @@ def main(args):
     if args.closed_model:
         if "claude" not in args.target_model:
             # Process bookMIA data
-            embed()
+            if "bookMIA" in args.task:
+                for cur_mc_prompt, d in zip(all_mc_prompts, data):
+                    formatted_prompts = [f"{system_prompt}\n{c}" for c in cur_mc_prompt]
+                    d["decop_formatted_prompts"] = formatted_prompts
+                    d["decop_truth_index"] = [p["true_index"] for p in d["permutations"]]
+
+                # Query the language model with the flattened prompts
+                flattened_prompts = list(itertools.chain.from_iterable(d["decop_formatted_prompts"] for d in data))
+                print(len(data), len(flattened_prompts))
+            elif "wikiMIA" in args.task:
+                pass
+
+            # Make the requests for the API
+            requests = []
+            for i, prompt in enumerate(flattened_prompts):
+                request_id = i
+                requests.append({
+                    "model": args.target_model,
+                    "messages": [{"role": "user", "content": prompt}],
+                    "max_tokens": 1,
+                    "temperature": 0,
+                    "seed": args.seed,
+                    "n": 1, # Hardcode this
+                    "logprobs": True,
+                    "top_logprobs": 10,
+                    "metadata": {"request_id": request_id},
+                })
+
+            full_generations = asyncio.run(openai_generations(requests, args))
+
+            indexed_results = {}
+            for result in full_generations:
+                request_id = result[2]["request_id"] # Extract request_id from metadata
+                indexed_results[request_id] = result[1]  # API response is the second element
+
+            outputs = []
+            for i in range(len(full_generations)):
+                current_logprobs = indexed_results[i]["choices"][0]["logprobs"]["content"][0]["top_logprobs"] # Generation 1, Index 1
+                current_probs_dict = {}
+                for current_logprob in current_logprobs:
+                    current_probs_dict[current_logprob["token"]] = np.exp(current_logprob["logprob"])
+                
+                probs_list = []
+                for key in ["A", "B", "C", "D"]:
+                    cur_value = 0 if key not in current_probs_dict else current_probs_dict[key]
+                    probs_list.append(cur_value)
+
+                probs_list = torch.softmax(torch.tensor(probs_list), dim=0).tolist()
+                outputs.append(probs_list)
+            outputs = np.array(outputs)
+
+            # Unflatten the generations - into batches of 24 length each
+            perm_length = factorial(args.num_paraphrases + 1)
+            unflattened_probs = np.split(outputs, len(outputs) // perm_length)
+
+            for d, u in zip(data, unflattened_probs):
+                d["decop_probs"] = u.tolist()
         else:
             pass
-        # elif args.target_model == "Claude": # TODO change type?
-        #     claude_api_key = "Insert yout Claude key here"
-        #     # anthropic = Anthropic(api_key=claude_api_key)
     else:
         generator = ModelGenerator(
             model=args.target_model,
@@ -230,12 +274,10 @@ if __name__ == "__main__":
     parser.add_argument('--key_name', type=str, default="input", help="the key name corresponding to the input text. Selecting from: input, paraphrase")
     parser.add_argument('--closed_model', action="store_true")
     parser.add_argument("--sys_prompt_idx", type=int, default=0)
-
     parser.add_argument("--num_paraphrases", type=int, default=3)
 
     parser.add_argument("--remove_bad_first", action="store_true")
     parser.add_argument("--keep_n_sentences", type=int, default=-1)
-
     parser.add_argument("--seed", type=int, default=0)
     parser.add_argument('--hf_token', type=str, default=None, help='Pass in tokenizer manually. Optional.')
 
