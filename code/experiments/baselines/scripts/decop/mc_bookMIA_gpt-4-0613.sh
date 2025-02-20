@@ -6,6 +6,7 @@ python3 -m code.experiments.baselines.decop_mc \
     --split train \
     --closed_model \
     --keep_n_sentences 5 \
+    --remove_bad_first \
     --sys_prompt_idx 0;
     
 python3 -m code.experiments.baselines.decop_mc \
@@ -16,6 +17,7 @@ python3 -m code.experiments.baselines.decop_mc \
     --split val \
     --closed_model \
     --keep_n_sentences 5 \
+    --remove_bad_first \
     --sys_prompt_idx 0;
     
 python3 -m code.experiments.baselines.decop_mc \
@@ -26,4 +28,5 @@ python3 -m code.experiments.baselines.decop_mc \
     --split test \
     --closed_model \
     --keep_n_sentences 5 \
+    --remove_bad_first \
     --sys_prompt_idx 0;
