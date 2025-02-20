@@ -31,7 +31,6 @@ def save_plot(data_member, data_nonmember, metric, stat, save_path):
 def main(args):
     data_folder = f"outputs/ours/{args.task}/creativities/{args.split}/"
     output_folder = f"code/analysis/plots/{args.task}/{args.split}/"
-    os.makedirs(output_folder, exist_ok=True)
 
     # Iterate through the files in the data folder and load_json each of the files
     for filename in tqdm(os.listdir(data_folder)):
@@ -67,8 +66,9 @@ def main(args):
                     nonmember_stat_values = [func(x) for x in nonmember_data[metric]]
                     
                     if member_stat_values and nonmember_stat_values:
-                        save_path = os.path.join(output_folder, f"{filename}_{metric}_{stat}.png")
-                        
+                        save_path = os.path.join(output_folder, filename, f"{metric}_{stat}.png")
+                        os.makedirs(os.path.dirname(save_path), exist_ok=True)
+
                         # Pass processed statistics to the plotting function
                         save_plot(member_stat_values, nonmember_stat_values, metric, stat, save_path)
 
