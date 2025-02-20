@@ -14,7 +14,7 @@ GEN_DATA_FOLDER="outputs/ours/${TASK}/generations/${SPLIT}"
 OUTPUT_DIR="${GEN_DATA_FOLDER//generations/coverages}"
 
 # Source docs path
-if [ "$TASK" == "BookMIA" ]; then
+if [ "$TASK" == "BookMI" ]; then
    SOURCE_DOCS="swj0419/BookMIA"
 else
    SOURCE_DOCS="empty"
