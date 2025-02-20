@@ -131,7 +131,7 @@ def process_single_doc(t_idx, all_gens, min_ngram, source_docs):
     for t_doc in tqdm(all_gens, leave=False, position=1):
         tokenized_text = tokenize_func(unidecode(t_doc["text"]))
         tgt_doc = Document(f'tgt_{t_idx}', tokenized_text)
-        if len(tgt_doc.tokens) <= min_ngram: # Edge case if gen is too short
+        if len(tgt_doc.tokens) < min_ngram: # Edge case if gen is too short
             output = {'matched_spans': [], 'coverage': 0, 'avg_span_len': 0, 'too_short': True}
         else:
             output = find_exact_match(detokenize, tgt_doc, min_ngram, source_docs[t_idx], 1) # Hardcode 1 CPU here
