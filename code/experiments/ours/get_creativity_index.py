@@ -47,8 +47,9 @@ def main(args):
 
     for cur_data in tqdm(data, leave=False, desc = "Iterating through original data"):
         cur_creativity = compute_ci_statistic(cur_data["coverage"], args.min_ngram, args.max_ngram)
-        cur_data["creativity"] = [CREATIVITY_CONSTANT - c for c in cur_creativity]
-
+        # cur_data["creativity"] = [CREATIVITY_CONSTANT - c for c in cur_creativity]
+        cur_data["creativity"] = cur_creativity
+    
     output_file = os.path.join(args.output_dir, os.path.basename(args.coverage_path).replace('.jsonl', f"_CI{args.min_ngram}-{args.max_ngram}.jsonl"))
     with open(output_file, 'w') as f:
         json.dump(data, f, indent=4)

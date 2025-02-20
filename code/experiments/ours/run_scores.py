@@ -19,10 +19,10 @@ strategies = {
     "Median_Coverage": {"func": lambda x: np.median(x["coverages"])},
     "Mean_Coverage": {"func": lambda x: np.mean(x["coverages"])},
     
-    "Min_Creativity": {"func": lambda x: np.min([-x for x in x["creativity"]])},
-    "Max_Creativity": {"func": lambda x: np.max([-x for x in x["creativity"]])},
-    "Median_Creativity": {"func": lambda x: np.median([-x for x in x["creativity"]])},
-    "Mean_Creativity": {"func": lambda x: np.mean([-x for x in x["creativity"]])},
+    "Min_Creativity": {"func": lambda x: np.min(x["creativity"])},
+    "Max_Creativity": {"func": lambda x: np.max(x["creativity"])},
+    "Median_Creativity": {"func": lambda x: np.median(x["creativity"])},
+    "Mean_Creativity": {"func": lambda x: np.mean(x["creativity"])},
 
     "Min_GenTextLengthChar": {"func": lambda x: np.min(x["gen_text_length_char"])},
     "Max_GenTextLengthChar": {"func": lambda x: np.max(x["gen_text_length_char"])},
