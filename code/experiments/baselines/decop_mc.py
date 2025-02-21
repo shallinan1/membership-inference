@@ -22,6 +22,7 @@ from code.utils import load_jsonl, save_to_jsonl, convert_to_tulu_v1_open
 from code.helper.generation.vllm_generate import ModelGenerator 
 import time
 from code.helper.generation.api_request_parallel_processor import process_api_requests
+from code.helper.generation.openai_parallel_generate import openai_parallel_generate
 import logging
 import asyncio
 
@@ -43,27 +44,8 @@ Format your answer as '<correct letter>'."""
 }
 for model in ["tulu-13b-finalized", "tulu-30b-finalized", "tulu-65b-finalized"]:
     system_prompts[model] = system_prompts["tulu-7b-finalized"]
-for model in ["gpt-4-0613"]:
+for model in ["gpt-4-0613", "gpt-3.5-turbo-1106"]:
     system_prompts[model] = system_prompts["gpt-3.5-turbo-0125"]
-
-async def openai_generations(requests, args):
-    start_time = time.time()
-    
-    results = await process_api_requests(
-        requests=requests,
-        request_url="https://api.openai.com/v1/chat/completions",
-        api_key=OPENAI_API_KEY, 
-        max_requests_per_minute=10000, 
-        max_tokens_per_minute=30000000,  
-        token_encoding_name="cl100k_base",
-        max_attempts=5, 
-        logging_level=logging.WARNING 
-    )
-
-    end_time = time.time()
-    print(f"Total generation time: {end_time - start_time:.2f} seconds for {len(requests)} samples")
-
-    return results
 
 # TODO make this into indvidiaul functions for better style
 def format_multiple_choice(task, data):
@@ -144,6 +126,7 @@ def main(args):
                 # Query the language model with the flattened prompts
                 flattened_prompts = list(itertools.chain.from_iterable(d["decop_formatted_prompts"] for d in data))
                 print(len(data), len(flattened_prompts))
+                # flattened_prompts = flattened_prompts[:480]
             elif "wikiMIA" in args.task:
                 pass
 
@@ -163,7 +146,8 @@ def main(args):
                     "metadata": {"request_id": request_id},
                 })
 
-            full_generations = asyncio.run(openai_generations(requests, args))
+            full_generations = asyncio.run(openai_parallel_generate(requests, args))
+            embed()
 
             indexed_results = {}
             for result in full_generations:

@@ -5,7 +5,7 @@ import logging
 from code.helper.generation.api_request_parallel_processor import process_api_requests
 from IPython import embed
 
-async def openai_generations(requests, args, max_requests_per_minute=10000, max_tokens_per_minute=30000000):
+async def openai_parallel_generate(requests, args, max_requests_per_minute=10000, max_tokens_per_minute=30000000):
     start_time = time.time()
     
     results = await process_api_requests(
