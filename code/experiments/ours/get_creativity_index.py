@@ -15,7 +15,7 @@ from unidecode import unidecode
 LOW_CI_BOUND=2
 HIGH_CI_BOUND=12
 
-def get_ngram_coverage(text, spans, min_gram):
+def get_ngram_coverage(text, spans, min_gram, ref_length):
     tokens = casual_tokenize(unidecode(text))
     flags = [False for _ in tokens]
     for span in spans:
@@ -24,10 +24,16 @@ def get_ngram_coverage(text, spans, min_gram):
             flags[span['start_index']: span['end_index']] = [True] * span_length
 
     if len([f for f in flags if f]) == 0:
-        return 0
+        coverage_gen, coverage_ref, coverage_total = 0, 0, 0
     else: 
-        coverage = len([f for f in flags if f]) / len(flags)
-        return coverage
+        coverage_gen = len([f for f in flags if f]) / len(flags)
+        coverage_ref = len([f for f in flags if f]) / ref_length
+        coverage_total = (2 * len([f for f in flags if f])) / (len(flags) + ref_length)
+    return {
+        "coverages_gen_length": coverage_gen,
+        "coverages_ref_length": coverage_ref, 
+        "coverages_total_length": coverage_total
+        }
 
 def compute_ci_statistic(outputs, min_ngram, max_ngram):
     total_coverages, total_stds = [], []
@@ -49,21 +55,18 @@ def main(args):
     os.makedirs(args.output_dir, exist_ok=True)
 
     for cur_data in tqdm(data, desc="Adding more coverages"):
-        cur_match_lengths = []
-        for coverage in cur_data["coverage"]:
-            match_length = 0
-            for m in coverage["matched_spans"]:
-                match_length += m["end_index"] - m["start_index"]
-            cur_match_lengths.append(match_length)
-
-        length_gen =[len(tokenize_func(unidecode(c))) for c in cur_data["generation"]]
         length_ref = len(tokenize_func(unidecode(cur_data["snippet_no_prompt"])))
-        length_total = [l + length_ref for l in length_gen]
-
-        cur_data["coverages_gen_length"] = [cml/l if cml != 0 else 0 for cml, l in zip(cur_match_lengths, length_gen)]
-        cur_data["coverages_ref_length"] = [cml/length_ref if cml != 0 else 0 for cml in cur_match_lengths]
-        cur_data["coverages_total_length"] = [(2*cml)/l if cml != 0 else 0 for cml, l in zip(cur_match_lengths, length_total)]
-
+        cur_coverages = []
+        for coverage in cur_data["coverage"]:
+            cur_coverages.append(
+                get_ngram_coverage(coverage["text"], 
+                                   coverage["matched_spans"], 
+                                   min_gram=1, 
+                                   ref_length=length_ref))
+        for coverage_key in ["coverages_gen_length", "coverages_ref_length", "coverages_total_length"]:
+            cur_data[coverage_key] = [c[coverage_key] for c in cur_coverages]
+    
+    embed()
     for cur_data in tqdm(data, desc = "Iterating through original data"):
         cur_creativity = compute_ci_statistic(cur_data["coverage"], args.min_ngram, args.max_ngram)
         # cur_data["creativity"] = [CREATIVITY_CONSTANT - c for c in cur_creativity]
