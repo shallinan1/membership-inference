@@ -35,17 +35,16 @@ def get_ngram_coverage(text, spans, min_gram, ref_length):
         "coverages_total_length": coverage_total
         }
 
-def compute_ci_statistic(outputs, min_ngram, max_ngram):
-    total_coverages, total_stds = [], []
+def compute_ci_statistic(outputs, min_ngram, max_ngram, ref_length):
+    total_coverages = []
     ngram_list = list(range(min_ngram, max_ngram + 1))
     for output in outputs:
         coverages = []
         for min_ngram in ngram_list:
-            coverage = get_ngram_coverage(output['text'], output['matched_spans'], min_ngram)
-            coverages.append(coverage)
+            coverage_dict = get_ngram_coverage(output['text'], output['matched_spans'], min_ngram, ref_length)
+            coverages.append(coverage_dict)
 
-        total_coverages.append(sum(coverages))
-        total_stds.append(np.std(coverages))
+        total_coverages.append({key.replace("coverages", "creativities"): sum(d[key] for d in coverages) for key in coverages[0]})
 
     return total_coverages
 
@@ -66,11 +65,13 @@ def main(args):
         for coverage_key in ["coverages_gen_length", "coverages_ref_length", "coverages_total_length"]:
             cur_data[coverage_key] = [c[coverage_key] for c in cur_coverages]
     
-    embed()
     for cur_data in tqdm(data, desc = "Iterating through original data"):
-        cur_creativity = compute_ci_statistic(cur_data["coverage"], args.min_ngram, args.max_ngram)
+        length_ref = len(tokenize_func(unidecode(cur_data["snippet_no_prompt"])))
+        cur_creativity = compute_ci_statistic(cur_data["coverage"], args.min_ngram, args.max_ngram, length_ref)
+
         # cur_data["creativity"] = [CREATIVITY_CONSTANT - c for c in cur_creativity]
-        cur_data["creativity"] = cur_creativity
+        for creativity_key in ["creativities_gen_length", "creativities_ref_length", "creativities_total_length"]:
+            cur_data[creativity_key] = [c[creativity_key] for c in cur_creativity]
     
     output_file = os.path.join(args.output_dir, os.path.basename(args.coverage_path).replace('.jsonl', f"_CI{args.min_ngram}-{args.max_ngram}.jsonl"))
     with open(output_file, 'w') as f:
