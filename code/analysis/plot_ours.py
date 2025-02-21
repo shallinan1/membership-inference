@@ -47,24 +47,19 @@ def main(args):
             
             data = load_json(file_path)
 
-            member_data = {
-                "coverage": [],
-                "creativity": []
-            }
-            nonmember_data = {
-                "coverage": [],
-                "creativity": []
-            }
+            metrics = ["coverages_gen_length", "coverages_ref_length", "coverages_total_length", "creativity"]
+            member_data = {k: [] for k in metrics}
+            nonmember_data = {k: [] for k in metrics}
+
             for d in data:
                 if d["label"] == 0:
-                    nonmember_data["coverage"].append([m["coverage"] for m in d["coverage"]]) # This is a list of coverage for each data point
-                    nonmember_data["creativity"].append(d["creativity"]) # This is a list of creativity for each data point
+                    for metric in metrics:
+                        nonmember_data[metric].append(d[metric]) # This is a list of coverage for each data point
                 else:
-                    member_data["coverage"].append([m["coverage"] for m in d["coverage"]])
-                    member_data["creativity"].append(d["creativity"])
+                    for metric in metrics:
+                        member_data[metric].append(d[metric]) # This is a list of coverage for each data point
 
-                        
-            for metric in ["coverage", "creativity"]:
+            for metric in metrics:
                 for stat, func in zip(["mean", "median", "max", "min"], 
                                     [np.mean, np.median, np.max, np.min]):
                     
