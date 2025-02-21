@@ -48,6 +48,7 @@ def main(args):
             data = load_json(file_path)
 
             metrics = ["coverages_gen_length", "coverages_ref_length", "coverages_total_length"]
+            metrics = metrics + [m + "_unique" for m in metrics]
             metrics = metrics + [m.replace("coverages", "creativities") for m in metrics]
             member_data = {k: [] for k in metrics}
             nonmember_data = {k: [] for k in metrics}
