@@ -29,6 +29,21 @@ strategies = {
     "Median_Coverage_Total_Length": {"func": lambda x: np.median(x["coverages_total_length"])},
     "Mean_Coverage_Total_Length": {"func": lambda x: np.mean(x["coverages_total_length"])},
 
+    "Min_Coverage_Gen_Length_Unique": {"func": lambda x: np.min(x["coverages_gen_length_unique"])},
+    "Max_Coverage_Gen_Length_Unique": {"func": lambda x: np.max(x["coverages_gen_length_unique"])},
+    "Median_Coverage_Gen_Length_Unique": {"func": lambda x: np.median(x["coverages_gen_length_unique"])},
+    "Mean_Coverage_Gen_Length_Unique": {"func": lambda x: np.mean(x["coverages_gen_length_unique"])},
+    
+    "Min_Coverage_Ref_Length_Unique": {"func": lambda x: np.min(x["coverages_ref_length_unique"])},
+    "Max_Coverage_Ref_Length_Unique": {"func": lambda x: np.max(x["coverages_ref_length_unique"])},
+    "Median_Coverage_Ref_Length_Unique": {"func": lambda x: np.median(x["coverages_ref_length_unique"])},
+    "Mean_Coverage_Ref_Length_Unique": {"func": lambda x: np.mean(x["coverages_ref_length_unique"])},
+    
+    "Min_Coverage_Total_Length_Unique": {"func": lambda x: np.min(x["coverages_total_length_unique"])},
+    "Max_Coverage_Total_Length_Unique": {"func": lambda x: np.max(x["coverages_total_length_unique"])},
+    "Median_Coverage_Total_Length_Unique": {"func": lambda x: np.median(x["coverages_total_length_unique"])},
+    "Mean_Coverage_Total_Length_Unique": {"func": lambda x: np.mean(x["coverages_total_length_unique"])},
+
     "Min_Creativity_Gen_Length": {"func": lambda x: np.min(x["creativities_gen_length"])},
     "Max_Creativity_Gen_Length": {"func": lambda x: np.max(x["creativities_gen_length"])},
     "Median_Creativity_Gen_Length": {"func": lambda x: np.median(x["creativities_gen_length"])},
@@ -43,6 +58,21 @@ strategies = {
     "Max_Creativity_Total_Length": {"func": lambda x: np.max(x["creativities_total_length"])},
     "Median_Creativity_Total_Length": {"func": lambda x: np.median(x["creativities_total_length"])},
     "Mean_Creativity_Total_Length": {"func": lambda x: np.mean(x["creativities_total_length"])},
+
+    "Min_Creativity_Gen_Length_Unique": {"func": lambda x: np.min(x["creativities_gen_length_unique"])},
+    "Max_Creativity_Gen_Length_Unique": {"func": lambda x: np.max(x["creativities_gen_length_unique"])},
+    "Median_Creativity_Gen_Length_Unique": {"func": lambda x: np.median(x["creativities_gen_length_unique"])},
+    "Mean_Creativity_Gen_Length_Unique": {"func": lambda x: np.mean(x["creativities_gen_length_unique"])},
+
+    "Min_Creativity_Ref_Length_Unique": {"func": lambda x: np.min(x["creativities_ref_length_unique"])},
+    "Max_Creativity_Ref_Length_Unique": {"func": lambda x: np.max(x["creativities_ref_length_unique"])},
+    "Median_Creativity_Ref_Length_Unique": {"func": lambda x: np.median(x["creativities_ref_length_unique"])},
+    "Mean_Creativity_Ref_Length_Unique": {"func": lambda x: np.mean(x["creativities_ref_length_unique"])},
+    
+    "Min_Creativity_Total_Length_Unique": {"func": lambda x: np.min(x["creativities_total_length_unique"])},
+    "Max_Creativity_Total_Length_Unique": {"func": lambda x: np.max(x["creativities_total_length_unique"])},
+    "Median_Creativity_Total_Length_Unique": {"func": lambda x: np.median(x["creativities_total_length_unique"])},
+    "Mean_Creativity_Total_Length_Unique": {"func": lambda x: np.mean(x["creativities_total_length_unique"])},
 
     "Min_GenTextLengthChar": {"func": lambda x: np.min(x["gen_text_length_char"])},
     "Max_GenTextLengthChar": {"func": lambda x: np.max(x["gen_text_length_char"])},

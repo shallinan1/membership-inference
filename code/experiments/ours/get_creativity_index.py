@@ -15,33 +15,41 @@ from unidecode import unidecode
 LOW_CI_BOUND=2
 HIGH_CI_BOUND=12
 
-def get_ngram_coverage(text, spans, min_gram, ref_length):
+# TODO checking for subsets too
+def get_ngram_coverage(text, spans, min_gram, ref_length, unique_coverages=False):
     tokens = casual_tokenize(unidecode(text))
     flags = [False for _ in tokens]
+    seen = set()
+
     for span in spans:
+        span_text = span['span_text']
         span_length = span['end_index'] - span['start_index']
         if span_length >= min_gram:
-            flags[span['start_index']: span['end_index']] = [True] * span_length
+            if not unique_coverages or span_text not in seen:
+                flags[span['start_index']: span['end_index']] = [True] * span_length
+                
+        seen.add(span_text)
 
     if len([f for f in flags if f]) == 0:
         coverage_gen, coverage_ref, coverage_total = 0, 0, 0
     else: 
+        ref_adjusted_length = max(len(flags), ref_length)
         coverage_gen = len([f for f in flags if f]) / len(flags)
-        coverage_ref = len([f for f in flags if f]) / ref_length
-        coverage_total = (2 * len([f for f in flags if f])) / (len(flags) + ref_length)
+        coverage_ref = len([f for f in flags if f]) / ref_adjusted_length
+        coverage_total = (2 * len([f for f in flags if f])) / (len(flags) + ref_adjusted_length)
     return {
         "coverages_gen_length": coverage_gen,
         "coverages_ref_length": coverage_ref, 
         "coverages_total_length": coverage_total
         }
 
-def compute_ci_statistic(outputs, min_ngram, max_ngram, ref_length):
+def compute_ci_statistic(outputs, min_ngram, max_ngram, ref_length, unique_coverages=False):
     total_coverages = []
     ngram_list = list(range(min_ngram, max_ngram + 1))
     for output in outputs:
         coverages = []
         for min_ngram in ngram_list:
-            coverage_dict = get_ngram_coverage(output['text'], output['matched_spans'], min_ngram, ref_length)
+            coverage_dict = get_ngram_coverage(output['text'], output['matched_spans'], min_ngram, ref_length, unique_coverages)
             coverages.append(coverage_dict)
 
         total_coverages.append({key.replace("coverages", "creativities"): sum(d[key] for d in coverages) for key in coverages[0]})
@@ -56,23 +64,34 @@ def main(args):
     for cur_data in tqdm(data, desc="Adding more coverages"):
         length_ref = len(tokenize_func(unidecode(cur_data["snippet_no_prompt"])))
         cur_coverages = []
+        cur_coverages_unique = []
         for coverage in cur_data["coverage"]:
             cur_coverages.append(
                 get_ngram_coverage(coverage["text"], 
                                    coverage["matched_spans"], 
                                    min_gram=1, 
-                                   ref_length=length_ref))
+                                   ref_length=length_ref,
+                                   unique_coverages=False))
+            cur_coverages_unique.append(
+                get_ngram_coverage(coverage["text"], 
+                                   coverage["matched_spans"], 
+                                   min_gram=1, 
+                                   ref_length=length_ref,
+                                   unique_coverages=True))
         for coverage_key in ["coverages_gen_length", "coverages_ref_length", "coverages_total_length"]:
             cur_data[coverage_key] = [c[coverage_key] for c in cur_coverages]
+            cur_data[coverage_key + "_unique"] = [c[coverage_key] for c in cur_coverages_unique]
     
     for cur_data in tqdm(data, desc = "Iterating through original data"):
         length_ref = len(tokenize_func(unidecode(cur_data["snippet_no_prompt"])))
-        cur_creativity = compute_ci_statistic(cur_data["coverage"], args.min_ngram, args.max_ngram, length_ref)
-
+        cur_creativity = compute_ci_statistic(cur_data["coverage"], args.min_ngram, args.max_ngram, length_ref, unique_coverages=False)
+        cur_creativity_unique = compute_ci_statistic(cur_data["coverage"], args.min_ngram, args.max_ngram, length_ref, unique_coverages=True)
         # cur_data["creativity"] = [CREATIVITY_CONSTANT - c for c in cur_creativity]
+        
         for creativity_key in ["creativities_gen_length", "creativities_ref_length", "creativities_total_length"]:
             cur_data[creativity_key] = [c[creativity_key] for c in cur_creativity]
-    
+            cur_data[creativity_key + "_unique"] = [c[creativity_key] for c in cur_creativity_unique]
+
     output_file = os.path.join(args.output_dir, os.path.basename(args.coverage_path).replace('.jsonl', f"_CI{args.min_ngram}-{args.max_ngram}.jsonl"))
     with open(output_file, 'w') as f:
         json.dump(data, f, indent=4)
