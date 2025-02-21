@@ -14,15 +14,35 @@ from IPython import embed
 import numpy as np
 
 strategies = {
-    "Min_Coverage": {"func": lambda x: np.min(x["coverages"])},
-    "Max_Coverage": {"func": lambda x: np.max(x["coverages"])},
-    "Median_Coverage": {"func": lambda x: np.median(x["coverages"])},
-    "Mean_Coverage": {"func": lambda x: np.mean(x["coverages"])},
+    "Min_Coverage_Gen_Length": {"func": lambda x: np.min(x["coverages_gen_length"])},
+    "Max_Coverage_Gen_Length": {"func": lambda x: np.max(x["coverages_gen_length"])},
+    "Median_Coverage_Gen_Length": {"func": lambda x: np.median(x["coverages_gen_length"])},
+    "Mean_Coverage_Gen_Length": {"func": lambda x: np.mean(x["coverages_gen_length"])},
     
-    "Min_Creativity": {"func": lambda x: np.min(x["creativity"])},
-    "Max_Creativity": {"func": lambda x: np.max(x["creativity"])},
-    "Median_Creativity": {"func": lambda x: np.median(x["creativity"])},
-    "Mean_Creativity": {"func": lambda x: np.mean(x["creativity"])},
+    "Min_Coverage_Ref_Length": {"func": lambda x: np.min(x["coverages_ref_length"])},
+    "Max_Coverage_Ref_Length": {"func": lambda x: np.max(x["coverages_ref_length"])},
+    "Median_Coverage_Ref_Length": {"func": lambda x: np.median(x["coverages_ref_length"])},
+    "Mean_Coverage_Ref_Length": {"func": lambda x: np.mean(x["coverages_ref_length"])},
+    
+    "Min_Coverage_Total_Length": {"func": lambda x: np.min(x["coverages_total_length"])},
+    "Max_Coverage_Total_Length": {"func": lambda x: np.max(x["coverages_total_length"])},
+    "Median_Coverage_Total_Length": {"func": lambda x: np.median(x["coverages_total_length"])},
+    "Mean_Coverage_Total_Length": {"func": lambda x: np.mean(x["coverages_total_length"])},
+
+    "Min_Creativity_Gen_Length": {"func": lambda x: np.min(x["creativities_gen_length"])},
+    "Max_Creativity_Gen_Length": {"func": lambda x: np.max(x["creativities_gen_length"])},
+    "Median_Creativity_Gen_Length": {"func": lambda x: np.median(x["creativities_gen_length"])},
+    "Mean_Creativity_Gen_Length": {"func": lambda x: np.mean(x["creativities_gen_length"])},
+
+    "Min_Creativity_Ref_Length": {"func": lambda x: np.min(x["creativities_ref_length"])},
+    "Max_Creativity_Ref_Length": {"func": lambda x: np.max(x["creativities_ref_length"])},
+    "Median_Creativity_Ref_Length": {"func": lambda x: np.median(x["creativities_ref_length"])},
+    "Mean_Creativity_Ref_Length": {"func": lambda x: np.mean(x["creativities_ref_length"])},
+    
+    "Min_Creativity_Total_Length": {"func": lambda x: np.min(x["creativities_total_length"])},
+    "Max_Creativity_Total_Length": {"func": lambda x: np.max(x["creativities_total_length"])},
+    "Median_Creativity_Total_Length": {"func": lambda x: np.median(x["creativities_total_length"])},
+    "Mean_Creativity_Total_Length": {"func": lambda x: np.mean(x["creativities_total_length"])},
 
     "Min_GenTextLengthChar": {"func": lambda x: np.min(x["gen_text_length_char"])},
     "Max_GenTextLengthChar": {"func": lambda x: np.max(x["gen_text_length_char"])},
@@ -55,9 +75,6 @@ def main(args):
 
     results = load_json(args.outputs_file) # Load in the probs from file
     gen_labels = [g["label"] for g in results]
-
-    for result in results:
-        result["coverages"] = [r["coverage"] for r in result["coverage"]]
 
     all_scores = {}
     for strategy in strategies:
