@@ -21,9 +21,7 @@ from code.utils import load_jsonl, save_to_jsonl, convert_to_tulu_v1_open
 # from anthropic import Anthropic, HUMAN_PROMPT, AI_PROMPT # Don't have this right now
 from code.helper.generation.vllm_generate import ModelGenerator 
 import time
-from code.helper.generation.api_request_parallel_processor import process_api_requests
 from code.helper.generation.openai_parallel_generate import openai_parallel_generate
-import logging
 import asyncio
 
 system_prompts = {
