@@ -14,9 +14,8 @@ import string
 import argparse
 import re
 import asyncio
-import logging
 import time
-from code.helper.generation.api_request_parallel_processor import process_api_requests
+from code.helper.generation.openai_parallel_generate import openai_parallel_generate
 from code.experiments.ours.utils import extract_chunk_sentence
 
 def extract_examples(text):
@@ -38,25 +37,6 @@ Example D: <insert paraphrase D>
 
 -
 Example A: ${ref_text}""")
-
-async def generate_paraphrases(requests, args):
-    start_time = time.time()
-    
-    results = await process_api_requests(
-        requests=requests,
-        request_url="https://api.openai.com/v1/chat/completions",
-        api_key=OPENAI_API_KEY, 
-        max_requests_per_minute=10000, 
-        max_tokens_per_minute=30000000,  
-        token_encoding_name="cl100k_base",
-        max_attempts=5, 
-        logging_level=logging.WARNING 
-    )
-
-    end_time = time.time()
-    print(f"Total generation time: {end_time - start_time:.2f} seconds for {len(requests)} samples")
-
-    return results
 
 def main(args):
     # Load in the data
@@ -110,7 +90,7 @@ def main(args):
                 "metadata": {"request_id": d["request_id"]},
             })
 
-        full_generations = asyncio.run(generate_paraphrases(requests, args))
+        full_generations = asyncio.run(openai_parallel_generate(requests, args))
 
         indexed_results = {}
         for result in full_generations:
@@ -134,7 +114,7 @@ def main(args):
     else:
         pass
 
-    save_path= os.path.join(output_dir, f"{model}_keep{args.keep_n_sentences}.jsonl")
+    save_path = os.path.join(output_dir, f"{model}_keep{args.keep_n_sentences}.jsonl")
     if args.remove_bad_first:
         save_path = save_path.replace(".jsonl", "_remove-bad-first.jsonl")
     save_to_jsonl(data, save_path)
