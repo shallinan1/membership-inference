@@ -15,6 +15,9 @@ from code.helper.generation.generate_utils import task_prompts_dict_book, make_p
 import random
 from datetime import datetime
 from code.experiments.ours.utils import extract_chunk_sentence
+import asyncio
+from code.helper.generation.openai_parallel_generate import openai_parallel_generate
+from code.utils import remove_first_sentence_if_needed
 
 # Function to define the main process
 def main(args):
@@ -39,55 +42,67 @@ def main(args):
         args.start_word, args.num_words = -1, -1
         prompt_with_sent_str = "F"
 
-    for subset_key in ["generation", "model", "logprobs", "snippet_no_prompt"]:
-        final_subset[subset_key] = ""
-
     # Reduce num_sequences if using greedy decoding
     if args.temperature == 0:
         print("GREEDY decoding - setting num_sequences to 1")
         args.num_sequences = 1
 
-    if args.openai:
-        first_gen = True
-        for index, row in tqdm(final_subset.iterrows(), total=len(final_subset), desc="Generating"):
-            # TODO make sure this is not deprecated - still works for bookMIA
-            prompt_text, rest_of_text = extract_chunk_sentence(row.snippet, args.start_sentence, args.num_sentences)
-            assert prompt_text is not None
-                
-            prompt = make_prompts(
-                prompt_text, 
-                cur_task_prompts["task_prompt"], 
-                cur_task_prompts["task_preprompt"],
-                cur_task_prompts["task_postprompt"]
-                )[0]
-
-            if first_gen:
-                print(prompt); first_gen=False
-
-            full_generations = get_gpt_output(prompt, 
-                                              model=args.model, 
-                                              max_tokens=args.max_tokens, 
-                                              n=args.num_sequences, 
-                                              top_p=args.top_p)
+    if args.openai:        
+        passages = final_subset.snippet.tolist()
+        if not args.prompt_with_words_not_sent:
+            prompt_outputs = [extract_chunk_sentence(text, args.start_sentence, args.num_sentences) for text in passages]        
+        else:
+            # TODO implement this
+            import sys; sys.exit()
             
-            if args.model == 'gpt-3.5-turbo-instruct' or any([args.model.startswith(x) for x in ['babbage', 'davinci']]):
-                # TODO fix # TODO FIX WHAT?
-                generations = [r['text'] for r in full_generations['choices']]
-                models = [full_generations["model"]] * len(generations)
-                # Skip for now
-                # logprobs =  [r['logprobs'] for r in full_generations['choices']] # Can also store the logprobs
-            else:
-                generations = [r.message.content for r in full_generations.choices]
-                models = [full_generations.model] * len(generations)
-                # Skip for now
-                # logprobs =  [r.logprobs for r in full_generations.choices] # Can also store the logprobs
+        prompt_texts, rest_of_texts = zip(*prompt_outputs)
+        prompt_texts= list(prompt_texts)
+        rest_of_texts = list(rest_of_texts)
 
-            final_subset.at[index, "generation"] = generations
-            final_subset.at[index, "model"] = models
-            final_subset.at[index, "snippet_no_prompt"] = rest_of_text
+        assert None not in prompt_texts
+        prompts = make_prompts(
+            prompt_texts, 
+            cur_task_prompts["task_prompt"], 
+            cur_task_prompts["task_preprompt"],
+            cur_task_prompts["task_postprompt"],
+        )
 
-            # Skipping for now
-            # final_subset.at[index, "logprobs"] = logprobs
+        requests = []
+        for i, prompt in enumerate(prompts):
+            request_id = i
+            requests.append({
+                "model": args.model,
+                "messages": [{"role": "user", "content": prompt}],
+                "max_tokens": args.max_tokens,
+                "temperature": args.temperature,
+                "seed": args.seed,
+                "top_p": args.top_p,
+                "n": args.num_sequences, # Hardcode this
+#                "top_logprobs": 10,
+                "metadata": {"request_id": request_id},
+            })
+        full_generations = asyncio.run(openai_parallel_generate(requests, args))
+        
+        indexed_results = {}
+        for result in full_generations:
+            request_id = result[2]["request_id"] # Extract request_id from metadata
+            indexed_results[request_id] = result[1]  # API response is the second element
+
+        all_text_outputs = []
+        for i in range(len(full_generations)):
+            cur_results = indexed_results[i]
+            all_text_outputs.append([cur["message"]["content"] for cur in cur_results["choices"]])
+        
+        embed()
+        # TODO gpt-3.5-turbo-instruct is it different?
+        # if args.model == 'gpt-3.5-turbo-instruct' or any([args.model.startswith(x) for x in ['babbage', 'davinci']]):
+        #     generations = [r['text'] for r in full_generations['choices']]
+        #     # logprobs =  [r['logprobs'] for r in full_generations['choices']] # Can also store the logprobs
+
+        final_subset["prompt"] = final_prompts
+        final_subset["generation"] = all_text_outputs
+        final_subset["model"] = [model_str] * len(final_subset)
+        final_subset["snippet_no_prompt"] = rest_of_texts
     else:
         generator = ModelGenerator(
             model=args.model,
@@ -143,7 +158,6 @@ def main(args):
         final_subset["model"] = [model_str] * len(final_subset)
         final_subset["snippet_no_prompt"] = rest_of_texts
 
-        # We don't need to save this right now
         # final_subset["logprobs"] = all_output_logprobs
         # final_subset["logprobs_prompt"] = all_prompt_logprobs
 
@@ -204,15 +218,6 @@ if __name__ == "__main__":
         --max_tokens 512 \
         --min_tokens 10 \
         --task_prompt_idx 5;    
-
-    CUDA_VISIBLE_DEVICES=0 python3 -m code.experiments.ours.generate \
-        --model meta-llama/Llama-3.1-70B-Instruct \
-        --start_sentence 1 \
-        --num_sentences 5 \
-        --num_sequences 20 \
-        --max_tokens 512 \
-        --min_tokens 10 \
-        --task_prompt_idx 5;      
 
     CUDA_VISIBLE_DEVICES=0,1 python3 -m code.experiments.ours.generate \
         --model meta-llama/Llama-2-70b-chat-hf \
