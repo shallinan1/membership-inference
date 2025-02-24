@@ -65,20 +65,21 @@ def format_multiple_choice(task, data):
     return all_mc_prompts
 
 def make_permutations(original, paraphrases):
-    items = [original] + paraphrases
+    # Assign a unique identifier to each item
+    items = [(original, "original")] + [(p, f"paraphrase_{i}") for i, p in enumerate(paraphrases)]
     permutations = list(itertools.permutations(items))
     result = []
 
     for perm in permutations:
         # Find the index of the true item in the current permutation
-        true_index = perm.index(original)
+        true_index = next(i for i, (item, label) in enumerate(perm) if label == "original")
         perm_dict = {
-            "permutation": perm,
+            "permutation": [item for item, label in perm],
             "true_index": true_index
         }
         result.append(perm_dict)
 
-    return result 
+    return result
 
 def main(args):
     data_path = f"outputs/baselines/{args.task}/{args.split}/paraphrases/{args.paraphrase_model}_keep{args.keep_n_sentences}.jsonl"
@@ -101,12 +102,13 @@ def main(args):
 
     bad_paraphrase_count = 0
     for d in data:
-        if len(d["paraphrases"]) != 3: # Error generating paraphrases at previous step
+        if len(d["paraphrases"]) != 5: # Error generating paraphrases at previous step
             bad_paraphrase_count += 1
             d["paraphrases"] = [d[args.key_name]] * 3
 
         d["permutations"] = make_permutations(d[args.key_name], d["paraphrases"])
     print(f"Bad paraphrase count: {bad_paraphrase_count}")
+    embed()
 
     # Make the prompts
     system_prompt = system_prompts[model_name][args.sys_prompt_idx]
