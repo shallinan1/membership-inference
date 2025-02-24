@@ -1,5 +1,5 @@
 import os
-from code.user_secrets import CACHE_PATH, OPENAI_API_KEY
+from code.user_secrets import CACHE_PATH
 # Set up environment variables
 os.environ["HF_HOME"] = CACHE_PATH
 os.environ["HF_DATASETS_PATH"] = CACHE_PATH
@@ -22,6 +22,15 @@ def extract_examples(text):
     pattern = r"(Example [A-Z]:\s*)(.*?)(?=\n\nExample [A-Z]:|$)"
     matches = re.findall(pattern, text, re.DOTALL)
     examples = [match[1].removesuffix("---").removesuffix("\n\n") for match in matches]
+    return examples
+
+def extract_examples_modified(text):
+    cleaned_text = re.sub(r"\*\*(Example [A-Z]:)\*\*", r"\1", text)
+    
+    pattern = r"(Example [A-Z]:\s*)(.*?)(?=Example [A-Z]:|$)"
+    matches = re.findall(pattern, cleaned_text, re.DOTALL)
+    
+    examples = [match[1].removesuffix("---").strip() for match in matches]
     return examples
 
 # Reported in paper
@@ -97,7 +106,8 @@ def main(args):
             request_id = result[2]["request_id"] # Extract request_id from metadata
             indexed_results[request_id] = result[1]  # API response is the second element
 
-        blank_paraphrases = 0
+        bad_paraphrases = 0
+        still_bad_paraphrases = 0
         # Map results back to the original data order
         for d in data:
             request_id = d["request_id"]
@@ -105,12 +115,18 @@ def main(args):
 
             generation = indexed_results[request_id]["choices"][0]["message"]["content"]
             paraphrases = extract_examples(generation)
-            if len(paraphrases) == 0:
-                blank_paraphrases += 1
-                paraphrases = [d[args.key_name]] * 3
+            if len(paraphrases) != 3:
+                bad_paraphrases += 1
+                
+                paraphrases = extract_examples_modified(generation)
+                if len(paraphrases) != 3:
+                    still_bad_paraphrases += 1
+                    paraphrases = [d[args.key_name]] * 3
             d["paraphrases"] = paraphrases
-
-        print(f"{blank_paraphrases} blank paraphrases out of {len(data)}")
+            d["raw_paraphrases"] = generation
+        print(f"{bad_paraphrases} bad paraphrases out of {len(data)}")
+        print(f"{still_bad_paraphrases} still bad paraphrases out of {len(data)}")
+        embed()
     else:
         pass
 
