@@ -80,8 +80,8 @@ def main(args):
                 "n": 1, # Hardcode this
                 "metadata": {"request_id": d["request_id"]},
             })
-
-        embed()
+            
+        print(f"Example prompt\n\n{requests[0]["messages"][0]["content"]}")
         full_generations = asyncio.run(openai_parallel_generate(requests, args))
 
         indexed_results = {}
