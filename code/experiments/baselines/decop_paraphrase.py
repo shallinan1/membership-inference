@@ -12,26 +12,10 @@ from IPython import embed
 import torch
 import string
 import argparse
-import re
 import asyncio
 import time
 from code.helper.generation.openai_parallel_generate import openai_parallel_generate
 from code.experiments.ours.utils import extract_chunk_sentence
-
-def extract_examples(text):
-    pattern = r"(Example [A-Z]:\s*)(.*?)(?=\n\nExample [A-Z]:|$)"
-    matches = re.findall(pattern, text, re.DOTALL)
-    examples = [match[1].removesuffix("---").removesuffix("\n\n") for match in matches]
-    return examples
-
-def extract_examples_modified(text):
-    cleaned_text = re.sub(r"\*\*(Example [A-Z]:)\*\*", r"\1", text)
-    
-    pattern = r"(Example [A-Z]:\s*)(.*?)(?=Example [A-Z]:|$)"
-    matches = re.findall(pattern, cleaned_text, re.DOTALL)
-    
-    examples = [match[1].removesuffix("---").strip() for match in matches]
-    return examples
 
 # Reported in paper
 prompt_template = string.Template("""Rewrite this entire text (all sentences with no exception) expressing the same meaning using different\
@@ -74,9 +58,7 @@ def main(args):
 
                 assert d["messages"][0]["role"] == "user"
                 assert d["messages"][1]["role"] == "assistant"
-            elif "wikiMIA" in args.task:
-                pass
-        
+
             if args.remove_bad_first:
                 d[args.key_name] = remove_first_sentence_if_needed(d[args.key_name])
             if args.keep_n_sentences != -1:
@@ -99,6 +81,7 @@ def main(args):
                 "metadata": {"request_id": d["request_id"]},
             })
 
+        embed()
         full_generations = asyncio.run(openai_parallel_generate(requests, args))
 
         indexed_results = {}
@@ -106,27 +89,13 @@ def main(args):
             request_id = result[2]["request_id"] # Extract request_id from metadata
             indexed_results[request_id] = result[1]  # API response is the second element
 
-        bad_paraphrases = 0
-        still_bad_paraphrases = 0
         # Map results back to the original data order
         for d in data:
             request_id = d["request_id"]
             assert request_id in indexed_results
 
             generation = indexed_results[request_id]["choices"][0]["message"]["content"]
-            paraphrases = extract_examples(generation)
-            if len(paraphrases) != 3:
-                bad_paraphrases += 1
-                
-                paraphrases = extract_examples_modified(generation)
-                if len(paraphrases) != 3:
-                    still_bad_paraphrases += 1
-                    paraphrases = [d[args.key_name]] * 3
-            d["paraphrases"] = paraphrases
             d["raw_paraphrases"] = generation
-        print(f"{bad_paraphrases} bad paraphrases out of {len(data)}")
-        print(f"{still_bad_paraphrases} still bad paraphrases out of {len(data)}")
-        embed()
     else:
         pass
 
