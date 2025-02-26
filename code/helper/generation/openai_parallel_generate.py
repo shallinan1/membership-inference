@@ -5,6 +5,19 @@ import logging
 from code.helper.generation.api_request_parallel_processor import process_api_requests
 from IPython import embed
 
+requests_limits_dict = {
+    "gpt-3.5-turbo-0125": {
+        "max_requests_per_minute": 10000,
+        "max_tokens_per_minute": 30000000
+    },
+    "gpt-4-0613": {
+        "max_requests_per_minute": 10000 // 2,
+        "max_tokens_per_minute": 1000000 // 2
+    }
+}
+requests_limits_dict["gpt-3.5-turbo-1106"] = requests_limits_dict["gpt-3.5-turbo-0125"]
+requests_limits_dict["gpt-4-0314"] = requests_limits_dict["gpt-4-0613"]
+
 async def openai_parallel_generate(requests, args, max_requests_per_minute=10000, max_tokens_per_minute=30000000):
     start_time = time.time()
     
