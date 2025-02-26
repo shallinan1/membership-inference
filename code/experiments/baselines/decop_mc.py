@@ -23,6 +23,24 @@ from code.helper.generation.vllm_generate import ModelGenerator
 import time
 from code.helper.generation.openai_parallel_generate import openai_parallel_generate
 import asyncio
+import re
+import random
+random.seed(0)
+
+def extract_examples(text):
+    pattern = r"(Example [A-Z]:\s*)(.*?)(?=\n\nExample [A-Z]:|$)"
+    matches = re.findall(pattern, text, re.DOTALL)
+    examples = [match[1].removesuffix("---").removesuffix("\n\n") for match in matches]
+    return examples
+
+def extract_examples_modified(text):
+    cleaned_text = re.sub(r"\*\*(Example [A-Z]:)\*\*", r"\1", text)
+    
+    pattern = r"(Example [A-Z]:\s*)(.*?)(?=Example [A-Z]:|$)"
+    matches = re.findall(pattern, cleaned_text, re.DOTALL)
+    
+    examples = [match[1].removesuffix("\n\n---\n\n").removesuffix("---").strip() for match in matches]
+    return examples
 
 system_prompts = {
     "tulu-7b-finalized": [
@@ -59,7 +77,10 @@ def format_multiple_choice(task, data):
             elif task == "tulu_v1":
                 extra_prompt = f"""Question: Which of the following responses is verbatim from the prompt \"{d["user_turn"]}\"?\nOptions:\n"""
                 prompt = extra_prompt +  'A. ' + cur_perm[0] + '\n' + 'B. ' + cur_perm[1] + '\n' + 'C. ' + cur_perm[2] + '\n' + 'D. ' + cur_perm[3] + '\n\n' + 'Answer:'    
-            
+            elif task == "wikiMIA":
+                extra_prompt = f"""Question: Which of the following passages is verbatim from an existing Wikipedia article?\nOptions:\n"""
+                prompt = extra_prompt +  'A. ' + cur_perm[0] + '\n' + 'B. ' + cur_perm[1] + '\n' + 'C. ' + cur_perm[2] + '\n' + 'D. ' + cur_perm[3] + '\n' + 'Answer:'    
+
             cur_mc_prompts.append(prompt)
         all_mc_prompts.append(cur_mc_prompts)
     return all_mc_prompts
@@ -100,15 +121,33 @@ def main(args):
         print(f"Data path {data_path} does not exist. Please use valid data path. See README for valid data after preprocssing/downloading.")
         import sys; sys.exit()
 
-    bad_paraphrase_count = 0
+    bad_paraphrases = 0
+    still_bad_paraphrases = 0
+    bad_lengths = {k: 0 for k in [0,1,2]}
     for d in data:
-        if len(d["paraphrases"]) != 5: # Error generating paraphrases at previous step
-            bad_paraphrase_count += 1
-            d["paraphrases"] = [d[args.key_name]] * 3
-
+        generation = d["raw_paraphrases"]
+        paraphrases = extract_examples(generation)
+        if len(paraphrases) != 3:
+            bad_paraphrases += 1
+            paraphrases = extract_examples_modified(generation)
+            
+            if len(paraphrases) != 3:
+                still_bad_paraphrases += 1
+                if len(paraphrases) == 0:
+                    paraphrases = [d[args.key_name]] * 3
+                    bad_lengths[0] += 1
+                elif len(paraphrases) == 1:
+                    paraphrases = paraphrases * 3
+                    bad_lengths[1] += 1
+                else:
+                    paraphrases = paraphrases + random.sample(paraphrases, 1)
+                    bad_lengths[2] += 1
+        d["paraphrases"] = paraphrases
         d["permutations"] = make_permutations(d[args.key_name], d["paraphrases"])
-    print(f"Bad paraphrase count: {bad_paraphrase_count}")
-    embed()
+    
+    print(f"{bad_paraphrases} bad paraphrases out of {len(data)}")
+    print(f"{still_bad_paraphrases} still bad paraphrases out of {len(data)}")
+    print(bad_lengths)
 
     # Make the prompts
     system_prompt = system_prompts[model_name][args.sys_prompt_idx]
@@ -117,7 +156,7 @@ def main(args):
     if args.closed_model:
         if "claude" not in args.target_model:
             # Process bookMIA data
-            if "bookMIA" in args.task:
+            if "bookMIA" in args.task or "wikiMIA" in args.task:
                 for cur_mc_prompt, d in zip(all_mc_prompts, data):
                     formatted_prompts = [f"{system_prompt}\n{c}" for c in cur_mc_prompt]
                     d["decop_formatted_prompts"] = formatted_prompts
@@ -126,9 +165,6 @@ def main(args):
                 # Query the language model with the flattened prompts
                 flattened_prompts = list(itertools.chain.from_iterable(d["decop_formatted_prompts"] for d in data))
                 print(len(data), len(flattened_prompts))
-                # flattened_prompts = flattened_prompts[:480]
-            elif "wikiMIA" in args.task:
-                pass
 
             # Make the requests for the API
             requests = []
