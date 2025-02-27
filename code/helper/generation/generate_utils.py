@@ -203,6 +203,25 @@ extra commentary, formatting, or additional text.\n\nComplete the prefix: """,
                 "task_postprompt": "",
                 "task_preprompt": ""
             }],
+        },
+    "wikiMIA":
+        {
+            "instruct-autoregressive": # Prompts for instruction-tuned examples
+                [{
+                    "task_prompt": "",
+                    "task_postprompt": "",
+                    "task_preprompt": ""
+                },
+                {
+                    "task_prompt": "Continue the generation as accurately as possible, without any extra text.\n\n",
+                    "task_postprompt": "",
+                    "task_preprompt": ""
+                },
+                {
+                    "task_prompt": "Continue the generation as closely to verbatim as possible.\n\n",
+                    "task_postprompt": "",
+                    "task_preprompt": ""
+                }],
         }
     }
 
@@ -214,7 +233,7 @@ for task_key in task_prompts_dict_book:
             cur_task_prompts_dict_book[mod] = cur_task_prompts_dict_book["noninstruct-autoregressive"]
         except:
             continue
-    for mod in ["gpt-4o-2024-05-13", "Llama-3.1-8B-Instruct","gpt-4o-mini-2024-07-18","gpt-4-turbo-2024-04-09", "o1-mini-2024-09-12", "gpt-3.5-turbo-0125", "Llama-3.1-70B-Instruct", "Llama-2-70b-chat-hf","tulu-7b-finalized", "tulu-13b-finalized", "tulu-30b-finalized", "tulu-65b-finalized"]:
+    for mod in ["gpt-4o-2024-05-13", "Llama-3.1-8B-Instruct","gpt-4o-mini-2024-07-18","gpt-4-turbo-2024-04-09", "o1-mini-2024-09-12", "gpt-3.5-turbo-0125", "Llama-3.1-70B-Instruct", "Llama-2-70b-chat-hf","tulu-7b-finalized", "tulu-13b-finalized", "tulu-30b-finalized", "tulu-65b-finalized", "gpt-4-0613", "gpt-3.5-turbo-1106"]:
         try:
             cur_task_prompts_dict_book[mod] = cur_task_prompts_dict_book["instruct-autoregressive"]
         except: 
