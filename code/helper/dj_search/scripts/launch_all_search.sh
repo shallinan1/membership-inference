@@ -52,7 +52,7 @@ for gen_data_file in "$GEN_DATA_FOLDER"/*.jsonl; do
             --parallel"
 
          # Print the command without --source_docs
-         echo "Running (no source) command: $cmd_without_source"
+         echo "Running command: $cmd_without_source"
 
          # Create a new tmux session and run the SLURM command inside
          tmux new-session -d "$SLURM_COMMAND \"$ACTIVATE_ENV && $cmd_without_source\""
