@@ -21,11 +21,16 @@ from code.utils import load_jsonl, save_to_jsonl, convert_to_tulu_v1_open
 # from anthropic import Anthropic, HUMAN_PROMPT, AI_PROMPT # Don't have this right now
 from code.helper.generation.vllm_generate import ModelGenerator 
 import time
-from code.helper.generation.openai_parallel_generate import openai_parallel_generate, requests_limits_dict
+from code.helper.generation.openai_parallel_generate import openai_parallel_generate, requests_limits_dict, requests_url_dict
 import asyncio
 import re
 import random
 random.seed(0)
+import tiktoken
+
+def get_token_id(model_name, text):
+    enc = tiktoken.encoding_for_model(model_name)
+    return enc.encode(text)
 
 def extract_examples(text):
     pattern = r"(Example [A-Z]:\s*)(.*?)(?=\n\nExample [A-Z]:|$)"
@@ -60,7 +65,7 @@ Format your answer as '<correct letter>'."""
 }
 for model in ["tulu-13b-finalized", "tulu-30b-finalized", "tulu-65b-finalized"]:
     system_prompts[model] = system_prompts["tulu-7b-finalized"]
-for model in ["gpt-4-0613", "gpt-3.5-turbo-1106"]:
+for model in ["gpt-4-0613", "gpt-4-0314", "gpt-3.5-turbo-1106", "gpt-3.5-turbo-instruct"]:
     system_prompts[model] = system_prompts["gpt-3.5-turbo-0125"]
 
 # TODO make this into indvidiaul functions for better style
@@ -73,13 +78,13 @@ def format_multiple_choice(task, data):
 
             if task == "bookMIA":
                 extra_prompt = f"""Question: Which of the following passages is verbatim from an existing book?\nOptions:\n""" # bookMIA doesn't store this metadata cleanly
-                prompt = extra_prompt +  'A. ' + cur_perm[0] + '\n' + 'B. ' + cur_perm[1] + '\n' + 'C. ' + cur_perm[2] + '\n' + 'D. ' + cur_perm[3] + '\n' + 'Answer:'    
+                prompt = extra_prompt +  'A. ' + cur_perm[0] + '\n' + 'B. ' + cur_perm[1] + '\n' + 'C. ' + cur_perm[2] + '\n' + 'D. ' + cur_perm[3] + '\n' + 'Answer: '    
             elif task == "tulu_v1":
                 extra_prompt = f"""Question: Which of the following responses is verbatim from the prompt \"{d["user_turn"]}\"?\nOptions:\n"""
-                prompt = extra_prompt +  'A. ' + cur_perm[0] + '\n' + 'B. ' + cur_perm[1] + '\n' + 'C. ' + cur_perm[2] + '\n' + 'D. ' + cur_perm[3] + '\n\n' + 'Answer:'    
+                prompt = extra_prompt +  'A. ' + cur_perm[0] + '\n' + 'B. ' + cur_perm[1] + '\n' + 'C. ' + cur_perm[2] + '\n' + 'D. ' + cur_perm[3] + '\n\n' + 'Answer: '    
             elif task == "wikiMIA":
                 extra_prompt = f"""Question: Which of the following passages is verbatim from an existing Wikipedia article?\nOptions:\n"""
-                prompt = extra_prompt +  'A. ' + cur_perm[0] + '\n' + 'B. ' + cur_perm[1] + '\n' + 'C. ' + cur_perm[2] + '\n' + 'D. ' + cur_perm[3] + '\n' + 'Answer:'    
+                prompt = extra_prompt +  'A. ' + cur_perm[0] + '\n' + 'B. ' + cur_perm[1] + '\n' + 'C. ' + cur_perm[2] + '\n' + 'D. ' + cur_perm[3] + '\n' + 'Answer: '    
 
             cur_mc_prompts.append(prompt)
         all_mc_prompts.append(cur_mc_prompts)
@@ -170,24 +175,47 @@ def main(args):
             requests = []
             for i, prompt in enumerate(flattened_prompts):
                 request_id = i
-                requests.append({
+                cur_request = {
                     "model": args.target_model,
-                    "messages": [{"role": "user", "content": prompt}],
                     "max_tokens": 1,
                     "temperature": 0,
                     "seed": args.seed,
                     "n": 1, # Hardcode this
-                    "logprobs": True,
-                    "top_logprobs": 10,
                     "metadata": {"request_id": request_id},
-                })
+                }
+                if "instruct" in args.target_model or "davinci" in args.target_model:
+                    cur_request = cur_request | {
+                        "prompt": prompt,
+                        "logprobs": 10
+                    }
+                else:
+                    cur_request = cur_request | {
+                        "messages": [{"role": "user", "content": prompt}],
+                        "logprobs": True,
+                        "top_logprobs": 10
+                    }
 
-            print(f"Example prompt\n\n{requests[0]['messages'][0]['content']}")
+                requests.append(cur_request)
+            
+            if "instruct" not in args.target_model:
+                print(f"Example prompt\n\n{requests[0]['messages'][0]['content']}")
+            else:
+                print(f"Example prompt\n\n{requests[0]['prompt']}")
+
             max_requests_per_minute = requests_limits_dict[args.target_model]["max_requests_per_minute"]
             max_tokens_per_minute = requests_limits_dict[args.target_model]["max_tokens_per_minute"]
-            print(f"Using rate limits:\n\nMax requests per minute: {max_requests_per_minute}\nMax tokens per minute: {max_tokens_per_minute}")
+            request_url = requests_url_dict[args.target_model]
 
-            full_generations = asyncio.run(openai_parallel_generate(requests, args, max_requests_per_minute=max_requests_per_minute, max_tokens_per_minute=max_tokens_per_minute))
+            print(f"Using rate limits\n------\nMax requests per minute: {max_requests_per_minute}\nMax tokens per minute: {max_tokens_per_minute}")
+            embed()
+
+            full_generations = asyncio.run(openai_parallel_generate(
+                requests, 
+                args, 
+                max_requests_per_minute=max_requests_per_minute, 
+                max_tokens_per_minute=max_tokens_per_minute,
+                request_url=request_url
+                ))
             
             indexed_results = {}
             for result in full_generations:
