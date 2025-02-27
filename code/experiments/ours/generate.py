@@ -16,7 +16,7 @@ import random
 from datetime import datetime
 from code.experiments.ours.utils import extract_chunk_sentence
 import asyncio
-from code.helper.generation.openai_parallel_generate import openai_parallel_generate
+from code.helper.generation.openai_parallel_generate import openai_parallel_generate, requests_limits_dict, requests_url_dict
 from code.utils import remove_first_sentence_if_needed
 
 # Function to define the main process
@@ -31,6 +31,8 @@ def main(args):
     data_path = f"data/{args.task}/split-random-overall/{args.data_split}.jsonl"
     final_subset = pd.read_json(data_path, lines=True)
     print(f"Length: {len(final_subset)}")
+    if args.key_name is not None:
+        final_subset["snippet"] = final_subset[args.key_name]
 
     save_folder = os.path.join(f"outputs/ours/{args.task}/generations/{args.data_split}")
     os.makedirs(save_folder, exist_ok=True)
@@ -81,8 +83,21 @@ def main(args):
 #                "top_logprobs": 10,
                 "metadata": {"request_id": request_id},
             })
-        full_generations = asyncio.run(openai_parallel_generate(requests, args))
         
+        max_requests_per_minute = requests_limits_dict[args.model]["max_requests_per_minute"]
+        max_tokens_per_minute = requests_limits_dict[args.model]["max_tokens_per_minute"]
+        request_url = requests_url_dict[args.model]
+
+        print(prompts[0])
+        # embed()
+        full_generations = asyncio.run(openai_parallel_generate(
+                requests, 
+                args, 
+                max_requests_per_minute=max_requests_per_minute, 
+                max_tokens_per_minute=max_tokens_per_minute,
+                request_url=request_url
+                ))
+            
         indexed_results = {}
         for result in full_generations:
             request_id = result[2]["request_id"] # Extract request_id from metadata
@@ -93,13 +108,9 @@ def main(args):
             cur_results = indexed_results[i]
             all_text_outputs.append([cur["message"]["content"] for cur in cur_results["choices"]])
         
-        embed()
         # TODO gpt-3.5-turbo-instruct is it different?
-        # if args.model == 'gpt-3.5-turbo-instruct' or any([args.model.startswith(x) for x in ['babbage', 'davinci']]):
-        #     generations = [r['text'] for r in full_generations['choices']]
-        #     # logprobs =  [r['logprobs'] for r in full_generations['choices']] # Can also store the logprobs
 
-        final_subset["prompt"] = final_prompts
+        final_subset["prompt"] = prompts
         final_subset["generation"] = all_text_outputs
         final_subset["model"] = [model_str] * len(final_subset)
         final_subset["snippet_no_prompt"] = rest_of_texts
@@ -198,6 +209,12 @@ if __name__ == "__main__":
     parser.add_argument("--task", type=str, default="bookMIA")
     parser.add_argument("--data_split", type=str, default="train")
     
+    parser.add_argument("--remove_bad_first", action="store_true")
+    parser.add_argument("--keep_n_sentences", type=int, default=-1)
+
+    parser.add_argument("--key_name", type=str, default=None, help="text key name")
+
+
     main(parser.parse_args())
 
 
