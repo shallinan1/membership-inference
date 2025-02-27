@@ -253,6 +253,12 @@ def main(args):
         args.output_file = args.output_file.replace(".jsonl", "_onedoc.jsonl")
         print(args.output_file)
 
+    elif args.task == "wikiMIA":
+        assert args.source_docs is None
+        source_docs = [Dataset.from_dict({"text": [unidecode(g["snippet_no_prompt"])]}) for g in generations]
+        args.output_file = args.output_file.replace(".jsonl", "_onedoc.jsonl")
+        print(args.output_file)
+
     num_workers = min(cpu_count(), 4) if args.parallel else 1 # Set to 16 since it will get killed with too many cpus
     all_outputs = dj_search(generation_texts, source_docs, args.min_ngram, args.subset, num_workers)
 
