@@ -21,7 +21,7 @@ from code.utils import load_jsonl, save_to_jsonl, convert_to_tulu_v1_open
 # from anthropic import Anthropic, HUMAN_PROMPT, AI_PROMPT # Don't have this right now
 from code.helper.generation.vllm_generate import ModelGenerator 
 import time
-from code.helper.generation.openai_parallel_generate import openai_parallel_generate
+from code.helper.generation.openai_parallel_generate import openai_parallel_generate, requests_limits_dict
 import asyncio
 import re
 import random
@@ -182,25 +182,40 @@ def main(args):
                     "metadata": {"request_id": request_id},
                 })
 
-            full_generations = asyncio.run(openai_parallel_generate(requests, args))
-            embed()
+            print(f"Example prompt\n\n{requests[0]['messages'][0]['content']}")
+            max_requests_per_minute = requests_limits_dict[args.target_model]["max_requests_per_minute"]
+            max_tokens_per_minute = requests_limits_dict[args.target_model]["max_tokens_per_minute"]
+            print(f"Using rate limits:\n\nMax requests per minute: {max_requests_per_minute}\nMax tokens per minute: {max_tokens_per_minute}")
 
+            full_generations = asyncio.run(openai_parallel_generate(requests, args, max_requests_per_minute=max_requests_per_minute, max_tokens_per_minute=max_tokens_per_minute))
+            
             indexed_results = {}
             for result in full_generations:
                 request_id = result[2]["request_id"] # Extract request_id from metadata
                 indexed_results[request_id] = result[1]  # API response is the second element
 
+            # Save the generations now in case there is an error?
+            embed()
+
             outputs = []
+            bad_gens = 0
+            sum_zero = 0
             for i in range(len(full_generations)):
-                current_logprobs = indexed_results[i]["choices"][0]["logprobs"]["content"][0]["top_logprobs"] # Generation 1, Index 1
+                try:
+                    current_logprobs = indexed_results[i]["choices"][0]["logprobs"]["content"][0]["top_logprobs"] # Generation 1, Index 1
+                except:
+                    bad_gens += 1
+                    current_logprobs = [{'token': letter, 'logprob': random.random() - 5} for letter in ["A", "B", "C", "D"]]
                 current_probs_dict = {}
                 for current_logprob in current_logprobs:
                     current_probs_dict[current_logprob["token"]] = np.exp(current_logprob["logprob"])
                 
                 probs_list = []
                 for key in ["A", "B", "C", "D"]:
-                    cur_value = 0 if key not in current_probs_dict else current_probs_dict[key]
+                    cur_value = 0.0 if key not in current_probs_dict else current_probs_dict[key]
                     probs_list.append(cur_value)
+                if sum(probs_list) == 0: # Check for special case
+                    sum_zero += 1
 
                 probs_list = torch.softmax(torch.tensor(probs_list), dim=0).tolist()
                 outputs.append(probs_list)
@@ -212,6 +227,8 @@ def main(args):
 
             for d, u in zip(data, unflattened_probs):
                 d["decop_probs"] = u.tolist()
+
+            print("Bad gens", bad_gens, "\nSum Zero", sum_zero)
         else:
             pass
     else:
