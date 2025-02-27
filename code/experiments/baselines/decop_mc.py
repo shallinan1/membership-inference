@@ -30,7 +30,8 @@ import tiktoken
 
 def get_token_id(model_name, text):
     enc = tiktoken.encoding_for_model(model_name)
-    return enc.encode(text)
+    assert len(enc.encode(text)) == 1, "Should be tokenizing letters only here"
+    return enc.encode(text)[0]
 
 def extract_examples(text):
     pattern = r"(Example [A-Z]:\s*)(.*?)(?=\n\nExample [A-Z]:|$)"
@@ -108,6 +109,7 @@ def make_permutations(original, paraphrases):
     return result
 
 def main(args):
+    letter_choices = ["A","B","C","D"]
     data_path = f"outputs/baselines/{args.task}/{args.split}/paraphrases/{args.paraphrase_model}_keep{args.keep_n_sentences}.jsonl"
     if args.remove_bad_first:
         data_path = data_path.replace(".jsonl", "_remove-bad-first.jsonl")
@@ -173,6 +175,7 @@ def main(args):
 
             # Make the requests for the API
             requests = []
+            token_ids = [get_token_id(args.target_model, letter) for letter in letter_choices]
             for i, prompt in enumerate(flattened_prompts):
                 request_id = i
                 cur_request = {
@@ -182,6 +185,7 @@ def main(args):
                     "seed": args.seed,
                     "n": 1, # Hardcode this
                     "metadata": {"request_id": request_id},
+                    "logit_bias": {token_id:+100 for token_id in token_ids}
                 }
                 if "instruct" in args.target_model or "davinci" in args.target_model:
                     cur_request = cur_request | {
@@ -217,10 +221,23 @@ def main(args):
                 request_url=request_url
                 ))
             
+            embed()
+            
             indexed_results = {}
+            unknown_id_generations = [] # Special case where the request_id is not returned
             for result in full_generations:
-                request_id = result[2]["request_id"] # Extract request_id from metadata
-                indexed_results[request_id] = result[1]  # API response is the second element
+                try:
+                    request_id = result[2]["request_id"] # Extract request_id from metadata
+                    indexed_results[request_id] = result[1]  # API response is the second element
+                except:
+                    unknown_id_generations.append(result[1])
+
+            if len(unknown_id_generations) != 0:
+                len_unknown = len(unknown_id_generations)
+                print("Error on ids of ", len_unknown)
+                for i in range(len(requests)):
+                    if i not in indexed_results:
+                        indexed_results[i] = unknown_id_generations.pop()
 
             # Save the generations now in case there is an error?
             embed()
@@ -230,19 +247,18 @@ def main(args):
             sum_zero = 0
             for i in range(len(full_generations)):
                 try:
-                    current_logprobs = indexed_results[i]["choices"][0]["logprobs"]["content"][0]["top_logprobs"] # Generation 1, Index 1
+                    if "instruct" in args.target_model or "davinci" in args.target_model:
+                        current_logprobs = indexed_results[i]["choices"][0]["logprobs"]["top_logprobs"][0] # Generation 1, Index 1
+                    else:
+                        current_logprobs = indexed_results[i]["choices"][0]["logprobs"]["content"][0]["top_logprobs"] # Generation 1, Index 1
+                        current_logprobs = {current_logprob["token"]: current_logprob["logprob"] for current_logprob in current_logprobs}
                 except:
                     bad_gens += 1
-                    current_logprobs = [{'token': letter, 'logprob': random.random() - 5} for letter in ["A", "B", "C", "D"]]
-                current_probs_dict = {}
-                for current_logprob in current_logprobs:
-                    current_probs_dict[current_logprob["token"]] = np.exp(current_logprob["logprob"])
-                
-                probs_list = []
-                for key in ["A", "B", "C", "D"]:
-                    cur_value = 0.0 if key not in current_probs_dict else current_probs_dict[key]
-                    probs_list.append(cur_value)
-                if sum(probs_list) == 0: # Check for special case
+                    current_logprobs = {letter: random.random() - 5 for letter in letter_choices}
+
+                sub_value = -1000.0
+                probs_list = [current_logprobs.get(l, sub_value) for l in letter_choices]
+                if sum(probs_list) == 4 * sub_value: # Check for special case
                     sum_zero += 1
 
                 probs_list = torch.softmax(torch.tensor(probs_list), dim=0).tolist()
@@ -256,7 +272,8 @@ def main(args):
             for d, u in zip(data, unflattened_probs):
                 d["decop_probs"] = u.tolist()
 
-            print("Bad gens", bad_gens, "\nSum Zero", sum_zero)
+            print("Bad gens", bad_gens, "\nSum zero", sum_zero)
+            embed()
         else:
             pass
     else:
@@ -280,7 +297,7 @@ def main(args):
 
             # Get tokenized letters
             letter_tokens = []
-            for letter in ["A","B","C","D"]:
+            for letter in letter_choices:
                 letter_tokens.append(generator.tokenizer.convert_tokens_to_ids(letter))
 
             # Generation
