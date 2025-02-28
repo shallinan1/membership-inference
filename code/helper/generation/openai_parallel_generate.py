@@ -15,8 +15,8 @@ requests_limits_dict = {
         "max_tokens_per_minute": 1000000 // 2
     },
     "gpt-3.5-turbo-instruct": {
-        "max_requests_per_minute": 3500 // 2,
-        "max_tokens_per_minute": 90000 // 2
+        "max_requests_per_minute": (3500 * 4) // 5,
+        "max_tokens_per_minute": (90000 * 4) // 5
     }
 }
 requests_limits_dict["gpt-3.5-turbo-1106"] = requests_limits_dict["gpt-3.5-turbo-0125"]
