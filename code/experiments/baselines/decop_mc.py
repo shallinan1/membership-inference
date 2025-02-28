@@ -209,7 +209,6 @@ def main(args):
             max_requests_per_minute = requests_limits_dict[args.target_model]["max_requests_per_minute"]
             max_tokens_per_minute = requests_limits_dict[args.target_model]["max_tokens_per_minute"]
             request_url = requests_url_dict[args.target_model]
-
             print(f"Using rate limits\n------\nMax requests per minute: {max_requests_per_minute}\nMax tokens per minute: {max_tokens_per_minute}")
             embed()
 
