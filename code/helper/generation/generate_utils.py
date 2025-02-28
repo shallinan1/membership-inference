@@ -233,7 +233,7 @@ for task_key in task_prompts_dict_book:
             cur_task_prompts_dict_book[mod] = cur_task_prompts_dict_book["noninstruct-autoregressive"]
         except:
             continue
-    for mod in ["gpt-4o-2024-05-13", "Llama-3.1-8B-Instruct","gpt-4o-mini-2024-07-18","gpt-4-turbo-2024-04-09", "o1-mini-2024-09-12", "gpt-3.5-turbo-0125", "Llama-3.1-70B-Instruct", "Llama-2-70b-chat-hf","tulu-7b-finalized", "tulu-13b-finalized", "tulu-30b-finalized", "tulu-65b-finalized", "gpt-4-0613", "gpt-3.5-turbo-1106"]:
+    for mod in ["gpt-4o-2024-05-13", "Llama-3.1-8B-Instruct","gpt-4o-mini-2024-07-18","gpt-4-turbo-2024-04-09", "o1-mini-2024-09-12", "gpt-3.5-turbo-0125", "Llama-3.1-70B-Instruct", "Llama-2-70b-chat-hf","tulu-7b-finalized", "tulu-13b-finalized", "tulu-30b-finalized", "tulu-65b-finalized", "gpt-4-0613", "gpt-3.5-turbo-1106", "gpt-3.5-turbo-instruct"]:
         try:
             cur_task_prompts_dict_book[mod] = cur_task_prompts_dict_book["instruct-autoregressive"]
         except: 
