@@ -72,24 +72,37 @@ def main(args):
         requests = []
         for i, prompt in enumerate(prompts):
             request_id = i
-            requests.append({
+            cur_request = {
                 "model": args.model,
-                "messages": [{"role": "user", "content": prompt}],
                 "max_tokens": args.max_tokens,
                 "temperature": args.temperature,
                 "seed": args.seed,
                 "top_p": args.top_p,
                 "n": args.num_sequences, # Hardcode this
-#                "top_logprobs": 10,
                 "metadata": {"request_id": request_id},
-            })
-        
+            }
+            if "instruct" in args.model or "davinci" in args.model:
+                cur_request = cur_request | {
+                    "prompt": prompt,
+                    # "logprobs": 10
+                }
+            else:
+                cur_request = cur_request | {
+                    "messages": [{"role": "user", "content": prompt}],
+                    # "logprobs": True,
+                    # "top_logprobs": 10
+                }
+            requests.append(cur_request)
+        if "instruct" not in args.model:
+            print(f"Example prompt\n\n{requests[0]['messages'][0]['content']}")
+        else:
+            print(f"Example prompt\n\n{requests[0]['prompt']}")
+
         max_requests_per_minute = requests_limits_dict[args.model]["max_requests_per_minute"]
         max_tokens_per_minute = requests_limits_dict[args.model]["max_tokens_per_minute"]
         request_url = requests_url_dict[args.model]
+        print(f"Using rate limits\n------\nMax requests per minute: {max_requests_per_minute}\nMax tokens per minute: {max_tokens_per_minute}")
 
-        print(prompts[0])
-        # embed()
         full_generations = asyncio.run(openai_parallel_generate(
                 requests, 
                 args, 
@@ -99,15 +112,29 @@ def main(args):
                 ))
             
         indexed_results = {}
+        unknown_id_generations = [] # Special case where the request_id is not returned
         for result in full_generations:
-            request_id = result[2]["request_id"] # Extract request_id from metadata
-            indexed_results[request_id] = result[1]  # API response is the second element
+            try:
+                request_id = result[2]["request_id"] # Extract request_id from metadata
+                indexed_results[request_id] = result[1]  # API response is the second element
+            except:
+                unknown_id_generations.append(result[1])
+
+        if len(unknown_id_generations) != 0:
+            len_unknown = len(unknown_id_generations)
+            print("Error on ids of ", len_unknown)
+            for i in range(len(requests)):
+                if i not in indexed_results:
+                    indexed_results[i] = unknown_id_generations.pop()
 
         all_text_outputs = []
         for i in range(len(full_generations)):
             cur_results = indexed_results[i]
-            all_text_outputs.append([cur["message"]["content"] for cur in cur_results["choices"]])
-        
+            if "instruct" in args.model or "davinci" in args.model:
+                all_text_outputs.append([cur["text"] for cur in cur_results["choices"]])
+            else:
+                all_text_outputs.append([cur["message"]["content"] for cur in cur_results["choices"]])
+
         # TODO gpt-3.5-turbo-instruct is it different?
 
         final_subset["prompt"] = prompts
