@@ -219,9 +219,7 @@ def main(args):
                 max_tokens_per_minute=max_tokens_per_minute,
                 request_url=request_url
                 ))
-            
-            embed()
-            
+                        
             indexed_results = {}
             unknown_id_generations = [] # Special case where the request_id is not returned
             for result in full_generations:
@@ -239,7 +237,6 @@ def main(args):
                         indexed_results[i] = unknown_id_generations.pop()
 
             # Save the generations now in case there is an error?
-            embed()
 
             outputs = []
             bad_gens = 0
@@ -272,7 +269,6 @@ def main(args):
                 d["decop_probs"] = u.tolist()
 
             print("Bad gens", bad_gens, "\nSum zero", sum_zero)
-            embed()
         else:
             pass
     else:
