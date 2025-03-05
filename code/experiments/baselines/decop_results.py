@@ -14,11 +14,13 @@ def main(args):
     data = load_jsonl(data_path)
     all_predicted_idx = []
 
+    score_by_label = {0: [], 1: []}
     for d in data:
         predicted_idx = np.argmax(d["decop_probs"], axis=1)
         all_predicted_idx.extend(predicted_idx.tolist())
         score = np.mean(predicted_idx == np.array(d["decop_truth_index"]))
         d["score"] = score
+        score_by_label[d["label"]].append(score)
     
     gen_labels = [g["label"] for g in data]
     scores = [g["score"] for g in data]
@@ -26,6 +28,7 @@ def main(args):
     roc_auc = auc(fpr, tpr)
     print(roc_auc)
     print(np.unique(all_predicted_idx, return_counts=True))
+    print(np.round(np.mean(score_by_label[0]),4), np.round(np.mean(score_by_label[1]),4))
     embed()
 
 if __name__ == "__main__":
@@ -78,4 +81,15 @@ if __name__ == "__main__":
     --keep_n_sentences 5 \
     --remove_bad_first
 
+    python3 -m code.experiments.baselines.decop_results \
+    --paraphrase_model gpt-4o-2024-11-20 \
+    --task wikiMIA \
+    --split val \
+    --model gpt-3.5-turbo-1106
+
+    python3 -m code.experiments.baselines.decop_results \
+    --paraphrase_model gpt-4o-2024-11-20 \
+    --task wikiMIA \
+    --split test \
+    --model gpt-3.5-turbo-1106 
     """
