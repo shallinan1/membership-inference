@@ -152,6 +152,11 @@ task_prompts_dict_book = {
                     "task_postprompt": "",
                     "task_preprompt": ""
                 },
+                {
+                    "task_prompt": "Write a brief Wikipedia paragraph: ", # Blank string ,
+                    "task_postprompt": "",
+                    "task_preprompt": ""
+                },
             ],
         },
     "bookMIA": 
