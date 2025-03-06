@@ -181,7 +181,7 @@ task_prompts_dict_book = {
                 "task_preprompt": ""
             },
             {
-                "task_prompt": "Given some text from part of a novel, continue the narrative while keeping the style and context consistent:",
+                "task_prompt": "Given some text from part of a novel, continue the narrative while keeping the style and context consistent:\n\n",
                 "task_postprompt": "",
                 "task_preprompt": ""
             },
