@@ -5,6 +5,6 @@ python3 -m code.experiments.ours.generate \
     --num_sentences 5 \
     --num_sequences 20 \
     --max_tokens 512 \
-    --task_prompt_idx 5 \
+    --task_prompt_idx 5 4 \
     --task bookMIA \
     --data_split train;
