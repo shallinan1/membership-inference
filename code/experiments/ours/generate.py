@@ -18,16 +18,21 @@ from code.experiments.ours.utils import extract_chunk_sentence
 import asyncio
 from code.helper.generation.openai_parallel_generate import openai_parallel_generate, requests_limits_dict, requests_url_dict
 from code.utils import remove_first_sentence_if_needed
+from code.experiments.utils import zigzag_append, chunk_list
 
 # Function to define the main process
 def main(args):
     random.seed(0)
-
     model_str = args.model.split("/")[-1] # Splits to get actual model name
     if model_str not in task_prompts_dict_book[args.task]:
         print("Valid model not passed in. Try again")
-    cur_task_prompts = task_prompts_dict_book[args.task][model_str][args.task_prompt_idx]
 
+    args.task_prompt_idx = sorted(args.task_prompt_idx)
+    cur_task_prompts = []
+    for cur_prompt_idx in args.task_prompt_idx:
+        cur_task_prompts.append(task_prompts_dict_book[args.task][model_str][cur_prompt_idx])
+
+    # Load the data
     data_path = f"data/{args.task}/split-random-overall/{args.data_split}.jsonl"
     final_subset = pd.read_json(data_path, lines=True)
     print(f"Length: {len(final_subset)}")
@@ -49,7 +54,9 @@ def main(args):
         print("GREEDY decoding - setting num_sequences to 1")
         args.num_sequences = 1
 
-    if args.openai:        
+    chunk_size = len(cur_task_prompts) # TODO different chunk sizes
+
+    if args.openai: # OpenAI models
         passages = final_subset.snippet.tolist()
         if not args.prompt_with_words_not_sent:
             prompt_outputs = [extract_chunk_sentence(text, args.start_sentence, args.num_sentences) for text in passages]        
@@ -58,16 +65,18 @@ def main(args):
             import sys; sys.exit()
             
         prompt_texts, rest_of_texts = zip(*prompt_outputs)
-        prompt_texts= list(prompt_texts)
-        rest_of_texts = list(rest_of_texts)
-
+        prompt_texts, rest_of_texts = list(prompt_texts), list(rest_of_texts)
+ 
         assert None not in prompt_texts
-        prompts = make_prompts(
-            prompt_texts, 
-            cur_task_prompts["task_prompt"], 
-            cur_task_prompts["task_preprompt"],
-            cur_task_prompts["task_postprompt"],
-        )
+        unmerged_prompts = []
+        for cur_task_prompt in cur_task_prompts:
+            unmerged_prompts.append(make_prompts(
+                prompt_texts, 
+                cur_task_prompt["task_prompt"], 
+                cur_task_prompt["task_preprompt"],
+                cur_task_prompt["task_postprompt"],
+            ))
+        prompts = zigzag_append(unmerged_prompts) # Make indices match up
 
         requests = []
         for i, prompt in enumerate(prompts):
@@ -102,6 +111,7 @@ def main(args):
         max_tokens_per_minute = requests_limits_dict[args.model]["max_tokens_per_minute"]
         request_url = requests_url_dict[args.model]
         print(f"Using rate limits\n------\nMax requests per minute: {max_requests_per_minute}\nMax tokens per minute: {max_tokens_per_minute}")
+        # embed()
 
         full_generations = asyncio.run(openai_parallel_generate(
                 requests, 
@@ -136,12 +146,14 @@ def main(args):
                 all_text_outputs.append([cur["message"]["content"] for cur in cur_results["choices"]])
 
         # TODO gpt-3.5-turbo-instruct is it different?
+        # embed()
 
-        final_subset["prompt"] = prompts
-        final_subset["generation"] = all_text_outputs
+
+        final_subset["prompt"] = chunk_list(prompts, chunk_size)
+        final_subset["generation"] = chunk_list(all_text_outputs, chunk_size)
         final_subset["model"] = [model_str] * len(final_subset)
         final_subset["snippet_no_prompt"] = rest_of_texts
-    else:
+    else: # vLLM models
         generator = ModelGenerator(
             model=args.model,
             tokenizer=args.model if not args.tokenizer else args.tokenizer,
@@ -204,11 +216,12 @@ def main(args):
     minTokStr = "minTok" + str(args.min_tokens) + "_"
     
     # Save DataFrame to CSV with detailed info in the filename
-    file_name = f"{model_str}_maxTok{args.max_tokens}_{minTokStr}numSeq{args.num_sequences}_topP{args.top_p}_temp{args.temperature}_numSent{args.num_sentences}_startSent{args.start_sentence}_numWord{args.num_words}_startWord{args.num_words}_useSent{prompt_with_sent_str}_promptIdx{args.task_prompt_idx}_len{len(final_subset)}_{date_str}.jsonl"
+    file_name = f"{model_str}_maxTok{args.max_tokens}_{minTokStr}numSeq{args.num_sequences}_topP{args.top_p}_temp{args.temperature}_numSent{args.num_sentences}_startSent{args.start_sentence}_numWord{args.num_words}_startWord{args.num_words}_useSent{prompt_with_sent_str}_promptIdx{'-'.join(map(str, args.task_prompt_idx))}_len{len(final_subset)}_{date_str}.jsonl"
     file_path = os.path.join(save_folder, file_name)
     columns = [col for col in final_subset.columns if col != 'snippet'] + ['snippet']
     final_subset = final_subset[columns]
     final_subset.to_json(file_path, index=False, lines=True, orient='records')
+    print(f"Saved to {file_path}")
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="Generate text")
@@ -226,7 +239,7 @@ if __name__ == "__main__":
     parser.add_argument('--start_word', type=int, default=1, help='Starting word to use from the snippet.')
     parser.add_argument("--prompt_with_words_not_sent", action="store_true", help="whether or not to use words vs sentences")
 
-    parser.add_argument('--task_prompt_idx', type=int, default=1, help='Index of the task prompt to use.')
+    parser.add_argument('--task_prompt_idx', type=int, nargs='+', default=[1], help='Index or list of indices of the task prompts to use.')
     parser.add_argument('--model', type=str, default="davinci-002", help='Model to use for text generation.')
     parser.add_argument('--tokenizer', type=str, default=None, help='Pass in tokenizer manually. Optional.')
     parser.add_argument('--temperature', type=float, default=1.0, help='Model sampling temperature')
