@@ -15,3 +15,9 @@ def plot_roc_curve(fpr, tpr, roc_auc, strategy_title, save_path):
     plt.tight_layout()
     plt.savefig(save_path, dpi=200, bbox_inches="tight")
     plt.close()
+
+def zigzag_append(lists):
+    return [item for group in zip(*lists) for item in group]
+
+def chunk_list(lst, n):
+    return [lst[i:i + n] for i in range(0, len(lst), n)]
