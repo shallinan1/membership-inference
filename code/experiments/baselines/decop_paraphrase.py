@@ -18,7 +18,7 @@ from code.helper.generation.openai_parallel_generate import openai_parallel_gene
 from code.experiments.ours.utils import extract_chunk_sentence
 
 # Reported in paper
-prompt_template = string.Template("""Rewrite this entire text (all sentences with no exception) expressing the same meaning using different\
+prompt_template = string.Template("""Rewrite this entire text (all sentences with no exception) expressing the same meaning using different \
 words. Aim to keep the rewriting similar in length to the original text.
 Do it three times. The text to be rewritten is identified as <Example A>.
 Format your output as:
@@ -53,23 +53,28 @@ def main(args):
     if args.closed_model and "claude" not in model:
         for d in tqdm(data, desc="Generating paraphrases"):
             if "tulu_v1" in args.task:
-                d["user_turn"] = d["messages"][0]["content"]
-                d[args.key_name] = d["messages"][1]["content"]
+                # This is the v2 version - paraphrasing both user and assistant response
+                if True:
+                    d["user_turn"] = d["messages"][0]["content"]
+                    # TODO finish this
+                    # d[args.key_name] = f'User: {d["messages"][0]["content"]}\nAssistant: {d["messages"][1]["content"]}'
+                else:
+                    # This is the v1 version - only paraphrasing the assistant response
+                    d["user_turn"] = d["messages"][0]["content"]
+                    d[args.key_name] = d["messages"][1]["content"]
 
                 assert d["messages"][0]["role"] == "user"
                 assert d["messages"][1]["role"] == "assistant"
+            # elif "pile_external" in args.task:
 
             if args.remove_bad_first:
                 d[args.key_name] = remove_first_sentence_if_needed(d[args.key_name])
             if args.keep_n_sentences != -1:
                 d[args.key_name] = extract_chunk_sentence(d[args.key_name], 0, args.keep_n_sentences, use_last=True)[0]
-        # Make the requests for the API
+
         requests = []
         for i, d in enumerate(data):
             d["request_id"] = i
-            if args.remove_bad_first:
-                d[args.key_name] = remove_first_sentence_if_needed(d[args.key_name])
-
             prompt = prompt_template.substitute(ref_text=d[args.key_name])
             requests.append({
                 "model": args.paraphrase_model,
@@ -81,7 +86,8 @@ def main(args):
                 "metadata": {"request_id": d["request_id"]},
             })
             
-        print(f"Example prompt\n\n{requests[0]["messages"][0]["content"]}")
+        print(f'Example prompt\n\n{requests[0]["messages"][0]["content"]}')
+        embed()
         full_generations = asyncio.run(openai_parallel_generate(requests, args))
 
         indexed_results = {}
@@ -89,11 +95,9 @@ def main(args):
             request_id = result[2]["request_id"] # Extract request_id from metadata
             indexed_results[request_id] = result[1]  # API response is the second element
 
-        # Map results back to the original data order
-        for d in data:
+        for d in data: # Map results back to the original data order
             request_id = d["request_id"]
             assert request_id in indexed_results
-
             generation = indexed_results[request_id]["choices"][0]["message"]["content"]
             d["raw_paraphrases"] = generation
     else:
