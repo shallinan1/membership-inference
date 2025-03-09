@@ -167,4 +167,3 @@ class ModelGenerator:
             all_output_logprobs.append(cur_output_logprobs)
         
         return final_prompts, all_text_outputs, all_prompt_logprobs, all_output_logprobs 
-
