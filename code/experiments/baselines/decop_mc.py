@@ -62,12 +62,17 @@ Format your answer as '<correct letter>'."""
     ],
     "gpt-3.5-turbo-0125": [
         f"""You are entering a multiple choice questions exam. You should directly answer each question by choosing the correct option. Be concise and straight to the point in your answer. Output only the letter corresponding to the correct answer."""
+    ],
+    "pythia-1.4b": [
+        """"""
     ]
 }
 for model in ["tulu-13b-finalized", "tulu-30b-finalized", "tulu-65b-finalized"]:
     system_prompts[model] = system_prompts["tulu-7b-finalized"]
 for model in ["gpt-4-0613", "gpt-4-0314", "gpt-3.5-turbo-1106", "gpt-3.5-turbo-instruct"]:
     system_prompts[model] = system_prompts["gpt-3.5-turbo-0125"]
+for model in ["pythia-2.8b", "pythia-6.9b", "pythia-12b"]:
+    system_prompts[model] = system_prompts["pythia-1.4b"]
 
 # TODO make this into indvidiaul functions for better style
 def format_multiple_choice(task, data):
@@ -86,7 +91,9 @@ def format_multiple_choice(task, data):
             elif task == "wikiMIA":
                 extra_prompt = f"""Question: Which of the following passages is verbatim from an existing Wikipedia article?\nOptions:\n"""
                 prompt = extra_prompt +  'A. ' + cur_perm[0] + '\n' + 'B. ' + cur_perm[1] + '\n' + 'C. ' + cur_perm[2] + '\n' + 'D. ' + cur_perm[3] + '\n' + 'Answer: '    
-
+            elif task == "pile_external":
+                extra_prompt = f"""Question: Which of the following passages is verbatim from an existing online text document?\nOptions:\n"""
+                prompt = extra_prompt +  'A. ' + cur_perm[0] + '\n' + 'B. ' + cur_perm[1] + '\n' + 'C. ' + cur_perm[2] + '\n' + 'D. ' + cur_perm[3] + '\n' + 'Answer: '  
             cur_mc_prompts.append(prompt)
         all_mc_prompts.append(cur_mc_prompts)
     return all_mc_prompts
@@ -236,8 +243,8 @@ def main(args):
                     if i not in indexed_results:
                         indexed_results[i] = unknown_id_generations.pop()
 
+            embed()
             # Save the generations now in case there is an error?
-
             outputs = []
             bad_gens = 0
             sum_zero = 0
@@ -253,7 +260,9 @@ def main(args):
                     current_logprobs = {letter: random.random() - 5 for letter in letter_choices}
 
                 sub_value = -1000.0
-                probs_list = [current_logprobs.get(l, sub_value) for l in letter_choices]
+                probs_list = []
+                for l in letter_choices:
+                    current_logprobs.get(l, sub_value)
                 if sum(probs_list) == 4 * sub_value: # Check for special case
                     sum_zero += 1
 
@@ -269,6 +278,7 @@ def main(args):
                 d["decop_probs"] = u.tolist()
 
             print("Bad gens", bad_gens, "\nSum zero", sum_zero)
+            embed()
         else:
             pass
     else:
@@ -285,55 +295,59 @@ def main(args):
                 formatted_prompts = [convert_to_tulu_v1_open(f"{system_prompt}\n\n{c}") for c in cur_mc_prompt]
                 d["decop_formatted_prompts"] = formatted_prompts
                 d["decop_truth_index"] = [p["true_index"] for p in d["permutations"]]
+        if "pile_external" in args.task:
+            for cur_mc_prompt, d in zip(all_mc_prompts, data):
+                d["decop_formatted_prompts"] = cur_mc_prompt
+                d["decop_truth_index"] = [p["true_index"] for p in d["permutations"]]
 
-            # Query the language model with the flattened prompts
-            flattened_prompts = list(itertools.chain.from_iterable(d["decop_formatted_prompts"] for d in data))
-            print(len(data), len(flattened_prompts))
+        # Query the language model with the flattened prompts
+        flattened_prompts = list(itertools.chain.from_iterable(d["decop_formatted_prompts"] for d in data))
+        print(len(data), len(flattened_prompts))
 
-            # Get tokenized letters
-            letter_tokens = []
-            for letter in letter_choices:
-                letter_tokens.append(generator.tokenizer.convert_tokens_to_ids(letter))
+        # Get tokenized letters
+        letter_tokens = []
+        for letter in letter_choices:
+            letter_tokens.append(generator.tokenizer.convert_tokens_to_ids(letter))
 
-            # Generation
-            final_prompts, all_text_outputs, all_prompt_logprobs, all_output_logprobs = generator.generate_vllm(
-                prompts=flattened_prompts,
-                temperature=0,
-                sample=False,
-                max_new_tokens=2,
-                min_tokens=1,
-                n=1
-            )
+        # Generation
+        final_prompts, all_text_outputs, all_prompt_logprobs, all_output_logprobs = generator.generate_vllm(
+            prompts=flattened_prompts,
+            temperature=0,
+            sample=False,
+            max_new_tokens=2,
+            min_tokens=1,
+            n=1
+        )
 
-            # Get the probs
-            outputs = []
-            for output_logprobs in all_output_logprobs:
-                current_logprobs = output_logprobs[0][0] # Generation 1, Index 1
+        # Get the probs
+        outputs = []
+        for output_logprobs in all_output_logprobs:
+            current_logprobs = output_logprobs[0][0] # Generation 1, Index 1
 
-                logprobs_list = []
-                cur_keys = list(current_logprobs.keys())
-                for key in cur_keys:
-                    logprobs_list.append(current_logprobs[key].logprob)
-                probs_list = torch.softmax(torch.tensor(logprobs_list), dim=0).tolist()
-                for key, prob in zip(cur_keys, probs_list):
-                    setattr(current_logprobs[key], "prob", prob)
+            logprobs_list = []
+            cur_keys = list(current_logprobs.keys())
+            for key in cur_keys:
+                logprobs_list.append(current_logprobs[key].logprob)
+            probs_list = torch.softmax(torch.tensor(logprobs_list), dim=0).tolist()
+            for key, prob in zip(cur_keys, probs_list):
+                setattr(current_logprobs[key], "prob", prob)
 
-                inner_outputs = []
-                for letter_token in letter_tokens:
-                    letter_token_prob = 0
-                    if letter_token in current_logprobs:
-                        letter_token_prob = current_logprobs[letter_token].prob
-                    inner_outputs.append(letter_token_prob)
-                outputs.append(inner_outputs)
+            inner_outputs = []
+            for letter_token in letter_tokens:
+                letter_token_prob = 0
+                if letter_token in current_logprobs:
+                    letter_token_prob = current_logprobs[letter_token].prob
+                inner_outputs.append(letter_token_prob)
+            outputs.append(inner_outputs)
 
-            outputs = np.array(outputs)
+        outputs = np.array(outputs)
 
-            # Unflatten the generations - into batches of 24 length each
-            perm_length = factorial(args.num_paraphrases + 1)
-            unflattened_probs = np.split(outputs, len(outputs) // perm_length)
+        # Unflatten the generations - into batches of 24 length each
+        perm_length = factorial(args.num_paraphrases + 1)
+        unflattened_probs = np.split(outputs, len(outputs) // perm_length)
 
-            for d, u in zip(data, unflattened_probs):
-                d["decop_probs"] = u.tolist()
+        for d, u in zip(data, unflattened_probs):
+            d["decop_probs"] = u.tolist()
 
     output_path = data_path.replace("paraphrases", "decop_probs")
     output_path = output_path.replace(".jsonl", f"_{model_name}.jsonl")
@@ -341,6 +355,7 @@ def main(args):
 
     os.makedirs(os.path.dirname(output_path), exist_ok=True)
     save_to_jsonl(data, output_path)
+    embed()
         
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(formatter_class=argparse.ArgumentDefaultsHelpFormatter)
