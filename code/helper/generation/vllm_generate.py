@@ -139,7 +139,7 @@ class ModelGenerator:
             min_tokens=min_tokens,
             stop_token_ids=stop_token_ids,
             n=n,
-            logprobs=10,
+            logprobs=100,
             # prompt_logprobs=5
         )
 
