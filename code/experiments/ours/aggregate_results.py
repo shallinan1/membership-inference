@@ -4,6 +4,7 @@ import pandas as pd
 import argparse
 from IPython import embed
 import re
+from tqdm import tqdm
 
 def model_name_to_hypers(model_name):
     model_name_split = model_name.split("_")
@@ -19,7 +20,7 @@ def model_name_to_hypers(model_name):
         "num_words": int(''.join(re.findall(r'-?\d+\.?\d*',model_name_split[8]))),
         "start_word": int(''.join(re.findall(r'-?\d+\.?\d*',model_name_split[9]))),
         "use_sentence": False if model_name_split[10][-1] == "F" else True, 
-        "prompt_index": int(''.join(re.findall(r'-?\d+\.?\d*',model_name_split[11]))),
+        "prompt_index": model_name_split[11].removeprefix("promptIdx"),
         "data_length": int(''.join(re.findall(r'-?\d+\.?\d*',model_name_split[12]))),
         "date": model_name_split[13],
         "min_ngram": int(model_name_split[14]), 
@@ -45,14 +46,14 @@ def main(args):
     rows = []
 
     # Iterate through each data split subfolder
-    for split in subfolders:
+    for split in tqdm(subfolders, desc="high level folders"):
         split_path = os.path.join(base_dir, "scores", split)
         if not os.path.exists(split_path):
             print(f"Path does not exist: {split_path}")
             continue
 
         # Iterate through each model folder in the results subfolder
-        for model in os.listdir(split_path):
+        for model in tqdm(os.listdir(split_path), desc="individual files"):
             model_path = os.path.join(split_path, model)
             scores_file = os.path.join(model_path, "scores.json")
 
