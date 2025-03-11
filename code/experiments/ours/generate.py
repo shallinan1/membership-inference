@@ -146,8 +146,6 @@ def main(args):
                 all_text_outputs.append([cur["message"]["content"] for cur in cur_results["choices"]])
 
         # TODO gpt-3.5-turbo-instruct is it different?
-        # embed()
-
 
         final_subset["prompt"] = chunk_list(prompts, chunk_size)
         final_subset["generation"] = chunk_list(all_text_outputs, chunk_size)
@@ -184,14 +182,17 @@ def main(args):
             rest_of_texts = list(rest_of_texts)
 
         assert None not in prompt_texts
-        prompts = make_prompts(
-            prompt_texts, 
-            cur_task_prompts["task_prompt"], 
-            cur_task_prompts["task_preprompt"],
-            cur_task_prompts["task_postprompt"],
-            model_name=model_str,
-            prompt_key="lightest"
-        )
+        unmerged_prompts = []
+        for cur_task_prompt in cur_task_prompts:
+            unmerged_prompts.append(make_prompts(
+                prompt_texts, 
+                cur_task_prompt["task_prompt"], 
+                cur_task_prompt["task_preprompt"],
+                cur_task_prompt["task_postprompt"],
+                model_name=model_str,
+                prompt_key="lightest"
+            ))
+        prompts = zigzag_append(unmerged_prompts) # Make indices match up
 
         # Generation
         final_prompts, all_text_outputs, all_prompt_logprobs, all_output_logprobs = generator.generate_vllm(
@@ -203,8 +204,9 @@ def main(args):
             max_length=args.max_length,
             n=args.num_sequences
         )
-        final_subset["prompt"] = final_prompts
-        final_subset["generation"] = all_text_outputs
+
+        final_subset["prompt"] = chunk_list(final_prompts,chunk_size)
+        final_subset["generation"] = chunk_list(all_text_outputs, chunk_size)
         final_subset["model"] = [model_str] * len(final_subset)
         final_subset["snippet_no_prompt"] = rest_of_texts
 
