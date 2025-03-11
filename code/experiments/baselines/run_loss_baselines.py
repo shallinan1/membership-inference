@@ -39,7 +39,6 @@ def zlib_attack(loss, text):
 
 strategies = {# "Perplexity": { "func": lambda x: -x["loss"]}, # This is the same as loss
               "Loss": {"func": lambda x: -x["loss"]},
-              "Zlib": {"func": lambda x: -zlib_attack(x["loss"], x["snippet"])},
               "ReferenceLoss": {"func": lambda x, y: y - x},
               "MinK-0.05": {"func": lambda x: -mink_attack(x["log_probs"], 0.05)},
               "MinK-0.1": {"func": lambda x: -mink_attack(x["log_probs"], 0.1)},
@@ -51,6 +50,7 @@ strategies = {# "Perplexity": { "func": lambda x: -x["loss"]}, # This is the sam
               }
 
 def main(args):
+    strategies["Zlib"] = {"func": lambda x: -zlib_attack(x["loss"], x[args.key_name])} # Add zlib
     target_model_name = args.target_model_probs.split(os.sep)[-1][:-6]
 
     base_dir = os.path.dirname(os.path.dirname(args.target_model_probs))  # Up one level from 'probs'
@@ -109,6 +109,8 @@ if __name__ == '__main__':
     parser = argparse.ArgumentParser(formatter_class=argparse.ArgumentDefaultsHelpFormatter)
     parser.add_argument('--target_model_probs', type=str, default=None)
     parser.add_argument('--ref_model_probs', type=str, nargs="+", default=None)
+    parser.add_argument('--key_name', type=str, default="input", help="the key name corresponding to the input text. Selecting from: input, paraphrase")
+
     main(parser.parse_args())
 
 
