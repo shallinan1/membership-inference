@@ -45,7 +45,7 @@ def main(args):
         args.start_sent, args.num_sents = -1, -1
         prompt_with_sent_str = "T"
     else:
-        args.start_word, args.num_words = -1, -1
+        args.start_word, args.num_words_from_end = -1, -1
         prompt_with_sent_str = "F"
 
     if args.temperature == 0: # Reduce num_sequences if using greedy decoding
@@ -216,7 +216,7 @@ def main(args):
     minTokStr = "minTok" + str(args.min_tokens) + "_"
     
     # Save DataFrame to CSV with detailed info in the filename
-    file_name = f"{model_str}_maxTok{args.max_tokens}_{minTokStr}numSeq{args.num_sequences}_topP{args.top_p}_temp{args.temperature}_numSent{args.num_sentences}_startSent{args.start_sentence}_numWord{args.num_words}_startWord{args.num_words}_useSent{prompt_with_sent_str}_promptIdx{'-'.join(map(str, args.task_prompt_idx))}_len{len(final_subset)}_{date_str}.jsonl"
+    file_name = f"{model_str}_maxTok{args.max_tokens}_{minTokStr}numSeq{args.num_sequences}_topP{args.top_p}_temp{args.temperature}_numSent{args.num_sentences}_startSent{args.start_sentence}_numWordFromEnd{args.num_words_from_end}_useSent{prompt_with_sent_str}_promptIdx{'-'.join(map(str, args.task_prompt_idx))}_len{len(final_subset)}_{date_str}.jsonl"
     file_path = os.path.join(save_folder, file_name)
     columns = [col for col in final_subset.columns if col != 'snippet'] + ['snippet']
     final_subset = final_subset[columns]
@@ -226,34 +226,36 @@ def main(args):
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="Generate text")
 
+    # Generation parameters
     parser.add_argument('--max_tokens', type=int, default=512, help='Maximum number of tokens to generation.')
     parser.add_argument('--min_tokens', type=int, default=0, help='Maximum number of tokens to generation.')
     parser.add_argument('--max_length', type=int, default=2048, help='Maximum length')
     parser.add_argument('--num_sequences', type=int, default=1, help='Number of sequences to generation.')
+    parser.add_argument('--temperature', type=float, default=1.0, help='Model sampling temperature')
     parser.add_argument('--top_p', type=float, default=0.95, help='Top-p sampling value.')
+    parser.add_argument('--max_length_to_sequence_length', action="store_true", help="Make the generation length equal to the length of the rest of the sequence")
 
     # What part of the samples to prompt with
     parser.add_argument('--num_sentences', type=int, default=1, help='Number of sentences to use from the snippet.')
     parser.add_argument('--start_sentence', type=int, default=1, help='Starting sentence to use from the snippet.')
-    parser.add_argument('--num_words', type=int, default=1, help='Number of words to use from the snippet.')
-    parser.add_argument('--start_word', type=int, default=1, help='Starting word to use from the snippet.')
+    parser.add_argument('--num_words_from_end', type=int, default=1, help='Number of words to use from the snippet.')
+    # parser.add_argument('--start_word', type=int, default=1, help='Starting word to use from the snippet.')
     parser.add_argument("--prompt_with_words_not_sent", action="store_true", help="whether or not to use words vs sentences")
-
     parser.add_argument('--task_prompt_idx', type=int, nargs='+', default=[1], help='Index or list of indices of the task prompts to use.')
+    
+    # Model details
     parser.add_argument('--model', type=str, default="davinci-002", help='Model to use for text generation.')
     parser.add_argument('--tokenizer', type=str, default=None, help='Pass in tokenizer manually. Optional.')
-    parser.add_argument('--temperature', type=float, default=1.0, help='Model sampling temperature')
-    parser.add_argument('--hf_token', type=str, default=None, help='Pass in tokenizer manually. Optional.')
+    parser.add_argument('--hf_token', type=str, default=None, help='Pass in huggingface token.')
     parser.add_argument("--openai", action="store_true")
     parser.add_argument("--seed", type=int, default=0)
+
+    # Data details
     parser.add_argument("--task", type=str, default="bookMIA")
     parser.add_argument("--data_split", type=str, default="train")
-    
     parser.add_argument("--remove_bad_first", action="store_true")
     parser.add_argument("--keep_n_sentences", type=int, default=-1)
-
     parser.add_argument("--key_name", type=str, default=None, help="text key name")
-
 
     main(parser.parse_args())
 
