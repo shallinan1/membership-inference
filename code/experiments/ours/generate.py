@@ -5,7 +5,6 @@ import os
 os.environ["HF_HOME"] = CACHE_PATH
 os.environ["HF_DATASETS_PATH"] = CACHE_PATH
 
-from code.helper.generation.openai_generate import get_gpt_output
 from nltk import sent_tokenize
 import pandas as pd
 from IPython import embed
@@ -18,15 +17,15 @@ from code.experiments.ours.utils import extract_chunk_sentence
 import asyncio
 from code.helper.generation.openai_parallel_generate import openai_parallel_generate, requests_limits_dict, requests_url_dict
 from code.utils import remove_first_sentence_if_needed
-from code.experiments.utils import zigzag_append, chunk_list
+from code.experiments.utils import zigzag_append, chunk_list, remove_last_n_words
 
-# Function to define the main process
 def main(args):
-    random.seed(0)
+    random.seed(args.seed)
     model_str = args.model.split("/")[-1] # Splits to get actual model name
     if model_str not in task_prompts_dict_book[args.task]:
         print("Valid model not passed in. Try again")
 
+    # Set up the task prompts
     args.task_prompt_idx = sorted(args.task_prompt_idx)
     cur_task_prompts = []
     for cur_prompt_idx in args.task_prompt_idx:
@@ -49,8 +48,7 @@ def main(args):
         args.start_word, args.num_words = -1, -1
         prompt_with_sent_str = "F"
 
-    # Reduce num_sequences if using greedy decoding
-    if args.temperature == 0:
+    if args.temperature == 0: # Reduce num_sequences if using greedy decoding
         print("GREEDY decoding - setting num_sequences to 1")
         args.num_sequences = 1
 
@@ -267,22 +265,5 @@ if __name__ == "__main__":
         --num_sentences 3 \
         --num_sequences 20 \
         --max_tokens 512 \
-        --task_prompt_idx 0;      
-
-    CUDA_VISIBLE_DEVICES=0 python3 -m code.experiments.ours.generate \
-        --model meta-llama/Llama-3.1-8B-Instruct \
-        --start_sentence 1 \
-        --num_sentences 5 \
-        --num_sequences 20 \
-        --max_tokens 512 \
-        --min_tokens 10 \
-        --task_prompt_idx 5;    
-
-    CUDA_VISIBLE_DEVICES=0,1 python3 -m code.experiments.ours.generate \
-        --model meta-llama/Llama-2-70b-chat-hf \
-        --start_sentence 1 \
-        --num_sentences 5 \
-        --num_sequences 20 \
-        --max_tokens 512 \
-        --task_prompt_idx 5; 
+        --task_prompt_idx 0;
     """
