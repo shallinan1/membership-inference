@@ -143,9 +143,9 @@ task_prompts_dict_book = {
         {"noninstruct-autoregressive": # GPT3 style - Can be abstracted to prompts for non-instruction tuned models
             [
                 {
-                "task_prompt": "Continue the text: ",
-                "task_postprompt": "",
-                "task_preprompt": ""
+                    "task_prompt": "Continue the text: ",
+                    "task_postprompt": "",
+                    "task_preprompt": ""
                 },
                 {
                     "task_prompt": "", # Blank string ,
@@ -163,9 +163,9 @@ task_prompts_dict_book = {
         {"noninstruct-autoregressive": # GPT3 style - Can be abstracted to prompts for non-instruction tuned models
             [
                 {
-                "task_prompt": "Write a novel: ",
-                "task_postprompt": "",
-                "task_preprompt": ""
+                    "task_prompt": "Write a novel: ",
+                    "task_postprompt": "",
+                    "task_preprompt": ""
                 },
                 # "Continue the story: ", # Didn't work as well as above prompt
                 {
@@ -175,39 +175,41 @@ task_prompts_dict_book = {
                 },
             ],
         "instruct-autoregressive": # Prompts for instruction-tuned examples
-            [{
-                "task_prompt": "Write a novel: ",
-                "task_postprompt": "",
-                "task_preprompt": ""
-            },
-            {
-                "task_prompt": "", # Blank
-                "task_postprompt": "",
-                "task_preprompt": ""
-            },
-            {
-                "task_prompt": "Given some text from part of a novel, continue the narrative while keeping the style and context consistent:\n\n",
-                "task_postprompt": "",
-                "task_preprompt": ""
-            },
-            {
-                "task_prompt": "You will be shown part of a passage from a famous novel. Please try to generate the rest of the passage as accurately as possible. Do not generate any other text.\n\n",
-                "task_postprompt": "",
-                "task_preprompt": ""
-            },
-            {
-                "task_prompt": "You will be shown part of a passage from a novel. Please try to generate the rest of the passage as accurately as possible. Do not generate any other text.\n\n",
-                "task_postprompt": "",
-                "task_preprompt": ""
-            },
-            {
-                "task_prompt": """You will be shown a series of passages from famous literary works. After these examples, \
+            [
+                {
+                    "task_prompt": "Write a novel: ",
+                    "task_postprompt": "",
+                    "task_preprompt": ""
+                },
+                {
+                    "task_prompt": "", # Blank
+                    "task_postprompt": "",
+                    "task_preprompt": ""
+                },
+                {
+                    "task_prompt": "Given some text from part of a novel, continue the narrative while keeping the style and context consistent:\n\n",
+                    "task_postprompt": "",
+                    "task_preprompt": ""
+                },
+                {
+                    "task_prompt": "You will be shown part of a passage from a famous novel. Please try to generate the rest of the passage as accurately as possible. Do not generate any other text.\n\n",
+                    "task_postprompt": "",
+                    "task_preprompt": ""
+                },
+                {
+                    "task_prompt": "You will be shown part of a passage from a novel. Please try to generate the rest of the passage as accurately as possible. Do not generate any other text.\n\n",
+                    "task_postprompt": "",
+                    "task_preprompt": ""
+                },
+                {
+                    "task_prompt": """You will be shown a series of passages from famous literary works. After these examples, \
 you will receive a prefix from another passage and be asked to complete it based on the \
 text of a famous work. Provide only the continuation for the last given prefix without any \
 extra commentary, formatting, or additional text.\n\nComplete the prefix: """,
-                "task_postprompt": "",
-                "task_preprompt": ""
-            }],
+                    "task_postprompt": "",
+                    "task_preprompt": ""
+                }
+            ],
         },
     "wikiMIA":
         {
