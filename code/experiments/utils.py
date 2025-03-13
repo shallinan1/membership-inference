@@ -3,6 +3,9 @@ from typing import Tuple, List, Dict, Any
 from IPython import embed
 import re
 
+def bool_to_first_upper(value: bool) -> str:
+    return str(value)[0].upper()
+
 # Function to plot ROC curve
 def plot_roc_curve(fpr, tpr, roc_auc, strategy_title, save_path):
     plt.figure()
