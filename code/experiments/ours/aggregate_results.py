@@ -6,6 +6,14 @@ from IPython import embed
 import re
 from tqdm import tqdm
 
+def process_use_sentence(text):
+    return text.removeprefix("useSent")[0] == "T"
+
+def process_remove_bad(text):
+    if "-" in text:
+        return text[-1] == "T"
+    return False
+        
 def model_name_to_hypers(model_name):
     model_name_split = model_name.split("_")
     return {
@@ -19,7 +27,8 @@ def model_name_to_hypers(model_name):
         "start_sentence": int(''.join(re.findall(r'-?\d+\.?\d*',model_name_split[7]))),
         "num_words_from_end": int(''.join(re.findall(r'-?\d+\.?\d*',model_name_split[8]))),
         "max_length_to_sequence": model_name_split[9].removeprefix("maxLenSeq"),
-        "use_sentence": False if model_name_split[10][-1] == "F" else True, 
+        "use_sentence": process_use_sentence(model_name_split[10]),
+        "remove_bad_first": process_remove_bad(model_name_split[10]), 
         "prompt_index": model_name_split[11].removeprefix("promptIdx"),
         "data_length": int(''.join(re.findall(r'-?\d+\.?\d*',model_name_split[12]))),
         "date": model_name_split[13],
@@ -85,7 +94,7 @@ def main(args):
         key=lambda col: col.map(custom_sort_key) if col.name == "model" else col
     )
     df = df[["split", "model"] + [col for col in df.columns if col != "model" and col != "split"]]
-    df = df.sort_values(by=["split", "model", "prompt_index", "max_length_to_sequence", "num_words_from_end", "temperature", "max_tokens", "min_ngram", "creativity_min_ngram"])
+    df = df.sort_values(by=["split", "model", "prompt_index", "num_words_from_end", "max_length_to_sequence", "temperature", "max_tokens", "min_ngram", "creativity_min_ngram"])
     df.to_csv(output_csv, index=False)
 
     print(f"Aggregated scores saved to {output_csv}")
