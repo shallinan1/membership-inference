@@ -64,4 +64,59 @@ python3 -m code.experiments.ours.generate \
     --key_name input \
     --data_split test;
 
+# Using context
 
+python3 -m code.experiments.ours.generate \
+    --openai \
+    --model gpt-3.5-turbo-instruct \
+    --num_sequences 20 \
+    --temperature 0.2 \
+    --task_prompt_idx 2 \
+    --task wikiMIA \
+    --key_name input \
+    --prompt_with_words_not_sent \
+    --max_length_to_sequence_length \
+    --num_words_from_end 10 \
+    --data_split test;
+
+# Less words of context
+python3 -m code.experiments.ours.generate \
+    --openai \
+    --model gpt-3.5-turbo-instruct \
+    --num_sequences 20 \
+    --temperature 0.2 \
+    --task_prompt_idx 2 \
+    --task wikiMIA \
+    --key_name input \
+    --prompt_with_words_not_sent \
+    --max_length_to_sequence_length \
+    --num_words_from_end 50 \
+    --data_split test;
+
+# Less words of context - more generation
+python3 -m code.experiments.ours.generate \
+    --openai \
+    --model gpt-3.5-turbo-instruct \
+    --num_sequences 20 \
+    --temperature 0.2 \
+    --task_prompt_idx 2 \
+    --task wikiMIA \
+    --key_name input \
+    --prompt_with_words_not_sent \
+    --max_tokens 128 \
+    --num_words_from_end 50 \
+    --data_split test;
+
+# Less words of context - higher tempreature
+python3 -m code.experiments.ours.generate \
+    --openai \
+    --model gpt-3.5-turbo-instruct \
+    --num_sequences 20 \
+    --temperature 1.0 \
+    --task_prompt_idx 2 \
+    --task wikiMIA \
+    --key_name input \
+    --prompt_with_words_not_sent \
+    --max_length_to_sequence_length \
+    --num_words_from_end 50 \
+    --data_split test;
