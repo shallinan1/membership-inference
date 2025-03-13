@@ -17,9 +17,10 @@ from code.experiments.ours.utils import extract_chunk_sentence
 import asyncio
 from code.helper.generation.openai_parallel_generate import openai_parallel_generate, requests_limits_dict, requests_url_dict
 from code.utils import remove_first_sentence_if_needed
-from code.experiments.utils import zigzag_append, chunk_list, remove_last_n_words
+from code.experiments.utils import zigzag_append, chunk_list, remove_last_n_words, bool_to_first_upper
 
 def main(args):
+    # Seed model and get the model string
     random.seed(args.seed)
     model_str = args.model.split("/")[-1] # Splits to get actual model name
     if model_str not in task_prompts_dict_book[args.task]:
@@ -30,6 +31,7 @@ def main(args):
     cur_task_prompts = []
     for cur_prompt_idx in args.task_prompt_idx:
         cur_task_prompts.append(task_prompts_dict_book[args.task][model_str][cur_prompt_idx])
+    chunk_size = len(cur_task_prompts) # TODO different chunk sizes
 
     # Load the data
     data_path = f"data/{args.task}/split-random-overall/{args.data_split}.jsonl"
@@ -42,29 +44,26 @@ def main(args):
     os.makedirs(save_folder, exist_ok=True)
 
     if args.prompt_with_words_not_sent:
-        args.start_sent, args.num_sents = -1, -1
-        prompt_with_sent_str = "T"
+        args.start_sentence, args.num_sentences = -1, -1
     else:
         args.start_word, args.num_words_from_end = -1, -1
-        prompt_with_sent_str = "F"
 
     if args.temperature == 0: # Reduce num_sequences if using greedy decoding
         print("GREEDY decoding - setting num_sequences to 1")
         args.num_sequences = 1
 
-    chunk_size = len(cur_task_prompts) # TODO different chunk sizes
-
     if args.openai: # OpenAI models
         passages = final_subset.snippet.tolist()
-        if not args.prompt_with_words_not_sent:
+        if not args.prompt_with_words_not_sent: # Use sentences
             prompt_outputs = [extract_chunk_sentence(text, args.start_sentence, args.num_sentences) for text in passages]        
-        else:
-            # TODO implement this
-            import sys; sys.exit()
-            
-        prompt_texts, rest_of_texts = zip(*prompt_outputs)
-        prompt_texts, rest_of_texts = list(prompt_texts), list(rest_of_texts)
- 
+            prompt_texts, rest_of_texts = zip(*prompt_outputs)
+            prompt_texts, rest_of_texts = list(prompt_texts), list(rest_of_texts)
+        else: # Use words
+            import tiktoken
+            encoding = tiktoken.encoding_for_model("gpt-3.5-turbo")
+            data = [remove_last_n_words(encoding, text, args.num_words_from_end, openai=True) for text in passages]
+            prompt_texts, rest_of_texts, token_lengths = map(list, zip(*data))
+        
         assert None not in prompt_texts
         unmerged_prompts = []
         for cur_task_prompt in cur_task_prompts:
@@ -78,10 +77,15 @@ def main(args):
 
         requests = []
         for i, prompt in enumerate(prompts):
+            if args.max_length_to_sequence_length:
+                cur_max_tokens = token_lengths[i // chunk_size]
+            else:
+                assert args.max_tokens >= 1
+                cur_max_tokens = args.max_tokens
             request_id = i
             cur_request = {
                 "model": args.model,
-                "max_tokens": args.max_tokens,
+                "max_tokens": cur_max_tokens,
                 "temperature": args.temperature,
                 "seed": args.seed,
                 "top_p": args.top_p,
@@ -96,8 +100,7 @@ def main(args):
             else:
                 cur_request = cur_request | {
                     "messages": [{"role": "user", "content": prompt}],
-                    # "logprobs": True,
-                    # "top_logprobs": 10
+                    # "logprobs": True, "top_logprobs": 10
                 }
             requests.append(cur_request)
         if "instruct" not in args.model:
@@ -109,7 +112,6 @@ def main(args):
         max_tokens_per_minute = requests_limits_dict[args.model]["max_tokens_per_minute"]
         request_url = requests_url_dict[args.model]
         print(f"Using rate limits\n------\nMax requests per minute: {max_requests_per_minute}\nMax tokens per minute: {max_tokens_per_minute}")
-        # embed()
 
         full_generations = asyncio.run(openai_parallel_generate(
                 requests, 
@@ -144,11 +146,11 @@ def main(args):
                 all_text_outputs.append([cur["message"]["content"] for cur in cur_results["choices"]])
 
         # TODO gpt-3.5-turbo-instruct is it different?
-
         final_subset["prompt"] = chunk_list(prompts, chunk_size)
         final_subset["generation"] = chunk_list(all_text_outputs, chunk_size)
         final_subset["model"] = [model_str] * len(final_subset)
         final_subset["snippet_no_prompt"] = rest_of_texts
+
     else: # vLLM models
         generator = ModelGenerator(
             model=args.model,
@@ -216,12 +218,18 @@ def main(args):
     minTokStr = "minTok" + str(args.min_tokens) + "_"
     
     # Save DataFrame to CSV with detailed info in the filename
-    file_name = f"{model_str}_maxTok{args.max_tokens}_{minTokStr}numSeq{args.num_sequences}_topP{args.top_p}_temp{args.temperature}_numSent{args.num_sentences}_startSent{args.start_sentence}_numWordFromEnd{args.num_words_from_end}_useSent{prompt_with_sent_str}_promptIdx{'-'.join(map(str, args.task_prompt_idx))}_len{len(final_subset)}_{date_str}.jsonl"
+    file_name = f"""{model_str}_maxTok{args.max_tokens}_{minTokStr}numSeq{args.num_sequences}\
+_topP{args.top_p}_temp{args.temperature}_numSent{args.num_sentences}_startSent{args.start_sentence}\
+_numWordFromEnd{args.num_words_from_end}_maxLenSeq{bool_to_first_upper(args.max_length_to_sequence_length)}\
+_useSent{bool_to_first_upper(not args.prompt_with_words_not_sent)}_promptIdx{'-'.join(map(str, args.task_prompt_idx))}\
+_len{len(final_subset)}_{date_str}.jsonl"""
+    
     file_path = os.path.join(save_folder, file_name)
     columns = [col for col in final_subset.columns if col != 'snippet'] + ['snippet']
     final_subset = final_subset[columns]
     final_subset.to_json(file_path, index=False, lines=True, orient='records')
     print(f"Saved to {file_path}")
+    embed()
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="Generate text")
