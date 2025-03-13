@@ -39,6 +39,8 @@ def main(args):
     print(f"Length: {len(final_subset)}")
     if args.key_name is not None:
         final_subset["snippet"] = final_subset[args.key_name]
+    if args.remove_bad_first: # Remove ill-formatted first sentence
+        final_subset["snippet"] = final_subset["snippet"].apply(remove_first_sentence_if_needed)
 
     save_folder = os.path.join(f"outputs/ours/{args.task}/generations/{args.data_split}")
     os.makedirs(save_folder, exist_ok=True)
@@ -221,15 +223,14 @@ def main(args):
     file_name = f"""{model_str}_maxTok{args.max_tokens}_{minTokStr}numSeq{args.num_sequences}\
 _topP{args.top_p}_temp{args.temperature}_numSent{args.num_sentences}_startSent{args.start_sentence}\
 _numWordFromEnd{args.num_words_from_end}_maxLenSeq{bool_to_first_upper(args.max_length_to_sequence_length)}\
-_useSent{bool_to_first_upper(not args.prompt_with_words_not_sent)}_promptIdx{'-'.join(map(str, args.task_prompt_idx))}\
-_len{len(final_subset)}_{date_str}.jsonl"""
+_useSent{bool_to_first_upper(not args.prompt_with_words_not_sent)}-rmvBad{bool_to_first_upper(args.remove_bad_first)}\
+_promptIdx{'-'.join(map(str, args.task_prompt_idx))}_len{len(final_subset)}_{date_str}.jsonl"""
     
     file_path = os.path.join(save_folder, file_name)
     columns = [col for col in final_subset.columns if col != 'snippet'] + ['snippet']
     final_subset = final_subset[columns]
     final_subset.to_json(file_path, index=False, lines=True, orient='records')
     print(f"Saved to {file_path}")
-    embed()
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="Generate text")
