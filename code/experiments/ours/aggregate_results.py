@@ -17,8 +17,8 @@ def model_name_to_hypers(model_name):
         "temperature": float(''.join(re.findall(r'-?\d+\.?\d*',model_name_split[5]))),
         "num_sentences": int(''.join(re.findall(r'-?\d+\.?\d*',model_name_split[6]))),
         "start_sentence": int(''.join(re.findall(r'-?\d+\.?\d*',model_name_split[7]))),
-        "num_words": int(''.join(re.findall(r'-?\d+\.?\d*',model_name_split[8]))),
-        "start_word": int(''.join(re.findall(r'-?\d+\.?\d*',model_name_split[9]))),
+        "num_words_from_end": int(''.join(re.findall(r'-?\d+\.?\d*',model_name_split[8]))),
+        "max_length_to_sequence": model_name_split[9].removeprefix("maxLenSeq"),
         "use_sentence": False if model_name_split[10][-1] == "F" else True, 
         "prompt_index": model_name_split[11].removeprefix("promptIdx"),
         "data_length": int(''.join(re.findall(r'-?\d+\.?\d*',model_name_split[12]))),
@@ -85,7 +85,7 @@ def main(args):
         key=lambda col: col.map(custom_sort_key) if col.name == "model" else col
     )
     df = df[["split", "model"] + [col for col in df.columns if col != "model" and col != "split"]]
-    df = df.sort_values(by=["split", "model", "prompt_index", "temperature", "max_tokens", "min_ngram", "creativity_min_ngram"])
+    df = df.sort_values(by=["split", "model", "prompt_index", "max_length_to_sequence", "num_words_from_end", "temperature", "max_tokens", "min_ngram", "creativity_min_ngram"])
     df.to_csv(output_csv, index=False)
 
     print(f"Aggregated scores saved to {output_csv}")
