@@ -20,9 +20,74 @@ def plot_roc_curve(fpr, tpr, roc_auc, strategy_title, save_path):
     plt.close()
 
 def zigzag_append(lists):
+    """
+    Interleaves elements from multiple lists in a zigzag pattern.
+    
+    This function takes a collection of lists and returns a new list where
+    elements are arranged by taking the first element from each list, then
+    the second element from each list, and so on.
+    
+    Parameters:
+    -----------
+    lists : list of lists
+        A collection of lists to be interleaved
+    
+    Returns:
+    --------
+    list
+        A single list containing all elements from the input lists in zigzag order
+    
+    Examples:
+    ---------
+    >>> zigzag_append([[1, 2, 3], ['a', 'b', 'c']])
+    [1, 'a', 2, 'b', 3, 'c']
+    
+    >>> zigzag_append([[1, 2], ['a', 'b', 'c'], [True, False]])
+    [1, 'a', True, 2, 'b', False]
+    
+    Notes:
+    ------
+    If the input lists have different lengths, elements from shorter lists
+    will not be included after they're exhausted.
+    """
     return [item for group in zip(*lists) for item in group]
 
 def chunk_list(lst, n):
+    """
+    Splits a list into chunks of specified size.
+    
+    This function divides the input list into smaller sublists, each containing
+    at most 'n' elements. The last chunk may contain fewer than 'n' elements
+    if the length of the list is not divisible by 'n'.
+    
+    Parameters:
+    -----------
+    lst : list
+        The list to be chunked
+    n : int
+        The size of each chunk
+        
+    Returns:
+    --------
+    list of lists
+        A list containing sublists of up to 'n' elements each
+        
+    Examples:
+    ---------
+    >>> chunk_list([1, 2, 3, 4, 5, 6, 7], 3)
+    [[1, 2, 3], [4, 5, 6], [7]]
+    
+    >>> chunk_list(['a', 'b', 'c', 'd'], 2)
+    [['a', 'b'], ['c', 'd']]
+    
+    >>> chunk_list([1, 2, 3], 5)
+    [[1, 2, 3]]
+    
+    Notes:
+    ------
+    If n <= 0, a ValueError should be raised (not handled by this function).
+    Empty lists return an empty list of chunks.
+    """
     return [lst[i:i + n] for i in range(0, len(lst), n)]
 
 def remove_last_n_words(
@@ -79,7 +144,6 @@ def remove_last_n_words(
     assert len(word_boundaries) >= 1
     n = min(n, len(word_boundaries)-1) # Leave at least the first word always
     
-    # Find the start position of the nth word from the end
     last_words_start = word_boundaries[-n] if n > 0 else len(sentence)
     # Find the index of the first token that belongs to the removed part
     split_index = 0
