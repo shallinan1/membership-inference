@@ -1,6 +1,7 @@
 import matplotlib.pyplot as plt
 from typing import Tuple, List, Dict, Any
 from IPython import embed
+import re
 
 # Function to plot ROC curve
 def plot_roc_curve(fpr, tpr, roc_auc, strategy_title, save_path):
@@ -28,6 +29,7 @@ def remove_last_n_words(
         tokenizer,
         sentence: str, 
         n: int = 1,
+        openai: bool = False
         ) -> Tuple[List[str], List[str], int]:
     """
     Tokenizes a sentence, removes the last n words using offset mapping to identify
@@ -41,6 +43,7 @@ def remove_last_n_words(
         sentence (str): The input sentence
         n (int): Number of words to remove from the end (default: 1)
             Will always leave at least the first word
+        openai: Will use tiktoken, not huggingface tokenizer
             
     Returns:
         Tuple containing:
@@ -52,11 +55,12 @@ def remove_last_n_words(
         return sentence, "", 0
 
     # TODO - currently punctuation is grouped with word - maybe remove this in the future (separate)
-    
-    # Tokenize with offset mapping
-    tokenized = tokenizer(sentence, return_offsets_mapping=True, add_special_tokens=False)
-    # tokens = tokenizer.convert_ids_to_tokens(tokenized["input_ids"])
-    
+
+    if openai:
+        tokenized = tokenize_with_offsets(sentence, tokenizer)
+    else:
+        tokenized = tokenizer(sentence, return_offsets_mapping=True, add_special_tokens=False)
+        
     # Identify word boundaries based on spaces in the original text
     word_boundaries = []
     in_whitespace = False
@@ -89,8 +93,53 @@ def remove_last_n_words(
         len(tokenized["input_ids"]) - split_index
     )
 
+def tokenize_with_offsets(text, encoding):
+    """
+    Generate token IDs and offset mappings for a given text using tiktoken.
+    
+    Args:
+        text: The input text string
+        encoding: A tiktoken encoding object
+    
+    Returns:
+        Dictionary containing:
+        - input_ids: List of token IDs
+        - offset_mapping: List of tuples with (start, end) character positions
+    """
+    token_ids = encoding.encode(text) # Get the token IDs
+
+    # Get the byte offsets for each token
+    byte_offsets = []
+    byte_pos = 0
+    for token_id in token_ids:
+        # Get the bytes for this token
+        token_bytes = encoding.decode_single_token_bytes(token_id)
+        token_byte_len = len(token_bytes)
+        
+        # Record the byte position
+        byte_offsets.append((byte_pos, byte_pos + token_byte_len))
+        byte_pos += token_byte_len
+    
+    # Convert byte offsets to character offsets
+    char_offsets = []
+    text_bytes = text.encode('utf-8')
+    for start_byte, end_byte in byte_offsets:
+        # Find the character position corresponding to this byte position
+        start_char = len(text_bytes[:start_byte].decode('utf-8', errors='ignore'))
+        end_char = len(text_bytes[:end_byte].decode('utf-8', errors='ignore'))
+        char_offsets.append((start_char, end_char))
+
+    return {
+        "input_ids": token_ids,
+        "offset_mapping": char_offsets
+    }
+
 # Example usage
 if __name__ == "__main__":
+
+    import tiktoken
+    # Example usage:
+    encoding = tiktoken.encoding_for_model("gpt-3.5-turbo")
     import nltk
     from code.user_secrets import CACHE_PATH
     import os
@@ -108,7 +157,9 @@ if __name__ == "__main__":
     ]
     
     for sentence in sentences:
-        print(tokenize_func(sentence))
+        output = tokenize_with_offsets(sentence, encoding)
+        print(output)
+
         for i in [1, 3, 5, 20]:
             # Remove last word
             remaining, removed, num_removed = remove_last_n_words(tokenizer, sentence, i)
@@ -117,3 +168,16 @@ if __name__ == "__main__":
             print(f"Remaining tokens: {remaining}")
             print(f"Removed tokens: {removed}")
             print(f"Number of tokens removed: {num_removed}")
+
+            remaining, removed, num_removed = remove_last_n_words(encoding, sentence, i, openai=True)
+            print("\nTiktokenizer")
+            print(f"Remaining tokens: {remaining}")
+            print(f"Removed tokens: {removed}")
+            print(f"Number of tokens removed: {num_removed}")
+            
+            embed()
+
+
+"""
+python3 -m code.experiments.utils
+"""
