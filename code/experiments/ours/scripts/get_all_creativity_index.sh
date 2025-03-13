@@ -16,9 +16,14 @@ SLURM_COMMAND="srun -A xlab -p gpu-rtx6k --time=1:00:00 --nodes=1 --cpus-per-tas
 
 # Iterate over each .jsonl file in the current directory
 for file_path in "$DIRECTORY"*.jsonl; do
-    # Create a new tmux session for each file and run the Python script
-    cmd_with_source="python3 -m code.experiments.ours.get_creativity_index --coverage_path $file_path --output_dir $OUTPUT_DIR --min_ngram $MIN_NGRAM --max_ngram $MAX_NGRAM"
-    
-    echo "$cmd_with_source"
-    tmux new-session -d "$SLURM_COMMAND \"$ACTIVATE_ENV && $cmd_with_source\""
+    filename=$(basename "$file_path" .jsonl)
+    output_file="${OUTPUT_DIR}${filename}_CI${MIN_NGRAM}-${MAX_NGRAM}.jsonl"
+
+    if [ ! -f "$output_file" ]; then
+        # Create a new tmux session for each file and run the Python script
+        cmd_with_source="python3 -m code.experiments.ours.get_creativity_index --coverage_path $file_path --output_dir $OUTPUT_DIR --min_ngram $MIN_NGRAM --max_ngram $MAX_NGRAM"
+        
+        echo "$cmd_with_source"
+        tmux new-session -d "$SLURM_COMMAND \"$ACTIVATE_ENV && $cmd_with_source\""
+    fi
 done
