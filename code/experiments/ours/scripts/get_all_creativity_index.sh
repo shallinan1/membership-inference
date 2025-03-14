@@ -24,6 +24,7 @@ for file_path in "$DIRECTORY"*.jsonl; do
         cmd_with_source="python3 -m code.experiments.ours.get_creativity_index --coverage_path $file_path --output_dir $OUTPUT_DIR --min_ngram $MIN_NGRAM --max_ngram $MAX_NGRAM"
         
         echo "$cmd_with_source"
+        echo
         tmux new-session -d "$SLURM_COMMAND \"$ACTIVATE_ENV && $cmd_with_source\""
     fi
 done
