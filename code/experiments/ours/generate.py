@@ -53,7 +53,7 @@ def main(args):
     if args.temperature == 0: # Reduce num_sequences if using greedy decoding
         print("GREEDY decoding - setting num_sequences to 1")
         args.num_sequences = 1
-
+    
     if args.openai: # OpenAI models
         passages = final_subset.snippet.tolist()
         if not args.prompt_with_words_not_sent: # Use sentences
@@ -174,15 +174,14 @@ def main(args):
             passages = final_subset.snippet.tolist()
 
             if not args.prompt_with_words_not_sent:
-                prompt_outputs = [extract_chunk_sentence(text, args.start_sentence, args.num_sentences) for text in passages]        
+                prompt_outputs = [extract_chunk_sentence(text, args.start_sentence, args.num_sentences) for text in passages]
+                prompt_texts, rest_of_texts = zip(*prompt_outputs)
+                prompt_texts= list(prompt_texts)
+                rest_of_texts = list(rest_of_texts)
             else:
-                # TODO implement this
-                import sys; sys.exit()
+                data = [remove_last_n_words(generator.llm.get_tokenizer(), text, args.num_words_from_end, openai=False) for text in passages]
+                prompt_texts, rest_of_texts, token_lengths = map(list, zip(*data))
                 
-            prompt_texts, rest_of_texts = zip(*prompt_outputs)
-            prompt_texts= list(prompt_texts)
-            rest_of_texts = list(rest_of_texts)
-
         assert None not in prompt_texts
         unmerged_prompts = []
         for cur_task_prompt in cur_task_prompts:
@@ -196,18 +195,24 @@ def main(args):
             ))
         prompts = zigzag_append(unmerged_prompts) # Make indices match up
 
+        if args.max_length_to_sequence_length:
+            cur_max_tokens = [element for element in token_lengths for _ in range(chunk_size)]
+        else:
+            assert args.max_tokens >= 1
+            cur_max_tokens = args.max_tokens
+
         # Generation
         final_prompts, all_text_outputs, all_prompt_logprobs, all_output_logprobs = generator.generate_vllm(
             prompts=prompts,
             temperature=args.temperature,
             top_p=args.top_p,
-            max_new_tokens=args.max_tokens,
+            max_new_tokens=cur_max_tokens,
             min_tokens=args.min_tokens,
             max_length=args.max_length,
             n=args.num_sequences
         )
 
-        final_subset["prompt"] = chunk_list(final_prompts,chunk_size)
+        final_subset["prompt"] = chunk_list(final_prompts, chunk_size)
         final_subset["generation"] = chunk_list(all_text_outputs, chunk_size)
         final_subset["model"] = [model_str] * len(final_subset)
         final_subset["snippet_no_prompt"] = rest_of_texts
