@@ -1,5 +1,5 @@
 python3 -m code.experiments.ours.generate \
-    --model allenai/tulu-v1-llama2-7b \
+    --model allenai/tulu-v1-llama2-13b \
     --num_sequences 20 \
     --max_tokens 512 \
     --task_prompt_idx 0 \
@@ -7,7 +7,7 @@ python3 -m code.experiments.ours.generate \
     --data_split train;
 
 python3 -m code.experiments.ours.generate \
-    --model allenai/tulu-v1-llama2-7b \
+    --model allenai/tulu-v1-llama2-13b \
     --num_sequences 20 \
     --max_tokens 512 \
     --task_prompt_idx 0 \
@@ -15,7 +15,7 @@ python3 -m code.experiments.ours.generate \
     --data_split val;
 
 python3 -m code.experiments.ours.generate \
-    --model allenai/tulu-v1-llama2-7b \
+    --model allenai/tulu-v1-llama2-13b \
     --num_sequences 20 \
     --max_tokens 512 \
     --task_prompt_idx 0 \
@@ -23,7 +23,7 @@ python3 -m code.experiments.ours.generate \
     --data_split test;
 
 python3 -m code.experiments.ours.generate \
-    --model allenai/tulu-v1-llama2-7b \
+    --model allenai/tulu-v1-llama2-13b \
     --num_sequences 20 \
     --max_tokens 512 \
     --task_prompt_idx 0 \
@@ -32,7 +32,7 @@ python3 -m code.experiments.ours.generate \
     --data_split train;
 
 python3 -m code.experiments.ours.generate \
-    --model allenai/tulu-v1-llama2-7b \
+    --model allenai/tulu-v1-llama2-13b \
     --num_sequences 20 \
     --max_tokens 512 \
     --task_prompt_idx 0 \
@@ -41,7 +41,7 @@ python3 -m code.experiments.ours.generate \
     --data_split val;
 
 python3 -m code.experiments.ours.generate \
-    --model allenai/tulu-v1-llama2-7b \
+    --model allenai/tulu-v1-llama2-13b \
     --num_sequences 20 \
     --max_tokens 512 \
     --task_prompt_idx 0 \
@@ -51,7 +51,7 @@ python3 -m code.experiments.ours.generate \
 
 # To max seq length
 python3 -m code.experiments.ours.generate \
-    --model allenai/tulu-v1-llama2-7b \
+    --model allenai/tulu-v1-llama2-13b \
     --num_sequences 20 \
     --max_tokens 512 \
     --task_prompt_idx 0 \
