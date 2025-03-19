@@ -1,6 +1,6 @@
 python3 -m code.experiments.ours.generate \
     --openai \
-    --model gpt-3.5-turbo-0125 \
+    --model gpt-3.5-turbo-1106 \
     --start_sentence 1 \
     --num_sentences 5 \
     --num_sequences 20 \
@@ -11,7 +11,7 @@ python3 -m code.experiments.ours.generate \
 
 python3 -m code.experiments.ours.generate \
     --openai \
-    --model gpt-3.5-turbo-0125 \
+    --model gpt-3.5-turbo-1106 \
     --start_sentence 1 \
     --num_sentences 5 \
     --num_sequences 20 \
@@ -23,7 +23,7 @@ python3 -m code.experiments.ours.generate \
 
 python3 -m code.experiments.ours.generate \
     --openai \
-    --model gpt-3.5-turbo-0125 \
+    --model gpt-3.5-turbo-1106 \
     --start_sentence 1 \
     --num_sentences 5 \
     --num_sequences 10 \
@@ -34,7 +34,7 @@ python3 -m code.experiments.ours.generate \
 
 python3 -m code.experiments.ours.generate \
     --openai \
-    --model gpt-3.5-turbo-0125 \
+    --model gpt-3.5-turbo-1106 \
     --start_sentence 1 \
     --num_sentences 5 \
     --num_sequences 10 \
@@ -48,7 +48,7 @@ python3 -m code.experiments.ours.generate \
 # Word level
 python3 -m code.experiments.ours.generate \
     --openai \
-    --model gpt-3.5-turbo-0125 \
+    --model gpt-3.5-turbo-1106 \
     --num_sequences 20 \
     --temperature 1.0 \
     --task_prompt_idx 1 \
@@ -61,7 +61,7 @@ python3 -m code.experiments.ours.generate \
 # Word level
 python3 -m code.experiments.ours.generate \
     --openai \
-    --model gpt-3.5-turbo-0125 \
+    --model gpt-3.5-turbo-1106 \
     --num_sequences 20 \
     --temperature 1.0 \
     --task_prompt_idx 1 \
@@ -75,7 +75,7 @@ python3 -m code.experiments.ours.generate \
 
 python3 -m code.experiments.ours.generate \
     --openai \
-    --model gpt-3.5-turbo-0125 \
+    --model gpt-3.5-turbo-1106 \
     --num_sequences 20 \
     --temperature 1.0 \
     --task_prompt_idx 2 \
@@ -88,7 +88,7 @@ python3 -m code.experiments.ours.generate \
 
 python3 -m code.experiments.ours.generate \
     --openai \
-    --model gpt-3.5-turbo-0125 \
+    --model gpt-3.5-turbo-1106 \
     --num_sequences 20 \
     --temperature 1.0 \
     --task_prompt_idx 4 \
@@ -101,7 +101,7 @@ python3 -m code.experiments.ours.generate \
 
 python3 -m code.experiments.ours.generate \
     --openai \
-    --model gpt-3.5-turbo-0125 \
+    --model gpt-3.5-turbo-1106 \
     --num_sequences 20 \
     --temperature 1.0 \
     --task_prompt_idx 5 \
@@ -114,7 +114,7 @@ python3 -m code.experiments.ours.generate \
 
 python3 -m code.experiments.ours.generate \
     --openai \
-    --model gpt-3.5-turbo-0125 \
+    --model gpt-3.5-turbo-1106 \
     --num_sequences 20 \
     --temperature 1.0 \
     --task_prompt_idx 5 \
@@ -127,7 +127,7 @@ python3 -m code.experiments.ours.generate \
 
 python3 -m code.experiments.ours.generate \
     --openai \
-    --model gpt-3.5-turbo-0125 \
+    --model gpt-3.5-turbo-1106 \
     --num_sequences 20 \
     --temperature 1.0 \
     --task_prompt_idx 5 \
@@ -140,7 +140,7 @@ python3 -m code.experiments.ours.generate \
 
 python3 -m code.experiments.ours.generate \
     --openai \
-    --model gpt-3.5-turbo-0125 \
+    --model gpt-3.5-turbo-1106 \
     --num_sequences 20 \
     --temperature 1.0 \
     --task_prompt_idx 5 \
@@ -153,7 +153,7 @@ python3 -m code.experiments.ours.generate \
 
 python3 -m code.experiments.ours.generate \
     --openai \
-    --model gpt-3.5-turbo-0125 \
+    --model gpt-3.5-turbo-1106 \
     --num_sequences 20 \
     --temperature 1.0 \
     --task_prompt_idx 5 \
@@ -166,7 +166,7 @@ python3 -m code.experiments.ours.generate \
 
 python3 -m code.experiments.ours.generate \
     --openai \
-    --model gpt-3.5-turbo-0125 \
+    --model gpt-3.5-turbo-1106 \
     --num_sequences 20 \
     --temperature 0.2 \
     --task_prompt_idx 5 \
@@ -179,7 +179,7 @@ python3 -m code.experiments.ours.generate \
 
 python3 -m code.experiments.ours.generate \
     --openai \
-    --model gpt-3.5-turbo-0125 \
+    --model gpt-3.5-turbo-1106 \
     --num_sequences 10 \
     --temperature 1.0 \
     --task_prompt_idx 4 5 \
@@ -192,7 +192,7 @@ python3 -m code.experiments.ours.generate \
 
 python3 -m code.experiments.ours.generate \
     --openai \
-    --model gpt-3.5-turbo-0125 \
+    --model gpt-3.5-turbo-1106 \
     --num_sequences 5 \
     --temperature 1.0 \
     --task_prompt_idx 1 2 4 5 \
@@ -206,7 +206,7 @@ python3 -m code.experiments.ours.generate \
 # More iteration on 100
 python3 -m code.experiments.ours.generate \
     --openai \
-    --model gpt-3.5-turbo-0125 \
+    --model gpt-3.5-turbo-1106 \
     --num_sequences 50 \
     --temperature 1.0 \
     --task_prompt_idx 5 \
@@ -220,7 +220,7 @@ python3 -m code.experiments.ours.generate \
 # More iteration on 100
 python3 -m code.experiments.ours.generate \
     --openai \
-    --model gpt-3.5-turbo-0125 \
+    --model gpt-3.5-turbo-1106 \
     --num_sequences 50 \
     --temperature 1.5 \
     --task_prompt_idx 5 \
@@ -234,7 +234,7 @@ python3 -m code.experiments.ours.generate \
 # More iteration on 100
 python3 -m code.experiments.ours.generate \
     --openai \
-    --model gpt-3.5-turbo-0125 \
+    --model gpt-3.5-turbo-1106 \
     --num_sequences 20 \
     --temperature 1.0 \
     --task_prompt_idx 5 \
@@ -248,7 +248,7 @@ python3 -m code.experiments.ours.generate \
 # More iteration on 100 - 100 gens
 python3 -m code.experiments.ours.generate \
     --openai \
-    --model gpt-3.5-turbo-0125 \
+    --model gpt-3.5-turbo-1106 \
     --num_sequences 100 \
     --temperature 1.0 \
     --task_prompt_idx 5 \
