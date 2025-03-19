@@ -67,7 +67,7 @@ Format your answer as '<correct letter>'."""
         """"""
     ]
 }
-for model in ["tulu-13b-finalized", "tulu-30b-finalized", "tulu-65b-finalized"]:
+for model in ["tulu-13b-finalized", "tulu-30b-finalized", "tulu-65b-finalized", "tulu-v1-llama2-7b", "tulu-v1-llama2-13b", "tulu-v1-llama2-70b"]:
     system_prompts[model] = system_prompts["tulu-7b-finalized"]
 for model in ["gpt-4-0613", "gpt-4-0314", "gpt-3.5-turbo-1106", "gpt-3.5-turbo-instruct"]:
     system_prompts[model] = system_prompts["gpt-3.5-turbo-0125"]
@@ -143,7 +143,7 @@ def main(args):
         paraphrases = extract_examples(generation)
         if len(paraphrases) != 3:
             bad_paraphrases += 1
-            paraphrases = extract_examples_modified(generation)
+            # paraphrases = extract_examples_modified(generation)
             
             if len(paraphrases) != 3:
                 still_bad_paraphrases += 1
