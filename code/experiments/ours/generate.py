@@ -170,6 +170,9 @@ def main(args):
 
             final_subset["snippet"] = [p + "\n" + r for p, r in zip(prompt_texts, rest_of_texts)]
             args.start_sentence, args.num_sentence = -1, -1
+
+            tokenizer = generator.llm.get_tokenizer()
+            token_lengths = [len(tokenizer.encode(text, add_special_tokens=False)) for text in rest_of_texts]
         else:
             passages = final_subset.snippet.tolist()
 
