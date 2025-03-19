@@ -29,6 +29,12 @@ from code.experiments.utils import plot_roc_curve
     
 #     return -np.mean(sorted(scores)[:int(len(scores) * k)])
 
+def tulu_split(text, tulu=False):
+    if tulu:
+        return text.split("<|assistant|>\n")[-1]
+    else:
+        return text
+
 def mink_attack(log_probs, ratio):
     k_length = max(int(len(log_probs)*ratio), 1)
     topk_prob = np.sort(log_probs)[:k_length]
@@ -50,8 +56,8 @@ strategies = {# "Perplexity": { "func": lambda x: -x["loss"]}, # This is the sam
               }
 
 def main(args):
-    strategies["Zlib"] = {"func": lambda x: -zlib_attack(x["loss"], x[args.key_name])} # Add zlib
     target_model_name = args.target_model_probs.split(os.sep)[-1][:-6]
+    strategies["Zlib"] = {"func": lambda x: -zlib_attack(x["loss"], tulu_split(x[args.key_name], "tulu" in target_model_name))} # Add zlib
 
     base_dir = os.path.dirname(os.path.dirname(args.target_model_probs))  # Up one level from 'probs'
     output_dir = os.path.join(base_dir, 'results', target_model_name)
@@ -101,6 +107,7 @@ def main(args):
             plot_title=f"{dataset} ({split}): {strategy}, {target_model_name}"
             plot_roc_curve(fpr, tpr, roc_auc, plot_title, os.path.join(plot_dir, f"{strategy}.png"))
 
+    print(all_scores)
     output_file_path = os.path.join(output_dir, f"scores.json")
     with open(output_file_path, 'w') as f:
         json.dump(all_scores, f, indent=4)
