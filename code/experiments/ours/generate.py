@@ -48,7 +48,7 @@ def main(args):
     if args.prompt_with_words_not_sent:
         args.start_sentence, args.num_sentences = -1, -1
     else:
-        args.start_word, args.num_words_from_end = -1, -1
+        args.start_word, args.num_words_from_end, args.num_proportion_from_end = -1, -1, -1
 
     if args.temperature == 0: # Reduce num_sequences if using greedy decoding
         print("GREEDY decoding - setting num_sequences to 1")
@@ -63,9 +63,21 @@ def main(args):
         else: # Use words
             import tiktoken
             encoding = tiktoken.encoding_for_model("gpt-3.5-turbo")
-            data = [remove_last_n_words(encoding, text, args.num_words_from_end, openai=True) for text in passages]
-            prompt_texts, rest_of_texts, token_lengths = map(list, zip(*data))
-        
+            if args.num_words_from_end >= 1:
+                if args.num_proportion_from_end != 0:
+                    print("Overriding num_proportion_from_end")
+                    args.num_proportion_from_end = -1
+
+                data = [remove_last_n_words(encoding, text, args.num_words_from_end, openai=True) for text in passages]
+                prompt_texts, rest_of_texts, token_lengths = map(list, zip(*data))
+            else:
+                assert 0 < args.num_proportion_from_end < 1, "No remove tokens set"
+                # Get length of words
+                text_lengths = [len(text.split()) for text in passages]
+                remove_lengths = [max(1, min(int(l * args.num_proportion_from_end), l-1)) for l in text_lengths]
+                data = [remove_last_n_words(encoding, text, remove_length, openai=True) for text, remove_length in zip(passages, remove_lengths)]
+                prompt_texts, rest_of_texts, token_lengths = map(list, zip(*data))
+
         assert None not in prompt_texts
         unmerged_prompts = []
         for cur_task_prompt in cur_task_prompts:
@@ -230,7 +242,7 @@ def main(args):
     # Save DataFrame to CSV with detailed info in the filename
     file_name = f"""{model_str}_maxTok{args.max_tokens}_{minTokStr}numSeq{args.num_sequences}\
 _topP{args.top_p}_temp{args.temperature}_numSent{args.num_sentences}_startSent{args.start_sentence}\
-_numWordFromEnd{args.num_words_from_end}_maxLenSeq{bool_to_first_upper(args.max_length_to_sequence_length)}\
+_numWordFromEnd{args.num_words_from_end}-{args.num_proportion_from_end}_maxLenSeq{bool_to_first_upper(args.max_length_to_sequence_length)}\
 _useSent{bool_to_first_upper(not args.prompt_with_words_not_sent)}-rmvBad{bool_to_first_upper(args.remove_bad_first)}\
 _promptIdx{'-'.join(map(str, args.task_prompt_idx))}_len{len(final_subset)}_{date_str}.jsonl"""
     
@@ -255,11 +267,13 @@ if __name__ == "__main__":
     # What part of the samples to prompt with
     parser.add_argument('--num_sentences', type=int, default=1, help='Number of sentences to use from the snippet.')
     parser.add_argument('--start_sentence', type=int, default=1, help='Starting sentence to use from the snippet.')
-    parser.add_argument('--num_words_from_end', type=int, default=1, help='Number of words to use from the snippet.')
-    # parser.add_argument('--start_word', type=int, default=1, help='Starting word to use from the snippet.')
+
     parser.add_argument("--prompt_with_words_not_sent", action="store_true", help="whether or not to use words vs sentences")
+    parser.add_argument('--num_words_from_end', type=int, default=-1, help='Number of words to use from the snippet.')
+    parser.add_argument('--num_proportion_from_end', type=float, default=-1, help='Number of words to use from the snippet.')
     parser.add_argument('--task_prompt_idx', type=int, nargs='+', default=[1], help='Index or list of indices of the task prompts to use.')
-    
+    # parser.add_argument('--start_word', type=int, default=1, help='Starting word to use from the snippet.')
+
     # Model details
     parser.add_argument('--model', type=str, default="davinci-002", help='Model to use for text generation.')
     parser.add_argument('--tokenizer', type=str, default=None, help='Pass in tokenizer manually. Optional.')
