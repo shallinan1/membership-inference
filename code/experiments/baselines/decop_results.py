@@ -11,6 +11,9 @@ def main(args):
         data_path = data_path.replace(".jsonl", "_remove-bad-first.jsonl")
     data_path = data_path.replace(".jsonl", f"_{args.model}.jsonl")
 
+    if args.no_help:
+        data_path = data_path.replace(".jsonl", f"_nohelp.jsonl")
+
     data = load_jsonl(data_path)
     all_predicted_idx = []
 
@@ -39,6 +42,8 @@ if __name__ == "__main__":
     parser.add_argument('--split', type=str, default="train", help="the data split")
 
     parser.add_argument("--remove_bad_first", action="store_true")
+    parser.add_argument("--no_help", action="store_true")
+
     parser.add_argument("--keep_n_sentences", type=int, default=-1)
     parser.add_argument("--model", type=str)
 
