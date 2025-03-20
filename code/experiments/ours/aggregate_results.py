@@ -25,7 +25,8 @@ def model_name_to_hypers(model_name):
         "temperature": float(''.join(re.findall(r'-?\d+\.?\d*',model_name_split[5]))),
         "num_sentences": int(''.join(re.findall(r'-?\d+\.?\d*',model_name_split[6]))),
         "start_sentence": int(''.join(re.findall(r'-?\d+\.?\d*',model_name_split[7]))),
-        "num_words_from_end": int(''.join(re.findall(r'-?\d+\.?\d*',model_name_split[8]))),
+        "num_words_from_end": -1 if "-" in model_name_split[8] else int(model_name_split[8].removeprefix("numWordFromEnd").split("-")[0]),
+        "num_proportion_from_end": -1 if "-" not in model_name_split[8] else float(model_name_split[8].removeprefix("numWordFromEnd").split("-")[-1]),
         "max_length_to_sequence": model_name_split[9].removeprefix("maxLenSeq"),
         "use_sentence": process_use_sentence(model_name_split[10]),
         "remove_bad_first": process_remove_bad(model_name_split[10]), 
@@ -36,7 +37,7 @@ def model_name_to_hypers(model_name):
         "search_type": model_name_split[15],
         "creativity_min_ngram": int(re.findall(r'-?\d+\.?\d*', model_name_split[16].split("-")[0])[0]),
         "creativity_max_ngram": model_name_split[16].split("-")[1]
-    }
+        }
 
 # Define a custom sort key dynamically
 def custom_sort_key(model):
@@ -94,7 +95,7 @@ def main(args):
         key=lambda col: col.map(custom_sort_key) if col.name == "model" else col
     )
     df = df[["split", "model"] + [col for col in df.columns if col != "model" and col != "split"]]
-    df = df.sort_values(by=["split", "model", "prompt_index", "num_words_from_end", "max_length_to_sequence", "temperature", "max_tokens", "min_ngram", "creativity_min_ngram"])
+    df = df.sort_values(by=["split", "model", "prompt_index", "num_words_from_end", "num_sequences", "max_length_to_sequence", "temperature", "max_tokens", "remove_bad_first", "min_ngram", "creativity_min_ngram"])
     df.to_csv(output_csv, index=False)
 
     print(f"Aggregated scores saved to {output_csv}")
