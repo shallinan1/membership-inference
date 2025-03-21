@@ -28,7 +28,7 @@ def main(args):
     num_metrics = len(metrics)
 
     # Setup subplot grid
-    fig, axes = plt.subplots(1, num_metrics, figsize=(3 * num_metrics, 3), sharey=True)
+    fig, axes = plt.subplots(1, num_metrics, figsize=(3 * num_metrics, 2), sharey=True)
 
     # Make sure axes is iterable even with one subplot
     if num_metrics == 1:
@@ -51,14 +51,16 @@ def main(args):
         # ax.set_ylabel(metric)
         cur_title = f'{metric.split("_")[1]}'
         ax.set_title(name_map.get(cur_title, cur_title))
-        ax.set_xticks([10, 20, 50, 100])
-        # ax.set_xticks(np.array([10, 25, 50, 75, 90])/100)
+        if "prop" in args.save_name:
+            ax.set_xticks(np.array([10, 25, 50, 75, 90])/100)
+        else:
+            ax.set_xticks([10, 20, 50, 100])
         ax.grid(alpha=0.3)
         if i == num_metrics-3:
-            ax.legend(ncols=num_metrics+1, loc='upper center', bbox_to_anchor=(0.95, -0.21))
+            ax.legend(ncols=num_metrics+1, loc='upper center', bbox_to_anchor=(0.95, -0.5))
 
     plt.tight_layout()
-    fig.supxlabel(args.x_label, fontsize=18, font=bold_font, y=-0.06)
+    fig.supxlabel(args.x_label, fontsize=18, font=bold_font, y=-0.21)
     plt.savefig(f"code/plotting/plots/{args.save_name}.pdf", bbox_inches="tight")
     plt.show()
 
