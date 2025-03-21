@@ -116,7 +116,7 @@ if __name__ == '__main__':
     parser = argparse.ArgumentParser(formatter_class=argparse.ArgumentDefaultsHelpFormatter)
     parser.add_argument('--target_model_probs', type=str, default=None)
     parser.add_argument('--ref_model_probs', type=str, nargs="+", default=None)
-    parser.add_argument('--key_name', type=str, default="input", help="the key name corresponding to the input text. Selecting from: input, paraphrase")
+    parser.add_argument('--key_name', type=str, default="snippet", help="the key name corresponding to the input text. Selecting from: input, paraphrase")
 
     main(parser.parse_args())
 
