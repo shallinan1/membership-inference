@@ -64,7 +64,7 @@ class ModelGenerator:
         
         # Create the tokenizer
         tokenizer_str = tokenizer if tokenizer else model  # Use a cached tokenizer for efficiency if provided
-        add_bos_token = True  # Adding the BOS token explicitly as some models have it set to False by default
+        add_bos_token = True if "OLMo" not in model else False# Adding the BOS token explicitly as some models have it set to False by default
         self.tokenizer = AutoTokenizer.from_pretrained(
             tokenizer_str,
             padding_side="left",
@@ -125,7 +125,12 @@ class ModelGenerator:
             else:
                 truncated += 1
                 # print(f"Truncating from {len(input_ids)} to {max_length-max_new_tokens}")
-                shortened = self.tokenizer([prompt], truncation=True, max_length=max_length-max_new_token).input_ids[0]
+                # Edge case
+                new_max_length = max_length-max_new_token
+                if new_max_length < 0:
+                    print("Edge case here - negative lengths")
+                    new_max_length = max_length
+                shortened = self.tokenizer([prompt], truncation=True, max_length=new_max_length).input_ids[0]
                 filtered_input_ids.append(shortened)
                 final_prompts.append(self.tokenizer.decode(shortened))
         print(f"Truncated {truncated} out of {len(final_prompts)}")
