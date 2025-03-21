@@ -71,11 +71,11 @@ def make_prompts(
         prompts = ["<|user|>\n" + task_prompt + p + f"\n<|assistant|>\n{task_postprompt}" for p in prompts]
     
     elif "olmo" in lower_model_name: # Olmo models, ie https://huggingface.co/allenai/OLMo-7B and for internal, instruction tuned variant
-        if "internal" in lower_model_name or "instruct" in lower_model_name:
+        if "sft" in lower_model_name or "instruct" in lower_model_name:
             task_postprompt = task_postprompt.lstrip()
-            prompts = ["<|user|>\n" + task_prompt + ' '.join(p.strip().split()) + f"\n<|assistant|>\n{task_postprompt}" for p in prompts]
+            prompts = ["<|user|>\n" + task_prompt + p + f"\n<|assistant|>\n{task_postprompt}" for p in prompts]
         else:
-            prompts = [f"{task_prompt}{' '.join(p.strip().split())}{task_postprompt}" for p in prompts]
+            prompts = [f"{task_prompt}{p}{task_postprompt}" for p in prompts]
     
     elif "llama-2" in lower_model_name: # LLama2 models, ie, https://huggingface.co/docs/transformers/model_doc/llama2
         if "chat" in lower_model_name:
@@ -261,7 +261,7 @@ extra commentary, formatting, or additional text.\n\nComplete the prefix: """,
 for task_key in task_prompts_dict_book:
     cur_task_prompts_dict_book = task_prompts_dict_book[task_key]
 
-    for mod in ["davinci-002", "gpt2-large", "Llama-2-7b-hf", "Llama-2-70b-hf","gpt-3.5-turbo-instruct", "pythia-1.4b","pythia-2.8b","pythia-6.9b", "pythia-12b", "llama-7b", "llama-13b", "llama-30b", "llama-65b", "OLMo-1B-0724-hf", "OLMo-7B-0724-hf"]:
+    for mod in ["davinci-002", "gpt2-large", "Llama-2-7b-hf", "Llama-2-70b-hf","gpt-3.5-turbo-instruct", "pythia-1.4b","pythia-2.8b","pythia-6.9b", "pythia-12b", "llama-7b", "llama-13b", "llama-30b", "llama-65b", "OLMo-1B-0724-hf", "OLMo-7B-0724-hf", "OLMo-7B-0724-Instruct-hf", "OLMo-7B-0724-SFT-hf"]:
         try:
             cur_task_prompts_dict_book[mod] = cur_task_prompts_dict_book["noninstruct-autoregressive"]
         except:
