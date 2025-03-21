@@ -217,6 +217,7 @@ if __name__ == "__main__":
     tokenizer = AutoTokenizer.from_pretrained("huggyllama/llama-7b")
     tokenize_func = lambda x: nltk.tokenize.casual.casual_tokenize(x)    
     sentences = [
+        "Oh no!!!!",
         "Natural language processing is an exciting field of artificial intelligence",
         "   Natural language processing is an exciting field of artificial intelligence",
         "We went to the store. Then we went fishing!",
