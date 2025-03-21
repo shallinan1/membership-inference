@@ -129,6 +129,21 @@ def make_prompts(
 
 # Task prompts
 task_prompts_dict_book = {
+    "dolma_v17": # Same as pile
+        {"noninstruct-autoregressive": # GPT3 style - Can be abstracted to prompts for non-instruction tuned models
+            [
+                {
+                    "task_prompt": "Continue the text: ",
+                    "task_postprompt": "",
+                    "task_preprompt": ""
+                },
+                {
+                    "task_prompt": "", # Blank string ,
+                    "task_postprompt": "",
+                    "task_preprompt": ""
+                },
+            ],
+        },
     "tulu_v1":        
         {"instruct-autoregressive":
             [
@@ -246,7 +261,7 @@ extra commentary, formatting, or additional text.\n\nComplete the prefix: """,
 for task_key in task_prompts_dict_book:
     cur_task_prompts_dict_book = task_prompts_dict_book[task_key]
 
-    for mod in ["davinci-002", "gpt2-large", "Llama-2-7b-hf", "Llama-2-70b-hf","gpt-3.5-turbo-instruct", "pythia-1.4b","pythia-2.8b","pythia-6.9b", "pythia-12b", "llama-7b", "llama-13b", "llama-30b", "llama-65b"]:
+    for mod in ["davinci-002", "gpt2-large", "Llama-2-7b-hf", "Llama-2-70b-hf","gpt-3.5-turbo-instruct", "pythia-1.4b","pythia-2.8b","pythia-6.9b", "pythia-12b", "llama-7b", "llama-13b", "llama-30b", "llama-65b", "OLMo-1B-0724-hf", "OLMo-7B-0724-hf"]:
         try:
             cur_task_prompts_dict_book[mod] = cur_task_prompts_dict_book["noninstruct-autoregressive"]
         except:
