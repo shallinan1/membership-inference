@@ -36,7 +36,7 @@ python3 -m code.experiments.ours.generate \
 
 
 python3 -m code.experiments.ours.generate \
-    --model allenai/OLMo-7b-0724-hf \
+    --model allenai/OLMo-7B-0724-hf \
     --max_tokens 512 \
     --task_prompt_idx 1 \
     --task dolma_v17 \
@@ -48,7 +48,7 @@ python3 -m code.experiments.ours.generate \
     --num_proportion_from_end 0.5;
 
 python3 -m code.experiments.ours.generate \
-    --model allenai/OLMo-7b-0724-hf \
+    --model allenai/OLMo-7B-0724-hf \
     --max_tokens 512 \
     --task_prompt_idx 1 \
     --task dolma_v17 \
@@ -60,7 +60,7 @@ python3 -m code.experiments.ours.generate \
     --num_proportion_from_end 0.5;
 
 python3 -m code.experiments.ours.generate \
-    --model allenai/OLMo-7b-0724-hf \
+    --model allenai/OLMo-7B-0724-hf \
     --max_tokens 512 \
     --task_prompt_idx 1 \
     --task dolma_v17 \
@@ -72,7 +72,7 @@ python3 -m code.experiments.ours.generate \
     --num_proportion_from_end 0.5;
 
 python3 -m code.experiments.ours.generate \
-    --model allenai/OLMo-7b-0724-hf \
+    --model allenai/OLMo-7B-0724-hf \
     --max_tokens 512 \
     --task_prompt_idx 1 \
     --task dolma_v17 \
