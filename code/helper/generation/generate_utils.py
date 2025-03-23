@@ -143,6 +143,34 @@ task_prompts_dict_book = {
                     "task_preprompt": ""
                 },
             ],
+        "instruct-autoregressive": # Instruction following capabilities
+            [
+                {
+                    "task_prompt": "Continue the text: ",
+                    "task_postprompt": "",
+                    "task_preprompt": ""
+                },
+                {
+                    "task_prompt": "", # Blank string ,
+                    "task_postprompt": "",
+                    "task_preprompt": ""
+                },
+                {
+                    "task_prompt": "I will give you part of a document. Please continue generating the rest of the document as accurately as possible.\n\nDocument: ", 
+                    "task_postprompt": "",
+                    "task_preprompt": ""
+                },
+                {
+                    "task_prompt": "Please generate the rest of this document as close to verbatim as possible.\n\nDocument: ", 
+                    "task_postprompt": "",
+                    "task_preprompt": ""
+                },
+                {
+                    "task_prompt": "I have a partial version of a document. Please help me reconstruct the full version as accurately and coherently as possible, filling in missing or unclear parts using logical reasoning and context.\n\nDocument: ", 
+                    "task_postprompt": "",
+                    "task_preprompt": ""
+                },
+            ],
         },
     "tulu_v1":        
         {"instruct-autoregressive":
@@ -261,12 +289,12 @@ extra commentary, formatting, or additional text.\n\nComplete the prefix: """,
 for task_key in task_prompts_dict_book:
     cur_task_prompts_dict_book = task_prompts_dict_book[task_key]
 
-    for mod in ["davinci-002", "gpt2-large", "Llama-2-7b-hf", "Llama-2-70b-hf","gpt-3.5-turbo-instruct", "pythia-1.4b","pythia-2.8b","pythia-6.9b", "pythia-12b", "llama-7b", "llama-13b", "llama-30b", "llama-65b", "OLMo-1B-0724-hf", "OLMo-7B-0724-hf", "OLMo-7B-0724-Instruct-hf", "OLMo-7B-0724-SFT-hf"]:
+    for mod in ["davinci-002", "gpt2-large", "Llama-2-7b-hf", "Llama-2-70b-hf","gpt-3.5-turbo-instruct", "pythia-1.4b","pythia-2.8b","pythia-6.9b", "pythia-12b", "llama-7b", "llama-13b", "llama-30b", "llama-65b", "OLMo-1B-0724-hf", "OLMo-7B-0724-hf"]:
         try:
             cur_task_prompts_dict_book[mod] = cur_task_prompts_dict_book["noninstruct-autoregressive"]
         except:
             continue
-    for mod in ["gpt-4o-2024-05-13", "Llama-3.1-8B-Instruct","gpt-4o-mini-2024-07-18","gpt-4-turbo-2024-04-09", "o1-mini-2024-09-12", "gpt-3.5-turbo-0125", "Llama-3.1-70B-Instruct", "Llama-2-70b-chat-hf","tulu-7b-finalized", "tulu-13b-finalized", "tulu-30b-finalized", "tulu-65b-finalized", "gpt-4-0613", "gpt-3.5-turbo-1106", "gpt-3.5-turbo-instruct", "tulu-v1-llama2-7b", "tulu-v1-llama2-13b", "tulu-v1-llama2-70b"]:
+    for mod in ["gpt-4o-2024-05-13", "Llama-3.1-8B-Instruct","gpt-4o-mini-2024-07-18","gpt-4-turbo-2024-04-09", "o1-mini-2024-09-12", "gpt-3.5-turbo-0125", "Llama-3.1-70B-Instruct", "Llama-2-70b-chat-hf","tulu-7b-finalized", "tulu-13b-finalized", "tulu-30b-finalized", "tulu-65b-finalized", "gpt-4-0613", "gpt-3.5-turbo-1106", "gpt-3.5-turbo-instruct", "tulu-v1-llama2-7b", "tulu-v1-llama2-13b", "tulu-v1-llama2-70b", "OLMo-7B-0724-Instruct-hf", "OLMo-7B-0724-SFT-hf"]:
         try:
             cur_task_prompts_dict_book[mod] = cur_task_prompts_dict_book["instruct-autoregressive"]
         except: 
