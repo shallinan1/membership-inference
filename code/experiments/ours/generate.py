@@ -194,9 +194,21 @@ def main(args):
                 prompt_texts= list(prompt_texts)
                 rest_of_texts = list(rest_of_texts)
             else:
-                data = [remove_last_n_words(generator.llm.get_tokenizer(), text, args.num_words_from_end, openai=False) for text in passages]
-                prompt_texts, rest_of_texts, token_lengths = map(list, zip(*data))
-                
+                if args.num_words_from_end >= 1:
+                    if args.num_proportion_from_end != 0:
+                        print("Overriding num_proportion_from_end")
+                        args.num_proportion_from_end = -1
+
+                    data = [remove_last_n_words(generator.llm.get_tokenizer(), text, args.num_words_from_end, openai=False) for text in passages]
+                    prompt_texts, rest_of_texts, token_lengths = map(list, zip(*data))                    
+                else:
+                    assert 0 < args.num_proportion_from_end < 1, "No remove tokens set"
+                    # Get length of words
+                    text_lengths = [len(text.split()) for text in passages]
+                    remove_lengths = [max(1, min(int(l * args.num_proportion_from_end), l-1)) for l in text_lengths]
+                    data = [remove_last_n_words(generator.llm.get_tokenizer(), text, remove_length, openai=False) for text, remove_length in zip(passages, remove_lengths)]
+                    prompt_texts, rest_of_texts, token_lengths = map(list, zip(*data))
+
         assert None not in prompt_texts
         unmerged_prompts = []
         for cur_task_prompt in cur_task_prompts:
