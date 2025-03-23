@@ -207,6 +207,10 @@ def main(args):
     generation_texts = [g[args.generation_field] for g in generations]
     # generation_texts = [[text for text in text_list if not any(text.startswith(bad_start) for bad_start in BAD_START_STRINGS)] for text_list in generation_texts]
 
+    # Merge the list of lists
+    num_sequences = len(generation_texts[0][0])
+    generation_texts = [sum(g, []) for g in generation_texts]
+
     if args.task == "bookMIA":
         if args.source_docs is None: # Case when we want to reference only against the original text
             source_docs = [Dataset.from_dict({"text": [unidecode(g["snippet_no_prompt"])]}) for g in generations]
@@ -232,8 +236,7 @@ def main(args):
             # Make the source docs by iterating through through the generations
             source_docs = []
             for g in generations:
-                cur_book_id = g["book_id"]
-                cur_snippet_id = g["snippet_id"]
+                cur_book_id, cur_snippet_id = g["book_id"], g["snippet_id"]
                 # All snippets excluding original one
                 all_book_snippets = df[(df["book_id"] == cur_book_id) & (df["snippet_id"] != cur_snippet_id)].snippet.to_list()
                 all_book_snippets.append(g["snippet_no_prompt"]) # Add original snippet
@@ -254,6 +257,18 @@ def main(args):
         print(args.output_file)
 
     elif args.task == "wikiMIA":
+        assert args.source_docs is None
+        source_docs = [Dataset.from_dict({"text": [unidecode(g["snippet_no_prompt"])]}) for g in generations]
+        args.output_file = args.output_file.replace(".jsonl", "_onedoc.jsonl")
+        print(args.output_file)
+
+    elif args.task == "dolma_v17":
+        assert args.source_docs is None
+        source_docs = [Dataset.from_dict({"text": [unidecode(g["snippet_no_prompt"])]}) for g in generations]
+        args.output_file = args.output_file.replace(".jsonl", "_onedoc.jsonl")
+        print(args.output_file)
+
+    elif args.task == "articles":
         assert args.source_docs is None
         source_docs = [Dataset.from_dict({"text": [unidecode(g["snippet_no_prompt"])]}) for g in generations]
         args.output_file = args.output_file.replace(".jsonl", "_onedoc.jsonl")
@@ -304,6 +319,7 @@ def main(args):
         json.dump(generations, f, indent=4)
         f.flush()
 
+    # TODO use num_sequences to potentially unmerge these and get stats wrt each prompt
     # embed()
 if __name__ == '__main__':
     parser = argparse.ArgumentParser()
