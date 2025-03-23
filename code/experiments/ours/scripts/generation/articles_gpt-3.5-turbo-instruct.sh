@@ -9,7 +9,7 @@ python3 -m code.experiments.ours.generate \
     --max_length_to_sequence_length \
     --num_proportion_from_end 0.5 \
     --remove_bad_first \
-    --data_split train;
+    --data_split test;
 
 python3 -m code.experiments.ours.generate \
     --openai \
@@ -22,7 +22,7 @@ python3 -m code.experiments.ours.generate \
     --max_length_to_sequence_length \
     --num_proportion_from_end 0.5 \
     --remove_bad_first \
-    --data_split train;
+    --data_split test;
 
 python3 -m code.experiments.ours.generate \
     --openai \
@@ -35,7 +35,7 @@ python3 -m code.experiments.ours.generate \
     --max_length_to_sequence_length \
     --num_proportion_from_end 0.5 \
     --remove_bad_first \
-    --data_split train;
+    --data_split test;
 
 python3 -m code.experiments.ours.generate \
     --openai \
@@ -48,7 +48,7 @@ python3 -m code.experiments.ours.generate \
     --max_length_to_sequence_length \
     --num_proportion_from_end 0.5 \
     --remove_bad_first \
-    --data_split train;
+    --data_split test;
 
 python3 -m code.experiments.ours.generate \
     --openai \
@@ -61,7 +61,7 @@ python3 -m code.experiments.ours.generate \
     --max_length_to_sequence_length \
     --num_proportion_from_end 0.5 \
     --remove_bad_first \
-    --data_split train;
+    --data_split test;
 
 python3 -m code.experiments.ours.generate \
     --openai \
@@ -74,7 +74,7 @@ python3 -m code.experiments.ours.generate \
     --max_length_to_sequence_length \
     --num_proportion_from_end 0.75 \
     --remove_bad_first \
-    --data_split train;
+    --data_split test;
 
 python3 -m code.experiments.ours.generate \
     --openai \
@@ -87,7 +87,7 @@ python3 -m code.experiments.ours.generate \
     --max_length_to_sequence_length \
     --num_proportion_from_end 0.75 \
     --remove_bad_first \
-    --data_split train;
+    --data_split test;
 
 python3 -m code.experiments.ours.generate \
     --openai \
@@ -100,7 +100,7 @@ python3 -m code.experiments.ours.generate \
     --max_length_to_sequence_length \
     --num_proportion_from_end 0.75 \
     --remove_bad_first \
-    --data_split train;
+    --data_split test;
 
 python3 -m code.experiments.ours.generate \
     --openai \
@@ -113,7 +113,7 @@ python3 -m code.experiments.ours.generate \
     --max_length_to_sequence_length \
     --num_proportion_from_end 0.75 \
     --remove_bad_first \
-    --data_split train;
+    --data_split test;
 
 python3 -m code.experiments.ours.generate \
     --openai \
@@ -126,7 +126,7 @@ python3 -m code.experiments.ours.generate \
     --max_length_to_sequence_length \
     --num_proportion_from_end 0.75 \
     --remove_bad_first \
-    --data_split train;
+    --data_split test;
 
 
 python3 -m code.experiments.ours.generate \
@@ -140,7 +140,7 @@ python3 -m code.experiments.ours.generate \
     --max_length_to_sequence_length \
     --num_proportion_from_end 0.25 \
     --remove_bad_first \
-    --data_split train;
+    --data_split test;
 
 python3 -m code.experiments.ours.generate \
     --openai \
@@ -153,7 +153,7 @@ python3 -m code.experiments.ours.generate \
     --max_length_to_sequence_length \
     --num_proportion_from_end 0.25 \
     --remove_bad_first \
-    --data_split train;
+    --data_split test;
 
 python3 -m code.experiments.ours.generate \
     --openai \
@@ -166,7 +166,7 @@ python3 -m code.experiments.ours.generate \
     --max_length_to_sequence_length \
     --num_proportion_from_end 0.25 \
     --remove_bad_first \
-    --data_split train;
+    --data_split test;
 
 python3 -m code.experiments.ours.generate \
     --openai \
@@ -179,7 +179,7 @@ python3 -m code.experiments.ours.generate \
     --max_length_to_sequence_length \
     --num_proportion_from_end 0.25 \
     --remove_bad_first \
-    --data_split train;
+    --data_split test;
 
 python3 -m code.experiments.ours.generate \
     --openai \
@@ -192,4 +192,4 @@ python3 -m code.experiments.ours.generate \
     --max_length_to_sequence_length \
     --num_proportion_from_end 0.25 \
     --remove_bad_first \
-    --data_split train;
+    --data_split test;
