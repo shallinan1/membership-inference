@@ -9,14 +9,16 @@ DetectorFactory.seed = 0
 
 def detect_language(text):
     try:
-        language = detect(text)
-        return language
+        return detect(text)
     except Exception as e:
         return f"Error detecting language: {e}"
 
+def is_meaningful_title(title):
+    lower_title = title.lower()
+    return not (lower_title.startswith("timeline of") or lower_title.startswith("list of"))
+
 # Step 1: Fetch newly created pages in 2025 from recent changes API
 S = requests.Session()
-
 URL = "https://en.wikipedia.org/w/api.php"
 
 PARAMS = {
@@ -34,7 +36,8 @@ PARAMS = {
 response = S.get(url=URL, params=PARAMS)
 data = response.json()
 
-titles = [item['title'] for item in data['query']['recentchanges']]
+# Filter titles that are likely to be non-substantive
+titles = [item['title'] for item in data['query']['recentchanges'] if is_meaningful_title(item['title'])]
 
 # Step 2: Get content for each page
 def get_page_extract(title):
@@ -48,35 +51,30 @@ def get_page_extract(title):
     r = S.get(url=URL, params=params)
     result = r.json()
     page = next(iter(result['query']['pages'].values()))
-    # Check if page exists
     if "missing" in page:
-        return "Page does not exist."    
-
+        return 0
     extract = page.get('extract', '')
     if not extract.strip():
-        return 0 #"No extract available for this page."
-
+        return 0
     try:
         time.sleep(1)
-        t = detect_language(extract)
-        if t != "en":
-            return 0 #"Article not in English, it is in: " + t
-        else:
-            # print("Article was in English! Here it is..")
-            return extract
+        lang = detect_language(extract)
+        if lang != "en":
+            return 0
+        return extract
     except:
-        print("langdetect stopped working, so just returning the extract found without checkingthe language!")
+        print("langdetect failed; returning raw extract.")
         return extract
 
-# Example: Fetch and print first 5
+# Example: Fetch and print
 for title in titles[:500]:
     content = get_page_extract(title)
     if content == 0:
         continue
-    if content.lstrip()[0].startswith("=="):
+    if content.lstrip().startswith("=="):
         continue
     print(f"TITLE: {title}")
-    print(content[:500])  # print first 500 characters
+    print(content[:500])
     print("\n---\n")
     embed()
 
