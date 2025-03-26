@@ -14,8 +14,12 @@ def detect_language(text):
         return f"Error detecting language: {e}"
 
 def is_meaningful_title(title):
-    lower_title = title.lower()
-    return not (lower_title.startswith("timeline of") or lower_title.startswith("list of"))
+    lowered = title.lower()
+    if lowered.startswith("timeline of") or lowered.startswith("list of"):
+        return False
+    if any(year in lowered for year in ["2024", "2025", "2026"]):
+        return False
+    return True
 
 # Step 1: Fetch newly created pages in 2025 from recent changes API
 S = requests.Session()
@@ -36,7 +40,7 @@ PARAMS = {
 response = S.get(url=URL, params=PARAMS)
 data = response.json()
 
-# Filter titles that are likely to be non-substantive
+# Filter titles
 titles = [item['title'] for item in data['query']['recentchanges'] if is_meaningful_title(item['title'])]
 
 # Step 2: Get content for each page
