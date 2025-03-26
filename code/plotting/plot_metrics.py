@@ -59,10 +59,10 @@ def main(args):
             ax.set_xticks([10, 20, 50, 100])
         ax.grid(alpha=0.3)
         if i == num_metrics-3:
-            ax.legend(ncols=num_metrics+1, loc='upper center', bbox_to_anchor=(0.95, -0.5))
+            ax.legend(ncols=num_metrics+1, loc='upper center', bbox_to_anchor=(0.95, 1.5))
 
     fig.subplots_adjust(wspace=0.1) 
-    fig.supxlabel(args.x_label, fontsize=16, font=bold_font, y=-0.21)
+    fig.supxlabel(args.x_label, fontsize=16, font=bold_font, y=-0.18)
     plt.savefig(f"code/plotting/plots/{args.save_name}.pdf", bbox_inches="tight")
     plt.show()
 
