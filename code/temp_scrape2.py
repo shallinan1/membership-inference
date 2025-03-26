@@ -5,6 +5,9 @@ from IPython import embed
 from wikitextparser import remove_markup, parse
 import re
 from tqdm import tqdm
+import Levenshtein
+from datetime import datetime
+from unidecode import unidecode
 
 session = requests.Session()
 BASE_URL = "https://en.wikipedia.org/w/api.php"
@@ -74,11 +77,15 @@ def get_latest_revision(title):
         "prop": "revisions",
         "titles": title,
         "rvlimit": 1,
-        "rvprop": "content",
+        "rvprop": "content|timestamp",
         "rvslots": "main"
     })
     page = next(iter(res.json()["query"]["pages"].values()))
-    return page["revisions"][0]["slots"]["main"]["*"]
+    revision = page["revisions"][0]
+    wikitext = revision["slots"]["main"]["*"]
+    timestamp = revision["timestamp"]
+    return wikitext, timestamp
+
 
 def extract_plain_summary(wikitext):
     parsed = parse(wikitext)
@@ -88,9 +95,14 @@ def extract_plain_summary(wikitext):
     if summary.startswith("thumb"):
         index = summary.find("\n")
         if index != -1:
-            result = summary[index+1:].strip()
+            summary = summary[index+1:].strip()
+    if "\n\n\nthumb" in summary:
+        index = summary.find("\n\n\nthumb")
+        if index != 1:
+            summary = summary[:index].split()
 
     summary = remove_urls(summary).strip()
+    summary = re.sub(r'\(\s*[\.,;:\-!?]*\s*\)', '', summary) # remove empty parens
 
     if summary.startswith("is a"):
         return ""
@@ -98,7 +110,10 @@ def extract_plain_summary(wikitext):
     if len(summary.split()) < 5:
         return ""   
 
-    return summary
+    if "accessed on" in summary:
+        return "" # Parsing error
+
+    return unidecode(summary)
 
 results = []
 
@@ -109,7 +124,14 @@ def compare_summaries(title):
         return None
     
     old_wikitext = get_revision_wikitext(revid)
-    new_wikitext = get_latest_revision(title)
+    new_wikitext, timestamp = get_latest_revision(title)
+
+    # Ensure the latest revision is from Jan 2024 or later
+    latest_revision_date = datetime.fromisoformat(timestamp.replace("Z", "+00:00"))
+    if latest_revision_date < datetime(2024, 1, 1, tzinfo=latest_revision_date.tzinfo):
+        print(f"[SKIPPED: TOO OLD] {title} — Last edit on {latest_revision_date.date()}")
+        return False
+
     old_summary = extract_plain_summary(old_wikitext)
     new_summary = extract_plain_summary(new_wikitext)
 
@@ -120,14 +142,9 @@ def compare_summaries(title):
         print(f"[UNCHANGED] {title}")
         return False
     else:
-        matcher = difflib.SequenceMatcher(None, old_summary, new_summary)
-        diff_chars = sum(
-            max(i2 - i1, j2 - j1)
-            for tag, i1, i2, j1, j2 in matcher.get_opcodes()
-            if tag != 'equal'
-        )
+        diff_chars = Levenshtein.distance(old_summary, new_summary)
 
-        print(f"[CHANGED] {title} — Difference: {diff_chars} characters")
+        print(f"[CHANGED] {title} — Levenshtein Distance: {diff_chars} characters")
 
         results.append({
             "title": title,
@@ -135,12 +152,11 @@ def compare_summaries(title):
             "new_summary": new_summary,
             "char_difference": diff_chars
         })
-        return True
 
 # Run on N random articles
 count = 0
 tries = 0
-max_tries = 100
+max_tries = 10
 
 for tries in tqdm(range(max_tries)):
     tries += 1
