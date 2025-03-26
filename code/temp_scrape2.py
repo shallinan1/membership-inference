@@ -1,13 +1,21 @@
 import requests
-from datetime import datetime
 import difflib
+import time
 from IPython import embed
+from wikitextparser import remove_markup, parse
+import re
+from tqdm import tqdm
 
 session = requests.Session()
+BASE_URL = "https://en.wikipedia.org/w/api.php"
+
+def remove_urls(text):
+    url_pattern = r'https?://\S+|www\.\S+'
+    return re.sub(url_pattern, '', text)
 
 def get_random_article():
     while True:
-        res = session.get("https://en.wikipedia.org/w/api.php", params={
+        res = session.get(BASE_URL, params={
             "format": "json",
             "action": "query",
             "list": "random",
@@ -18,8 +26,8 @@ def get_random_article():
         if title.startswith("List of") or "disambiguation" in title.lower():
             continue
 
-        # Check if it's a disambiguation page
-        page_info = session.get("https://en.wikipedia.org/w/api.php", params={
+        # Check disambiguation via pageprops
+        page_info = session.get(BASE_URL, params={
             "format": "json",
             "action": "query",
             "prop": "pageprops",
@@ -31,8 +39,8 @@ def get_random_article():
 
         return title
 
-def get_revision_as_of(title, date):
-    res = session.get("https://en.wikipedia.org/w/api.php", params={
+def get_revision_id_as_of(title, date="2016-12-31T23:59:59Z"):
+    res = session.get(BASE_URL, params={
         "format": "json",
         "action": "query",
         "prop": "revisions",
@@ -40,16 +48,27 @@ def get_revision_as_of(title, date):
         "rvlimit": 1,
         "rvdir": "older",
         "rvstart": date,
-        "rvprop": "content",
-        "rvslots": "main"
-    }).json()
-    page = next(iter(res["query"]["pages"].values()))
+        "rvprop": "ids",
+    })
+    page = next(iter(res.json()["query"]["pages"].values()))
     if "revisions" not in page:
         return None
+    return page["revisions"][0]["revid"]
+
+def get_revision_wikitext(revid):
+    res = session.get(BASE_URL, params={
+        "format": "json",
+        "action": "query",
+        "prop": "revisions",
+        "revids": revid,
+        "rvprop": "content",
+        "rvslots": "main"
+    })
+    page = next(iter(res.json()["query"]["pages"].values()))
     return page["revisions"][0]["slots"]["main"]["*"]
 
 def get_latest_revision(title):
-    res = session.get("https://en.wikipedia.org/w/api.php", params={
+    res = session.get(BASE_URL, params={
         "format": "json",
         "action": "query",
         "prop": "revisions",
@@ -57,47 +76,61 @@ def get_latest_revision(title):
         "rvlimit": 1,
         "rvprop": "content",
         "rvslots": "main"
-    }).json()
-    page = next(iter(res["query"]["pages"].values()))
+    })
+    page = next(iter(res.json()["query"]["pages"].values()))
     return page["revisions"][0]["slots"]["main"]["*"]
 
-def extract_lead(wikitext):
-    embed()
-    if not wikitext:
-        return ""
-    lines = wikitext.splitlines()
-    lead = []
-    for line in lines:
-        if line.startswith("=="):
-            break
-        lead.append(line)
-    return "\n".join(lead).strip()
+def extract_plain_summary(wikitext):
+    parsed = parse(wikitext)
+    summary = parsed.sections[0].plain_text().strip()
+    summary = re.sub(r' {2,}', ' ', summary)
 
-def summary_stable_since_2016(title):
-    old_rev = get_revision_as_of(title, "2016-12-31T23:59:59Z")
-    new_rev = get_latest_revision(title)
-    old_lead = extract_lead(old_rev)
-    new_lead = extract_lead(new_rev)
-    return old_lead == new_lead, old_lead, new_lead
+    summary = remove_urls(summary).strip()
+    if summary.startswith("is a"):
+        embed()
 
-# Example: find N articles with stable lead
-stable_articles = []
-attempts = 0
-max_articles = 5
 
-while len(stable_articles) < max_articles and attempts < 100:
-    attempts += 1
+    return summary
+
+def compare_summaries(title):
+    revid = get_revision_id_as_of(title)
+    
+    if revid is None:
+        return None
+    old_wikitext = get_revision_wikitext(revid)
+    new_wikitext = get_latest_revision(title)
+    old_summary = extract_plain_summary(old_wikitext)
+    new_summary = extract_plain_summary(new_wikitext)
+
+    if old_summary == new_summary:
+        print(f"[UNCHANGED] {title}")
+    else:
+        print(f"\n[CHANGED] {title}")
+        print(">>> DIFF:")
+        diff = difflib.unified_diff(
+            old_summary.splitlines(),
+            new_summary.splitlines(),
+            fromfile="2016",
+            tofile="current",
+            lineterm=""
+        )
+        for line in diff:
+            print(line)
+    return True
+
+# Run on N random articles
+n_articles = 100
+count = 0
+tries = 0
+max_tries = 100
+
+for tries in tqdm(range(max_tries)):
+    tries += 1
     title = get_random_article()
-    is_stable, old, new = summary_stable_since_2016(title)
-    if is_stable:
-        stable_articles.append((title, old))
-        print(f"[{len(stable_articles)}] {title} — summary unchanged since 2016")
-
-
-# Print summaries
-print("\n=== Stable Summaries ===")
-for title, summary in stable_articles:
-    print(f"\n--- {title} ---\n{summary}\n")
+    result = compare_summaries(title)
+    if result:
+        count += 1
+    time.sleep(1)
 
 embed()
 """
