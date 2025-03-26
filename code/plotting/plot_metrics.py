@@ -53,6 +53,8 @@ def main(args):
         ax.set_title(name_map.get(cur_title, cur_title))
         if "prop" in args.save_name:
             ax.set_xticks(np.array([10, 25, 50, 75, 90])/100)
+        elif "temp" in args.save_name:
+            ax.set_xticks(np.array([20, 50, 80, 100, 120, 150, 180])/100)
         else:
             ax.set_xticks([10, 20, 50, 100])
         ax.grid(alpha=0.3)
@@ -83,4 +85,9 @@ python3 -m code.plotting.plot_metrics \
     --data_path code/plotting/temp_data_min_proportion.tsv \
     --save_name num_proportion_from_end \
     --x_label "Proportion of Text as Prompt"
+
+python3 -m code.plotting.plot_metrics \
+    --data_path code/plotting/temp_data_temp.tsv \
+    --save_name temperature  \
+    --x_label "Temperature"
 """
