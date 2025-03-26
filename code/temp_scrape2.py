@@ -85,41 +85,59 @@ def extract_plain_summary(wikitext):
     summary = parsed.sections[0].plain_text().strip()
     summary = re.sub(r' {2,}', ' ', summary)
 
-    summary = remove_urls(summary).strip()
-    if summary.startswith("is a"):
-        embed()
+    if summary.startswith("thumb"):
+        index = summary.find("\n")
+        if index != -1:
+            result = summary[index+1:].strip()
 
+    summary = remove_urls(summary).strip()
+
+    if summary.startswith("is a"):
+        return ""
+    
+    if len(summary.split()) < 5:
+        return ""   
 
     return summary
+
+results = []
 
 def compare_summaries(title):
     revid = get_revision_id_as_of(title)
     
     if revid is None:
         return None
+    
     old_wikitext = get_revision_wikitext(revid)
     new_wikitext = get_latest_revision(title)
     old_summary = extract_plain_summary(old_wikitext)
     new_summary = extract_plain_summary(new_wikitext)
 
+    if old_summary == "" or new_summary == "":
+        return False
+
     if old_summary == new_summary:
         print(f"[UNCHANGED] {title}")
+        return False
     else:
-        print(f"\n[CHANGED] {title}")
-        print(">>> DIFF:")
-        diff = difflib.unified_diff(
-            old_summary.splitlines(),
-            new_summary.splitlines(),
-            fromfile="2016",
-            tofile="current",
-            lineterm=""
+        matcher = difflib.SequenceMatcher(None, old_summary, new_summary)
+        diff_chars = sum(
+            max(i2 - i1, j2 - j1)
+            for tag, i1, i2, j1, j2 in matcher.get_opcodes()
+            if tag != 'equal'
         )
-        for line in diff:
-            print(line)
-    return True
+
+        print(f"[CHANGED] {title} — Difference: {diff_chars} characters")
+
+        results.append({
+            "title": title,
+            "old_summary": old_summary,
+            "new_summary": new_summary,
+            "char_difference": diff_chars
+        })
+        return True
 
 # Run on N random articles
-n_articles = 100
 count = 0
 tries = 0
 max_tries = 100
