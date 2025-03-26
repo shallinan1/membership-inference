@@ -71,7 +71,7 @@ for model in ["tulu-13b-finalized", "tulu-30b-finalized", "tulu-65b-finalized", 
     system_prompts[model] = system_prompts["tulu-7b-finalized"]
 for model in ["gpt-4-0613", "gpt-4-0314", "gpt-3.5-turbo-1106", "gpt-3.5-turbo-instruct"]:
     system_prompts[model] = system_prompts["gpt-3.5-turbo-0125"]
-for model in ["pythia-2.8b", "pythia-6.9b", "pythia-12b"]:
+for model in ["pythia-2.8b", "pythia-6.9b", "pythia-12b", "llama-7b", "llama-13b", "llama-30b", "llama-65b"]:
     system_prompts[model] = system_prompts["pythia-1.4b"]
 
 # TODO make this into indvidiaul functions for better style
@@ -143,7 +143,7 @@ def main(args):
         paraphrases = extract_examples(generation)
         if len(paraphrases) != 3:
             bad_paraphrases += 1
-            # paraphrases = extract_examples_modified(generation)
+            paraphrases = extract_examples_modified(generation)
             
             if len(paraphrases) != 3:
                 still_bad_paraphrases += 1
@@ -295,7 +295,7 @@ def main(args):
                 formatted_prompts = [convert_to_tulu_v1_open(f"{system_prompt}\n\n{c}") for c in cur_mc_prompt]
                 d["decop_formatted_prompts"] = formatted_prompts
                 d["decop_truth_index"] = [p["true_index"] for p in d["permutations"]]
-        if "pile_external" in args.task:
+        if "pile_external" in args.task or "wikiMIA" in args.task:
             for cur_mc_prompt, d in zip(all_mc_prompts, data):
                 d["decop_formatted_prompts"] = cur_mc_prompt
                 d["decop_truth_index"] = [p["true_index"] for p in d["permutations"]]
@@ -318,7 +318,7 @@ def main(args):
             min_tokens=1,
             n=1
         )
-
+        
         # Get the probs
         outputs = []
         for output_logprobs in all_output_logprobs:
@@ -351,11 +351,12 @@ def main(args):
 
     output_path = data_path.replace("paraphrases", "decop_probs")
     output_path = output_path.replace(".jsonl", f"_{model_name}.jsonl")
+    # output_path = output_path.replace(".jsonl", "no_help.jsonl")
     print(output_path)
 
     os.makedirs(os.path.dirname(output_path), exist_ok=True)
     save_to_jsonl(data, output_path)
-    embed()
+    # embed()
         
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(formatter_class=argparse.ArgumentDefaultsHelpFormatter)
