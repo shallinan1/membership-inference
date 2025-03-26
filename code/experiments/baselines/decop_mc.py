@@ -94,6 +94,9 @@ def format_multiple_choice(task, data):
             elif task == "pile_external":
                 extra_prompt = f"""Question: Which of the following passages is verbatim from an existing online text document?\nOptions:\n"""
                 prompt = extra_prompt +  'A. ' + cur_perm[0] + '\n' + 'B. ' + cur_perm[1] + '\n' + 'C. ' + cur_perm[2] + '\n' + 'D. ' + cur_perm[3] + '\n' + 'Answer: '  
+            elif task == "articles":
+                extra_prompt = f"""Question: Which of the following passages is verbatim from an existing news article?\nOptions:\n"""
+                prompt = extra_prompt +  'A. ' + cur_perm[0] + '\n' + 'B. ' + cur_perm[1] + '\n' + 'C. ' + cur_perm[2] + '\n' + 'D. ' + cur_perm[3] + '\n' + 'Answer: '  
             cur_mc_prompts.append(prompt)
         all_mc_prompts.append(cur_mc_prompts)
     return all_mc_prompts
@@ -170,7 +173,7 @@ def main(args):
     if args.closed_model:
         if "claude" not in args.target_model:
             # Process bookMIA data
-            if "bookMIA" in args.task or "wikiMIA" in args.task:
+            if "bookMIA" in args.task or "wikiMIA" in args.task or "articles" in args.task:
                 for cur_mc_prompt, d in zip(all_mc_prompts, data):
                     formatted_prompts = [f"{system_prompt}\n{c}" for c in cur_mc_prompt]
                     d["decop_formatted_prompts"] = formatted_prompts
@@ -187,7 +190,7 @@ def main(args):
                 request_id = i
                 cur_request = {
                     "model": args.target_model,
-                    "max_tokens": 1,
+                    "max_tokens": 5,
                     "temperature": 0,
                     "seed": args.seed,
                     "n": 1, # Hardcode this
@@ -262,7 +265,7 @@ def main(args):
                 sub_value = -1000.0
                 probs_list = []
                 for l in letter_choices:
-                    current_logprobs.get(l, sub_value)
+                    probs_list.append(current_logprobs.get(l, sub_value))
                 if sum(probs_list) == 4 * sub_value: # Check for special case
                     sum_zero += 1
 
