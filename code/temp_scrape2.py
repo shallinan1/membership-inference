@@ -12,6 +12,19 @@ from unidecode import unidecode
 session = requests.Session()
 BASE_URL = "https://en.wikipedia.org/w/api.php"
 
+def is_stub(title):
+    res = session.get(BASE_URL, params={
+        "format": "json",
+        "action": "query",
+        "prop": "categories",
+        "titles": title,
+        "cllimit": "max"
+    })
+    page = next(iter(res.json()["query"]["pages"].values()))
+    if "categories" not in page:
+        return False
+    return any("stubs" in cat["title"].lower() for cat in page["categories"])
+
 def remove_urls(text):
     url_pattern = r'https?://\S+|www\.\S+'
     return re.sub(url_pattern, '', text)
@@ -26,8 +39,14 @@ def get_random_article():
             "rnlimit": 1,
         })
         title = res.json()["query"]["random"][0]["title"]
-        if title.startswith("List of") or "disambiguation" in title.lower():
+        if (
+            title.startswith("List of") or
+            "disambiguation" in title.lower() or
+            is_stub(title)
+        ):
+            print(f"[SKIPPED] {title} — list/disambig/stub")
             continue
+
 
         # Check disambiguation via pageprops
         page_info = session.get(BASE_URL, params={
@@ -150,13 +169,14 @@ def compare_summaries(title):
             "title": title,
             "old_summary": old_summary,
             "new_summary": new_summary,
-            "char_difference": diff_chars
+            "char_difference": diff_chars,
+            "percent_diff": (2*diff_chars)/(len(old_summary) + len(new_summary))
         })
 
 # Run on N random articles
 count = 0
 tries = 0
-max_tries = 10
+max_tries = 50
 
 for tries in tqdm(range(max_tries)):
     tries += 1
