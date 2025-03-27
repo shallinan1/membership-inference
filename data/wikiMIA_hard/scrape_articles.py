@@ -8,6 +8,7 @@ from tqdm import tqdm
 import Levenshtein
 from datetime import datetime
 from unidecode import unidecode
+from code.utils import save_to_jsonl
 
 session = requests.Session()
 BASE_URL = "https://en.wikipedia.org/w/api.php"
@@ -155,7 +156,7 @@ def compare_summaries(title):
     revid = get_revision_id_as_of(title)
     
     if revid is None:
-        return None
+        return False
     
     old_wikitext = get_revision_wikitext(revid)
     if old_wikitext is None:
@@ -195,7 +196,7 @@ def compare_summaries(title):
 # Run on N random articles
 count = 0
 tries = 0
-max_tries = 100
+max_tries = 500
 
 for tries in tqdm(range(max_tries)):
     tries += 1
@@ -203,10 +204,10 @@ for tries in tqdm(range(max_tries)):
     result = compare_summaries(title)
     if result:
         count += 1
-    time.sleep(0.25)
+    time.sleep(0.1)
 
+save_to_jsonl(results, "data/wikiMIA_hard/scraped/scraped.jsonl")
 embed()
 """
-python3 -m code.data.wikiMIA_hard.scrape_articles
-
+python3 -m data.wikiMIA_hard.scrape_articles
 """
