@@ -1,0 +1,128 @@
+from code.user_secrets import CACHE_PATH
+import os
+# Set up environment variables
+os.environ["HF_HOME"] = CACHE_PATH
+os.environ["HF_DATASETS_PATH"] = CACHE_PATH
+
+import random
+import numpy as np
+import argparse
+import os
+from sklearn.model_selection import train_test_split
+from code.utils import load_jsonl, save_to_jsonl
+from IPython import embed
+from code.utils import load_jsonl
+import re
+
+def remove_thumb(summary):
+    while summary.startswith("thumb"):
+        index = summary.find("\n")
+        if index != -1:
+            summary = summary[index+1:].strip()
+    
+    return summary
+
+def has_period_followed_by_capital(text):
+    pattern = r"\.[A-Z]"
+    return bool(re.search(pattern, text))
+
+bad_strings = ["ISBN", "United States Patent Office", "Decreto", "CASE STUDY", "the source of this method's name", "\mathbf", "Mairie de Montrea", "FCCdata.org/CBY",
+               "Today National Correspondent"]
+
+def main(args):  
+    raw_data = load_jsonl("data/wikiMIA_hard/scraped/scraped.jsonl")
+    
+    filtered_data = []
+    for r in raw_data:
+        r["old_summary"] = remove_thumb(r["old_summary"])
+        r["new_summary"] = remove_thumb(r["new_summary"])
+
+        r["old_summary"] = " ".join(re.sub(r'\(\s*[\W_]*\s*\)', '', r["old_summary"]).split()[:256])
+        r["new_summary"] = " ".join(re.sub(r'\(\s*[\W_]*\s*\)', '', r["new_summary"]).split()[:256])
+        old_sum = r["old_summary"]
+        new_sum = r["new_summary"]
+
+        bad=False
+        for b in bad_strings:
+            if b in old_sum or b in new_sum:
+                bad = True
+                break
+            if has_period_followed_by_capital(old_sum) or has_period_followed_by_capital(new_sum):
+                bad=True
+                break
+        if bad:
+            continue
+
+        # Don't include this if either of the lengths is 50% or longer than the other
+        len_old = len(old_sum)
+        len_new = len(new_sum)
+
+        shorter = min(len_old, len_new)
+        longer = max(len_old, len_new)
+
+        if len(r["old_summary"].split()) < 25 or len(r["new_summary"].split()) < 25:
+            continue
+
+        # Keep only if shorter is at least 2/3 the length of the longer
+        if shorter / longer >= 0.75 and r["percent_diff"] >= 0.5:
+            filtered_data.append(r)
+
+    filtered_data = random.sample(filtered_data, 125)
+
+    val_split_adjusted = args.val_split / (args.val_split + args.test_split)
+    # Split nonmember and member data
+    train, temp = train_test_split(filtered_data, test_size=args.val_split + args.test_split, random_state=args.seed)
+    val, test = train_test_split(temp, test_size=1 - val_split_adjusted, random_state=args.seed)
+
+    train_data = []
+    for i, t in enumerate(train):
+        train_data.append({"title": t["title"], "date": t["first_retrieved_date"], "snippet": t["old_summary"], "id": i, "diff": t["char_difference"]})
+        train_data.append({"title": t["title"], "date": t["last_edit_date"], "snippet": t["new_summary"], "id": i, "diff": t["char_difference"]})
+    
+    val_data = []
+    for i, t in enumerate(val):
+        val_data.append({"title": t["title"], "date": t["first_retrieved_date"], "snippet": t["old_summary"], "id": i, "diff": t["char_difference"]})
+        val_data.append({"title": t["title"], "date": t["last_edit_date"], "snippet": t["new_summary"], "id": i, "diff": t["char_difference"]})
+
+    test_data = []
+    for i, t in enumerate(test):
+        test_data.append({"title": t["title"], "date": t["first_retrieved_date"], "snippet": t["old_summary"], "id": i, "diff": t["char_difference"]})
+        test_data.append({"title": t["title"], "date": t["last_edit_date"], "snippet": t["new_summary"], "id": i, "diff": t["char_difference"]})
+
+
+    # Recombine and shuffle
+    random.shuffle(train_data)
+    random.shuffle(val_data)
+    random.shuffle(test_data)
+
+    save_folder = os.path.join("data", "wikiMIA_hard", "split-random-overall")
+    os.makedirs(save_folder, exist_ok=True)
+
+    # Save train, val, and test splits
+    save_to_jsonl(train_data, os.path.join(save_folder, "test.jsonl"))
+    save_to_jsonl(test_data, os.path.join(save_folder, "train.jsonl")) # Make the "train set" the test set, since we want it to be the majority
+    save_to_jsonl(val_data, os.path.join(save_folder, "val.jsonl"))
+
+    print("Data splits saved in folder:", save_folder)        
+    print(train_data[0])
+    print(len(train_data), len(test_data), len(val_data))
+    embed()
+
+if __name__ == "__main__":
+    parser = argparse.ArgumentParser(description="Make data splits")
+
+    parser.add_argument("--val_split", type=float, default=0.05)
+    parser.add_argument("--test_split", type=float, default=0.05)
+    parser.add_argument("--min_percentile", type=float, default=2.5)
+    parser.add_argument("--seed", type=int, default=0, help="Random seed for reproducibility")
+    args = parser.parse_args()
+
+    random.seed(args.seed)
+    np.random.seed(args.seed)
+
+    main(args)
+
+    """
+    # To run this file, use:
+    python3 -m data.wikiMIA_hard.preprocess
+    """
