@@ -129,6 +129,42 @@ def make_prompts(
 
 # Task prompts
 task_prompts_dict_book = {
+    "articles":
+            {
+            "instruct-autoregressive": # Prompts for instruction-tuned examples
+                [{
+                    "task_prompt": "",
+                    "task_postprompt": "",
+                    "task_preprompt": ""
+                },
+                {
+                    "task_prompt": "Continue the article as accurately as possible, without any extra text.\n\n",
+                    "task_postprompt": "",
+                    "task_preprompt": ""
+                },
+                {
+                    "task_prompt": "Continue the generation as closely to verbatim as possible.\n\n",
+                    "task_postprompt": "",
+                    "task_preprompt": ""
+                },
+                {
+                    "task_prompt": """You will be shown a series of news articles. After these examples, \
+you will receive a prefix from another news article and be asked to complete it based on the \
+text of a well-known article. Provide only the continuation for the last given prefix without any \
+extra commentary, formatting, or additional text.\n\nComplete the prefix: """,
+                    "task_postprompt": "",
+                    "task_preprompt": ""
+                },
+                {
+                    "task_prompt": """You will be shown a series of news articles. After these examples, \
+you will receive a prefix from another news article and be asked to complete it. \
+Provide only the continuation for the last given prefix without any \
+extra commentary, formatting, or additional text.\n\nComplete the prefix: """,
+                    "task_postprompt": "",
+                    "task_preprompt": ""
+                }],
+        }
+    ,
     "dolma_v17": # Same as pile
         {"noninstruct-autoregressive": # GPT3 style - Can be abstracted to prompts for non-instruction tuned models
             [
