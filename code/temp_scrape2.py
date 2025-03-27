@@ -148,6 +148,9 @@ def extract_plain_summary(wikitext):
 
 results = []
 
+raw_date = "2016-12-31T23:59:59Z"
+parsed_date = datetime.fromisoformat(raw_date.replace("Z", "+00:00"))
+
 def compare_summaries(title):
     revid = get_revision_id_as_of(title)
     
@@ -184,13 +187,15 @@ def compare_summaries(title):
             "old_summary": old_summary,
             "new_summary": new_summary,
             "char_difference": diff_chars,
-            "percent_diff": (2*diff_chars)/(len(old_summary) + len(new_summary))
+            "percent_diff": (2*diff_chars)/(len(old_summary) + len(new_summary)),
+            "first_retrieved_date": parsed_date.date().isoformat(),
+            "last_edit_date": latest_revision_date.date().isoformat()
         })
 
 # Run on N random articles
 count = 0
 tries = 0
-max_tries = 10
+max_tries = 100
 
 for tries in tqdm(range(max_tries)):
     tries += 1
