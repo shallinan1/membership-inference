@@ -76,18 +76,18 @@ def main(args):
 
     train_data = []
     for i, t in enumerate(train):
-        train_data.append({"title": t["title"], "date": t["first_retrieved_date"], "snippet": t["old_summary"], "id": i, "diff": t["char_difference"]})
-        train_data.append({"title": t["title"], "date": t["last_edit_date"], "snippet": t["new_summary"], "id": i, "diff": t["char_difference"]})
+        train_data.append({"title": t["title"], "date": t["first_retrieved_date"], "input": t["old_summary"], "id": i, "diff": t["char_difference"]})
+        train_data.append({"title": t["title"], "date": t["last_edit_date"], "input": t["new_summary"], "id": i, "diff": t["char_difference"]})
     
     val_data = []
     for i, t in enumerate(val):
-        val_data.append({"title": t["title"], "date": t["first_retrieved_date"], "snippet": t["old_summary"], "id": i, "diff": t["char_difference"]})
-        val_data.append({"title": t["title"], "date": t["last_edit_date"], "snippet": t["new_summary"], "id": i, "diff": t["char_difference"]})
+        val_data.append({"title": t["title"], "date": t["first_retrieved_date"], "input": t["old_summary"], "id": i, "diff": t["char_difference"]})
+        val_data.append({"title": t["title"], "date": t["last_edit_date"], "input": t["new_summary"], "id": i, "diff": t["char_difference"]})
 
     test_data = []
     for i, t in enumerate(test):
-        test_data.append({"title": t["title"], "date": t["first_retrieved_date"], "snippet": t["old_summary"], "id": i, "diff": t["char_difference"]})
-        test_data.append({"title": t["title"], "date": t["last_edit_date"], "snippet": t["new_summary"], "id": i, "diff": t["char_difference"]})
+        test_data.append({"title": t["title"], "date": t["first_retrieved_date"], "input": t["old_summary"], "id": i, "diff": t["char_difference"]})
+        test_data.append({"title": t["title"], "date": t["last_edit_date"], "input": t["new_summary"], "id": i, "diff": t["char_difference"]})
 
 
     # Recombine and shuffle
