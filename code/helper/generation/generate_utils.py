@@ -322,6 +322,8 @@ extra commentary, formatting, or additional text.\n\nComplete the prefix: """,
         }
     }
 
+task_prompts_dict_book["wikiMIA_2024_plus"] = task_prompts_dict_book["wikiMIA"]
+
 for task_key in task_prompts_dict_book:
     cur_task_prompts_dict_book = task_prompts_dict_book[task_key]
 
