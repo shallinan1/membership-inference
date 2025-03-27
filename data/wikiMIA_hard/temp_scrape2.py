@@ -207,6 +207,6 @@ for tries in tqdm(range(max_tries)):
 
 embed()
 """
-python3 -m code.temp_scrape2
+python3 -m code.data.wikiMIA_hard.scrape_articles
 
 """
