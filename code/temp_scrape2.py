@@ -87,7 +87,11 @@ def get_revision_wikitext(revid):
         "rvslots": "main"
     })
     page = next(iter(res.json()["query"]["pages"].values()))
-    return page["revisions"][0]["slots"]["main"]["*"]
+    try:
+        output = page["revisions"][0]["slots"]["main"]["*"]
+        return output
+    except:
+        return None
 
 def get_latest_revision(title):
     res = session.get(BASE_URL, params={
@@ -105,9 +109,14 @@ def get_latest_revision(title):
     timestamp = revision["timestamp"]
     return wikitext, timestamp
 
-
 def extract_plain_summary(wikitext):
+    try:
+        parsed = parse(wikitext)
+    except:
+        return ""
+
     parsed = parse(wikitext)
+
     summary = parsed.sections[0].plain_text().strip()
     summary = re.sub(r' {2,}', ' ', summary)
 
@@ -120,6 +129,9 @@ def extract_plain_summary(wikitext):
         if index != 1:
             summary = summary[:index].split()
 
+    if summary == "":
+        return ""
+    
     summary = remove_urls(summary).strip()
     summary = re.sub(r'\(\s*[\.,;:\-!?]*\s*\)', '', summary) # remove empty parens
 
@@ -143,6 +155,8 @@ def compare_summaries(title):
         return None
     
     old_wikitext = get_revision_wikitext(revid)
+    if old_wikitext is None:
+        return False
     new_wikitext, timestamp = get_latest_revision(title)
 
     # Ensure the latest revision is from Jan 2024 or later
@@ -176,7 +190,7 @@ def compare_summaries(title):
 # Run on N random articles
 count = 0
 tries = 0
-max_tries = 50
+max_tries = 10
 
 for tries in tqdm(range(max_tries)):
     tries += 1
@@ -184,7 +198,7 @@ for tries in tqdm(range(max_tries)):
     result = compare_summaries(title)
     if result:
         count += 1
-    time.sleep(1)
+    time.sleep(0.25)
 
 embed()
 """
