@@ -70,15 +70,13 @@ def get_creation_date(title):
         return None
 
 # Collecting articles
-old_articles = []
-new_articles = []
-max_count = 100
+max_count = 500000
 
 old_article_count=0
 new_article_count=0
 pbar = tqdm(range(max_count))
 for m in pbar:
-    pbar.set_postfix({'old': len(old_articles), 'new':  len(new_articles)})
+    pbar.set_postfix({'old': old_article_count, 'new':  new_article_count})
     result = get_random_article_with_metadata()
 
     if result is None:
@@ -102,19 +100,25 @@ for m in pbar:
 
     # Case 1: old articles (last edited before 2017)
     if result["last_edit"] < datetime(2020, 1, 1, tzinfo=timezone.utc):
-        result["created"] = get_creation_date(title)
-        result["label"] = 1
-        old_articles.append(result)
+        result["created"] = get_creation_date(title).isoformat()
+        result["label"] = 0
+        result["last_edit"] = result["last_edit"].isoformat()
+        old_article_count+=1
+        with open("data/wikiMIA_2024_plus/scraped/scraped.jsonl", "a") as f:
+            f.write(json.dumps(result) + "\n")
         continue
 
     # Case 2: new articles (created in 2024+)
     created = get_creation_date(title)
     if created and created >= datetime(2024, 1, 1, tzinfo=timezone.utc):
-        result["created"] = created
+        result["created"] = created.isoformat()
         result["label"] = 1
-        new_articles.append(result)
-    
-        time.sleep(0.1)
+        result["last_edit"] = result["last_edit"].isoformat()
+        new_article_count+=1
+        with open("data/wikiMIA_2024_plus/scraped/scraped.jsonl", "a") as f:
+            f.write(json.dumps(result) + "\n")
+
+    time.sleep(0.01)
 
 embed()
 
