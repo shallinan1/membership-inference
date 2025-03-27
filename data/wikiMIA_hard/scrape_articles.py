@@ -9,6 +9,7 @@ import Levenshtein
 from datetime import datetime
 from unidecode import unidecode
 from code.utils import save_to_jsonl
+import json
 
 session = requests.Session()
 BASE_URL = "https://en.wikipedia.org/w/api.php"
@@ -183,7 +184,7 @@ def compare_summaries(title):
 
         print(f"[CHANGED] {title} — Levenshtein Distance: {diff_chars} characters")
 
-        results.append({
+        return {
             "title": title,
             "old_summary": old_summary,
             "new_summary": new_summary,
@@ -191,12 +192,12 @@ def compare_summaries(title):
             "percent_diff": (2*diff_chars)/(len(old_summary) + len(new_summary)),
             "first_retrieved_date": parsed_date.date().isoformat(),
             "last_edit_date": latest_revision_date.date().isoformat()
-        })
+        }
 
 # Run on N random articles
 count = 0
 tries = 0
-max_tries = 500
+max_tries = 50000
 
 for tries in tqdm(range(max_tries)):
     tries += 1
@@ -204,9 +205,11 @@ for tries in tqdm(range(max_tries)):
     result = compare_summaries(title)
     if result:
         count += 1
+        with open("data/wikiMIA_hard/scraped/scraped.jsonl", "a") as f:
+            f.write(json.dumps(result) + "\n")
     time.sleep(0.1)
 
-save_to_jsonl(results, "data/wikiMIA_hard/scraped/scraped.jsonl")
+save_to_jsonl(results, "data/wikiMIA_hard/scraped/scraped_temp_copy.jsonl")
 embed()
 """
 python3 -m data.wikiMIA_hard.scrape_articles
