@@ -91,7 +91,7 @@ python3 -m code.experiments.ours.generate \
     --key_name input \
     --prompt_with_words_not_sent \
     --max_length_to_sequence_length \
-    --num_proportion_from_end 0.25 \
+    --num_proportion_from_end 0.75 \
     --data_split test;
 
 python3 -m code.experiments.ours.generate \
@@ -104,6 +104,6 @@ python3 -m code.experiments.ours.generate \
     --key_name input \
     --prompt_with_words_not_sent \
     --max_length_to_sequence_length \
-    --num_proportion_from_end 0.25 \
+    --num_proportion_from_end 0.75 \
     --data_split test;
 
