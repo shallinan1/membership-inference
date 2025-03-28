@@ -99,12 +99,12 @@ for m in pbar:
         continue
 
     # Case 1: old articles (last edited before 2017)
-    if result["last_edit"] < datetime(2020, 1, 1, tzinfo=timezone.utc):
+    if result["last_edit"] < datetime(2017, 1, 1, tzinfo=timezone.utc):
         result["created"] = get_creation_date(title).isoformat()
         result["label"] = 0
         result["last_edit"] = result["last_edit"].isoformat()
         old_article_count+=1
-        with open("data/wikiMIA_2024_plus/scraped/scraped.jsonl", "a") as f:
+        with open("data/wikiMIA_2024_plus/scraped/scraped_5.jsonl", "a") as f:
             f.write(json.dumps(result) + "\n")
         continue
 
@@ -115,7 +115,7 @@ for m in pbar:
         result["label"] = 1
         result["last_edit"] = result["last_edit"].isoformat()
         new_article_count+=1
-        with open("data/wikiMIA_2024_plus/scraped/scraped.jsonl", "a") as f:
+        with open("data/wikiMIA_2024_plus/scraped/scraped_5.jsonl", "a") as f:
             f.write(json.dumps(result) + "\n")
 
     time.sleep(0.01)
