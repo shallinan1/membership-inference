@@ -64,7 +64,7 @@ def main(args):
             continue
 
         # Keep only if shorter is at least 2/3 the length of the longer
-        if shorter / longer >= 0.75 and r["percent_diff"] >= 0.5:
+        if shorter / longer >= 0.8 and r["percent_diff"] >= 0.5:
             filtered_data.append(r)
 
     filtered_data = random.sample(filtered_data, 125)
@@ -76,18 +76,18 @@ def main(args):
 
     train_data = []
     for i, t in enumerate(train):
-        train_data.append({"title": t["title"], "date": t["first_retrieved_date"], "input": t["old_summary"], "id": i, "diff": t["char_difference"]})
-        train_data.append({"title": t["title"], "date": t["last_edit_date"], "input": t["new_summary"], "id": i, "diff": t["char_difference"]})
+        train_data.append({"title": t["title"], "date": t["first_retrieved_date"], "input": t["old_summary"], "id": i, "diff": t["char_difference"], "label": 1})
+        train_data.append({"title": t["title"], "date": t["last_edit_date"], "input": t["new_summary"], "id": i, "diff": t["char_difference"], "label": 0})
     
     val_data = []
     for i, t in enumerate(val):
-        val_data.append({"title": t["title"], "date": t["first_retrieved_date"], "input": t["old_summary"], "id": i, "diff": t["char_difference"]})
-        val_data.append({"title": t["title"], "date": t["last_edit_date"], "input": t["new_summary"], "id": i, "diff": t["char_difference"]})
+        val_data.append({"title": t["title"], "date": t["first_retrieved_date"], "input": t["old_summary"], "id": i, "diff": t["char_difference"], "label": 1})
+        val_data.append({"title": t["title"], "date": t["last_edit_date"], "input": t["new_summary"], "id": i, "diff": t["char_difference"], "label": 0})
 
     test_data = []
     for i, t in enumerate(test):
-        test_data.append({"title": t["title"], "date": t["first_retrieved_date"], "input": t["old_summary"], "id": i, "diff": t["char_difference"]})
-        test_data.append({"title": t["title"], "date": t["last_edit_date"], "input": t["new_summary"], "id": i, "diff": t["char_difference"]})
+        test_data.append({"title": t["title"], "date": t["first_retrieved_date"], "input": t["old_summary"], "id": i, "diff": t["char_difference"], "label": 1})
+        test_data.append({"title": t["title"], "date": t["last_edit_date"], "input": t["new_summary"], "id": i, "diff": t["char_difference"], "label": 0})
 
 
     # Recombine and shuffle
