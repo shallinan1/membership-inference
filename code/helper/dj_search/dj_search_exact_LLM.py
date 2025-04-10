@@ -256,7 +256,7 @@ def main(args):
         args.output_file = args.output_file.replace(".jsonl", "_onedoc.jsonl")
         print(args.output_file)
 
-    elif args.task == "wikiMIA":
+    elif "wikiMIA" in args.task:
         assert args.source_docs is None
         source_docs = [Dataset.from_dict({"text": [unidecode(g["snippet_no_prompt"])]}) for g in generations]
         args.output_file = args.output_file.replace(".jsonl", "_onedoc.jsonl")
