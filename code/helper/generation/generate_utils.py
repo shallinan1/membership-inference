@@ -302,6 +302,11 @@ extra commentary, formatting, or additional text.\n\nComplete the prefix: """,
                     "task_prompt": "Continue the generation as closely to verbatim as possible.\n\n",
                     "task_postprompt": "",
                     "task_preprompt": ""
+                },
+                {
+                    "task_prompt": "Continue the Wikipedia paragraph as accurately as possible:\n\nWikipedia paragraph: ", # Blank string ,
+                    "task_postprompt": "",
+                    "task_preprompt": ""
                 }],
             "noninstruct-autoregressive": # GPT3 style - Can be abstracted to prompts for non-instruction tuned models
                 [{
@@ -323,6 +328,7 @@ extra commentary, formatting, or additional text.\n\nComplete the prefix: """,
     }
 
 task_prompts_dict_book["wikiMIA_2024_plus"] = task_prompts_dict_book["wikiMIA"]
+task_prompts_dict_book["wikiMIA_hard"] = task_prompts_dict_book["wikiMIA"]
 
 for task_key in task_prompts_dict_book:
     cur_task_prompts_dict_book = task_prompts_dict_book[task_key]
@@ -332,7 +338,7 @@ for task_key in task_prompts_dict_book:
             cur_task_prompts_dict_book[mod] = cur_task_prompts_dict_book["noninstruct-autoregressive"]
         except:
             continue
-    for mod in ["gpt-4o-2024-05-13", "Llama-3.1-8B-Instruct","gpt-4o-mini-2024-07-18","gpt-4-turbo-2024-04-09", "o1-mini-2024-09-12", "gpt-3.5-turbo-0125", "Llama-3.1-70B-Instruct", "Llama-2-70b-chat-hf","tulu-7b-finalized", "tulu-13b-finalized", "tulu-30b-finalized", "tulu-65b-finalized", "gpt-4-0613", "gpt-3.5-turbo-1106", "gpt-3.5-turbo-instruct", "tulu-v1-llama2-7b", "tulu-v1-llama2-13b", "tulu-v1-llama2-70b", "OLMo-7B-0724-Instruct-hf", "OLMo-7B-0724-SFT-hf"]:
+    for mod in ["gpt-4o-2024-05-13", "Llama-3.1-8B-Instruct","gpt-4o-mini-2024-07-18","gpt-4-turbo-2024-04-09", "o1-mini-2024-09-12", "gpt-3.5-turbo-0125", "Llama-3.1-70B-Instruct", "Llama-2-70b-chat-hf","tulu-7b-finalized", "tulu-13b-finalized", "tulu-30b-finalized", "tulu-65b-finalized", "gpt-4-0613", "gpt-3.5-turbo-1106", "gpt-3.5-turbo-instruct", "tulu-v1-llama2-7b", "tulu-v1-llama2-13b", "tulu-v1-llama2-70b", "OLMo-7B-0724-Instruct-hf", "OLMo-7B-0724-SFT-hf", "gpt-4o-2024-11-20", "o1-mini-2024-09-12", "gpt-4-turbo-2024-04-09"]:
         try:
             cur_task_prompts_dict_book[mod] = cur_task_prompts_dict_book["instruct-autoregressive"]
         except: 
