@@ -64,11 +64,11 @@ python3 -m code.experiments.ours.generate \
     --task_prompt_idx 1 \
     --task dolma_v17 \
     --data_split test \
-    --num_sequences 100 \
+    --num_sequences 50 \
     --temperature 1.0 \
     --prompt_with_words_not_sent \
     --max_length_to_sequence_length \
-    --num_proportion_from_end 0.5;
+    --num_proportion_from_end 0.9;
 
 python3 -m code.experiments.ours.generate \
     --model allenai/OLMo-1B-0724-hf \
@@ -81,3 +81,27 @@ python3 -m code.experiments.ours.generate \
     --prompt_with_words_not_sent \
     --max_length_to_sequence_length \
     --num_proportion_from_end 0.75;
+
+python3 -m code.experiments.ours.generate \
+    --model allenai/OLMo-1B-0724-hf \
+    --max_tokens 512 \
+    --task_prompt_idx 1 \
+    --task dolma_v17 \
+    --data_split test \
+    --num_sequences 50 \
+    --temperature 1.0 \
+    --prompt_with_words_not_sent \
+    --max_length_to_sequence_length \
+    --num_proportion_from_end 0.1;
+
+python3 -m code.experiments.ours.generate \
+    --model allenai/OLMo-1B-0724-hf \
+    --max_tokens 512 \
+    --task_prompt_idx 0 \
+    --task dolma_v17 \
+    --data_split test \
+    --num_sequences 50 \
+    --temperature 1.0 \
+    --prompt_with_words_not_sent \
+    --max_length_to_sequence_length \
+    --num_proportion_from_end 0.5;
