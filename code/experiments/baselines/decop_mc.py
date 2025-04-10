@@ -69,7 +69,7 @@ Format your answer as '<correct letter>'."""
 }
 for model in ["tulu-13b-finalized", "tulu-30b-finalized", "tulu-65b-finalized", "tulu-v1-llama2-7b", "tulu-v1-llama2-13b", "tulu-v1-llama2-70b"]:
     system_prompts[model] = system_prompts["tulu-7b-finalized"]
-for model in ["gpt-4-0613", "gpt-4-0314", "gpt-3.5-turbo-1106", "gpt-3.5-turbo-instruct"]:
+for model in ["gpt-4-0613", "gpt-4-0314", "gpt-3.5-turbo-1106", "gpt-3.5-turbo-instruct", "gpt-4o-mini-2024-07-18", "o1-mini-2024-09-12", "gpt-4o-2024-11-20", "gpt-4o-mini-2024-07-18", "gpt-4-turbo-2024-04-09"]:
     system_prompts[model] = system_prompts["gpt-3.5-turbo-0125"]
 for model in ["pythia-2.8b", "pythia-6.9b", "pythia-12b", "llama-7b", "llama-13b", "llama-30b", "llama-65b"]:
     system_prompts[model] = system_prompts["pythia-1.4b"]
@@ -88,7 +88,7 @@ def format_multiple_choice(task, data):
             elif task == "tulu_v1":
                 extra_prompt = f"""Question: Which of the following responses is verbatim from the prompt \"{d["user_turn"]}\"?\nOptions:\n"""
                 prompt = extra_prompt +  'A. ' + cur_perm[0] + '\n' + 'B. ' + cur_perm[1] + '\n' + 'C. ' + cur_perm[2] + '\n' + 'D. ' + cur_perm[3] + '\n\n' + 'Answer: '    
-            elif task == "wikiMIA":
+            elif "wikiMIA" in task:
                 extra_prompt = f"""Question: Which of the following passages is verbatim from an existing Wikipedia article?\nOptions:\n"""
                 prompt = extra_prompt +  'A. ' + cur_perm[0] + '\n' + 'B. ' + cur_perm[1] + '\n' + 'C. ' + cur_perm[2] + '\n' + 'D. ' + cur_perm[3] + '\n' + 'Answer: '    
             elif task == "pile_external":
@@ -312,35 +312,40 @@ def main(args):
         for letter in letter_choices:
             letter_tokens.append(generator.tokenizer.convert_tokens_to_ids(letter))
 
+        mnt=4
         # Generation
         final_prompts, all_text_outputs, all_prompt_logprobs, all_output_logprobs = generator.generate_vllm(
             prompts=flattened_prompts,
             temperature=0,
             sample=False,
-            max_new_tokens=2,
+            max_new_tokens=mnt,
             min_tokens=1,
             n=1
         )
         
         # Get the probs
         outputs = []
-        for output_logprobs in all_output_logprobs:
-            current_logprobs = output_logprobs[0][0] # Generation 1, Index 1
+        for output_logprobs in all_output_logprobs: # TODO smarter logic here?
+            for i in range(mnt):
+                current_logprobs = output_logprobs[0][i] # Generation 1, Index 1
 
-            logprobs_list = []
-            cur_keys = list(current_logprobs.keys())
-            for key in cur_keys:
-                logprobs_list.append(current_logprobs[key].logprob)
-            probs_list = torch.softmax(torch.tensor(logprobs_list), dim=0).tolist()
-            for key, prob in zip(cur_keys, probs_list):
-                setattr(current_logprobs[key], "prob", prob)
+                logprobs_list = []
+                cur_keys = list(current_logprobs.keys())
+                for key in cur_keys:
+                    logprobs_list.append(current_logprobs[key].logprob)
+                probs_list = torch.softmax(torch.tensor(logprobs_list), dim=0).tolist()
+                for key, prob in zip(cur_keys, probs_list):
+                    setattr(current_logprobs[key], "prob", prob)
 
-            inner_outputs = []
-            for letter_token in letter_tokens:
-                letter_token_prob = 0
-                if letter_token in current_logprobs:
-                    letter_token_prob = current_logprobs[letter_token].prob
-                inner_outputs.append(letter_token_prob)
+                inner_outputs = []
+                for letter_token in letter_tokens:
+                    letter_token_prob = 0
+                    if letter_token in current_logprobs:
+                        letter_token_prob = current_logprobs[letter_token].prob
+                    inner_outputs.append(letter_token_prob)
+
+                if sum(inner_outputs) != 0:
+                    break
             outputs.append(inner_outputs)
 
         outputs = np.array(outputs)
