@@ -55,7 +55,7 @@ def main(args):
         nonmember_lengths = []
 
         for d in data:
-            snippet_length = len(d["snippet"].split())
+            snippet_length = len(d[args.key_name].split())
             if d["label"] == 0:  # Nonmember
                 nonmember_lengths.append(snippet_length)
             else:  # Member
@@ -88,6 +88,7 @@ if __name__ == "__main__":
     parser = argparse.ArgumentParser(formatter_class=argparse.ArgumentDefaultsHelpFormatter)
     parser.add_argument('--task', type=str, default="pile_external", help="the task (dataset)")
     parser.add_argument('--split', type=str, nargs="+", default=None)
+    parser.add_argument('--key_name', type=str, default="snippet")
 
     main(parser.parse_args())
 
