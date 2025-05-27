@@ -180,3 +180,33 @@ python3 -m code.experiments.ours.generate \
     --task_prompt_idx 1  \
     --task pile_external \
     --data_split test;
+
+python3 -m code.experiments.ours.generate \
+    --model EleutherAI/pythia-1.4b \
+    --num_sequences 50 \
+    --prompt_with_words_not_sent \
+    --max_length_to_sequence_length \
+    --num_proportion_from_end 0.1 \
+    --task_prompt_idx 1  \
+    --task pile_external \
+    --data_split test;
+
+python3 -m code.experiments.ours.generate \
+    --model EleutherAI/pythia-1.4b \
+    --num_sequences 50 \
+    --prompt_with_words_not_sent \
+    --max_length_to_sequence_length \
+    --num_proportion_from_end 0.9 \
+    --task_prompt_idx 1  \
+    --task pile_external \
+    --data_split test;
+
+python3 -m code.experiments.ours.generate \
+    --model EleutherAI/pythia-1.4b \
+    --num_sequences 50 \
+    --prompt_with_words_not_sent \
+    --max_length_to_sequence_length \
+    --num_proportion_from_end 0.5 \
+    --task_prompt_idx 1  \
+    --task pile_external \
+    --data_split test;
