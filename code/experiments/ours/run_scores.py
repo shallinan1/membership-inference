@@ -1,4 +1,3 @@
-
 from code.user_secrets import CACHE_PATH
 import os
 # Set up environment variables
@@ -121,6 +120,15 @@ def main(args):
             roc_auc = auc(fpr, tpr)
             all_scores[strategy] = {}
             all_scores[strategy]["roc_auc"] = roc_auc
+            
+            # Find the TPR at the highest FPR ≤ 0.01 (1%)
+            target_fpr = 0.01
+            valid_indices = np.where(fpr <= target_fpr)[0]
+            if len(valid_indices) > 0:
+                tpr_at_1pct_fpr = tpr[valid_indices[-1]] # Get the last (highest) FPR that's <= 0.01
+            else:
+                tpr_at_1pct_fpr = 0.0  # If no FPR <= 0.01, set TPR to 0
+            all_scores[strategy]["tpr_at_1pct_fpr"] = tpr_at_1pct_fpr
 
             # plot_title=f"{dataset} ({split}): {strategy}, {target_model_name}"
             # plot_roc_curve(fpr, tpr, roc_auc, plot_title, os.path.join(plot_dir, f"{strategy}.png"))
@@ -137,6 +145,6 @@ if __name__ == '__main__':
 
     """
     python3 -m code.experiments.ours.run_scores \
-        --outputs_file /gscratch/xlab/hallisky/membership-inference/outputs/ours/pile_external/coverages/val/pythia-1.4b_maxTok512_minTok0_numSeq20_topP0.95_temp1.0_numSent5_startSent0_numWord-1_startWord-1_useSentF_promptIdx0_len100_2025-01-22-23:15:24_3_onedoc.jsonl \
+        --outputs_file /gscratch/xlab/hallisky/membership-inference/outputs/ours/bookMIA/creativities/train/gpt-3.5-turbo-0125_maxTok512_minTok0_numSeq5_topP0.95_temp1.0_numSent-1_startSent-1_numWordFromEnd100_maxLenSeqT_useSentF-rmvBadT_promptIdx1-2-4-5_len494_2025-03-13-13:10:57_1_onedoc_CI1-12.jsonl \
     """
 
