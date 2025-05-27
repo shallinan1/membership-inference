@@ -95,7 +95,7 @@ def main(args):
         key=lambda col: col.map(custom_sort_key) if col.name == "model" else col
     )
     df = df[["split", "model"] + [col for col in df.columns if col != "model" and col != "split"]]
-    df = df.sort_values(by=["split", "model", "prompt_index", "num_words_from_end", "num_sequences", "max_length_to_sequence", "temperature", "max_tokens", "remove_bad_first", "min_ngram", "creativity_min_ngram"])
+    df = df.sort_values(by=["split", "model", "prompt_index", "num_words_from_end", "num_proportion_from_end", "num_sequences", "max_length_to_sequence", "temperature", "max_tokens", "remove_bad_first", "min_ngram", "creativity_min_ngram"])
     df.to_csv(output_csv, index=False)
 
     print(f"Aggregated scores saved to {output_csv}")
