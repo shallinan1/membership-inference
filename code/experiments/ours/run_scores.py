@@ -122,14 +122,14 @@ def main(args):
             all_scores[strategy]["roc_auc"] = roc_auc
             
             # Find the TPR at different FPR thresholds
-            for target_fpr in [0.0001, 0.005, 0.01, 0.05]:  # 0.5%, 1%, 5%
+            for target_fpr in [0.0001, 0.005, 0.01, 0.05]:  # 0.01%, 0.5%, 1%, 5%
                 valid_indices = np.where(fpr <= target_fpr)[0]
                 if len(valid_indices) > 0:
                     idx = valid_indices[-1]  # Get the last (highest) FPR that's <= target
                     tpr_at_fpr = tpr[idx]
                 else:
                     tpr_at_fpr = 0.0  # If no FPR <= target, set TPR to 0
-                all_scores[strategy][f"tpr_at_{int(target_fpr*100)}pct_fpr"] = tpr_at_fpr
+                all_scores[strategy][f"tpr_at_{int(target_fpr*10000)}pct_fpr"] = tpr_at_fpr
 
             # plot_title=f"{dataset} ({split}): {strategy}, {target_model_name}"
             # plot_roc_curve(fpr, tpr, roc_auc, plot_title, os.path.join(plot_dir, f"{strategy}.png"))

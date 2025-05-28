@@ -92,10 +92,10 @@ def main(args):
             
             for key, value in scores.items():
                 row_auc[key] = value.get("roc_auc", None)
-                row_tpr_01[key] = value.get("tpr_at_0pct_fpr", None)  # 0.01%
-                row_tpr_05[key] = value.get("tpr_at_0pct_fpr", None)  # 0.5%
-                row_tpr_1[key] = value.get("tpr_at_1pct_fpr", None)   # 1%
-                row_tpr_5[key] = value.get("tpr_at_5pct_fpr", None)   # 5%
+                row_tpr_01[key] = value.get("tpr_at_1pct_fpr", None)  # 0.01%
+                row_tpr_05[key] = value.get("tpr_at_50pct_fpr", None)  # 0.5%
+                row_tpr_1[key] = value.get("tpr_at_100pct_fpr", None)   # 1%
+                row_tpr_5[key] = value.get("tpr_at_500pct_fpr", None)   # 5%
             
             # Add hyperparameters to all rows
             row_auc.update(hypers)
