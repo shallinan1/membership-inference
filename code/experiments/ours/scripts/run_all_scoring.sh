@@ -1,10 +1,6 @@
 #!/bin/bash
 # ./code/experiments/ours/scripts/run_all_scoring.sh
 
-ACTIVATE_ENV="source activate vllmgen"
-SLURM_COMMAND="srun -A cse-ckpt -p ckpt --time=1:00:00 --nodes=1 --cpus-per-task=1 --mem=25G --gres=gpu:rtx6k:0 --pty /bin/bash -c"
-SLURM_COMMAND="srun -A xlab -p gpu-rtx6k --time=1:00:00 --nodes=1 --cpus-per-task=1 --mem=25G --gres=gpu:rtx6k:0 --pty /bin/bash -c"
-
 # Define dataset and split
 TASK="${1:-tulu_v1}"
 SPLIT="${2:-train}"
@@ -23,6 +19,15 @@ for TARGET_FILE in "$TARGET_DIR"/*.jsonl; do
         echo "$cmd;"
         echo
 
-        tmux new-session -d "$SLURM_COMMAND \"$ACTIVATE_ENV && $cmd\""
+        sbatch -A xlab -p gpu-rtx6k \
+               --time=1:00:00 \
+               --nodes=1 \
+               --cpus-per-task=1 \
+               --mem=10G \
+               --gres=gpu:rtx6k:0 \
+               --job-name="score_${TASK}_${SPLIT}_${FILE_BASE}" \
+               --output=/dev/null \
+               --error=/dev/null \
+               --wrap="source activate vllmgen && $cmd"
     fi
 done
