@@ -29,10 +29,23 @@ def main(args):
     scores = [g["score"] for g in data]
     fpr, tpr, thresholds = roc_curve(gen_labels, scores)
     roc_auc = auc(fpr, tpr)
-    print(roc_auc)
+    print(f"ROC AUC: {roc_auc:.4f}")
+    
+    # Compute TPR at different FPR thresholds
+    for target_fpr in [0.0001, 0.005, 0.01, 0.05]:  # 0.5%, 1%, 5%
+        valid_indices = np.where(fpr <= target_fpr)[0]
+        if len(valid_indices) > 0:
+            idx = valid_indices[-1]  # Get the last (highest) FPR that's <= target
+            tpr_at_fpr = tpr[idx]
+        else:
+            tpr_at_fpr = 0.0  # If no FPR <= target, set TPR to 0
+        print(f"TPR at {target_fpr*100}% FPR: {tpr_at_fpr:.4f}")
+    
+    print("\nPredicted indices distribution:")
     print(np.unique(all_predicted_idx, return_counts=True))
-    print(np.round(np.mean(score_by_label[0]),4), np.round(np.mean(score_by_label[1]),4))
-    embed()
+    print("\nMean scores by label:")
+    print(f"Non-members (0): {np.round(np.mean(score_by_label[0]),4)}")
+    print(f"Members (1): {np.round(np.mean(score_by_label[1]),4)}")
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(formatter_class=argparse.ArgumentDefaultsHelpFormatter)
