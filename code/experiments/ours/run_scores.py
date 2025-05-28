@@ -122,7 +122,7 @@ def main(args):
             all_scores[strategy]["roc_auc"] = roc_auc
             
             # Find the TPR at different FPR thresholds
-            for target_fpr in [0.005, 0.01, 0.05]:  # 0.5%, 1%, 5%
+            for target_fpr in [0.0001, 0.005, 0.01, 0.05]:  # 0.5%, 1%, 5%
                 valid_indices = np.where(fpr <= target_fpr)[0]
                 if len(valid_indices) > 0:
                     idx = valid_indices[-1]  # Get the last (highest) FPR that's <= target

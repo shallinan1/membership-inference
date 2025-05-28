@@ -55,6 +55,7 @@ def main(args):
 
     # Initialize rows for each metric
     rows_auc = []
+    rows_tpr_01 = []
     rows_tpr_05 = []
     rows_tpr_1 = []
     rows_tpr_5 = []
@@ -84,23 +85,27 @@ def main(args):
             
             # Create rows for each metric
             row_auc = {"split": split}
+            row_tpr_01 = {"split": split}
             row_tpr_05 = {"split": split}
             row_tpr_1 = {"split": split}
             row_tpr_5 = {"split": split}
             
             for key, value in scores.items():
                 row_auc[key] = value.get("roc_auc", None)
+                row_tpr_01[key] = value.get("tpr_at_0pct_fpr", None)  # 0.01%
                 row_tpr_05[key] = value.get("tpr_at_0pct_fpr", None)  # 0.5%
                 row_tpr_1[key] = value.get("tpr_at_1pct_fpr", None)   # 1%
                 row_tpr_5[key] = value.get("tpr_at_5pct_fpr", None)   # 5%
             
             # Add hyperparameters to all rows
             row_auc.update(hypers)
+            row_tpr_01.update(hypers)
             row_tpr_05.update(hypers)
             row_tpr_1.update(hypers)
             row_tpr_5.update(hypers)
             
             rows_auc.append(row_auc)
+            rows_tpr_01.append(row_tpr_01)
             rows_tpr_05.append(row_tpr_05)
             rows_tpr_1.append(row_tpr_1)
             rows_tpr_5.append(row_tpr_5)
@@ -126,6 +131,7 @@ def main(args):
 
     # Process and save all metrics
     process_and_save_df(rows_auc, "roc_auc")
+    process_and_save_df(rows_tpr_01, "tpr_at_0.01pct_fpr")
     process_and_save_df(rows_tpr_05, "tpr_at_0.5pct_fpr")
     process_and_save_df(rows_tpr_1, "tpr_at_1pct_fpr")
     process_and_save_df(rows_tpr_5, "tpr_at_5pct_fpr")
