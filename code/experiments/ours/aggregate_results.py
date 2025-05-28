@@ -53,7 +53,11 @@ def main(args):
     base_dir = f"outputs/ours/{args.task}"
     subfolders = ["train", "test", "val"]
 
-    rows = []
+    # Initialize rows for each metric
+    rows_auc = []
+    rows_tpr_05 = []
+    rows_tpr_1 = []
+    rows_tpr_5 = []
 
     # Iterate through each data split subfolder
     for split in tqdm(subfolders, desc="high level folders"):
@@ -75,30 +79,56 @@ def main(args):
             with open(scores_file, "r") as f:
                 scores = json.load(f)
 
-            # Flatten and extract the data
-            row = {"split": split}
-            for key, value in scores.items():
-                # if key == "ReferenceLoss": # TODO add reference to this
-                #     for sub_key, sub_value in value.items():
-                #         metric_name = f"{key}-{sub_key}"
-                #         row[metric_name] = sub_value.get("roc_auc", None)
-                # else:
-                row[key] = value.get("roc_auc", None)
+            # Extract hyperparameters
             hypers = model_name_to_hypers(model)
-            row.update(hypers)
-            rows.append(row)
+            
+            # Create rows for each metric
+            row_auc = {"split": split}
+            row_tpr_05 = {"split": split}
+            row_tpr_1 = {"split": split}
+            row_tpr_5 = {"split": split}
+            
+            for key, value in scores.items():
+                row_auc[key] = value.get("roc_auc", None)
+                row_tpr_05[key] = value.get("tpr_at_0pct_fpr", None)  # 0.5%
+                row_tpr_1[key] = value.get("tpr_at_1pct_fpr", None)   # 1%
+                row_tpr_5[key] = value.get("tpr_at_5pct_fpr", None)   # 5%
+            
+            # Add hyperparameters to all rows
+            row_auc.update(hypers)
+            row_tpr_05.update(hypers)
+            row_tpr_1.update(hypers)
+            row_tpr_5.update(hypers)
+            
+            rows_auc.append(row_auc)
+            rows_tpr_05.append(row_tpr_05)
+            rows_tpr_1.append(row_tpr_1)
+            rows_tpr_5.append(row_tpr_5)
 
-    # Create a DataFrame and save to CSV
-    output_csv = f"outputs/ours/{args.task}/scores/aggregated_scores.csv"
-    df = pd.DataFrame(rows).sort_values(
-        by=["split", "model"],
-        key=lambda col: col.map(custom_sort_key) if col.name == "model" else col
-    )
-    df = df[["split", "model"] + [col for col in df.columns if col != "model" and col != "split"]]
-    df = df.sort_values(by=["split", "model", "prompt_index", "num_words_from_end", "num_proportion_from_end", "num_sequences", "max_length_to_sequence", "temperature", "max_tokens", "remove_bad_first", "min_ngram", "creativity_min_ngram"])
-    df.to_csv(output_csv, index=False)
+    # Create DataFrames and save to CSV
+    base_output = f"outputs/ours/{args.task}/scores"
+    os.makedirs(base_output, exist_ok=True)
+    
+    # Function to process and save a DataFrame
+    def process_and_save_df(rows, metric_name):
+        df = pd.DataFrame(rows).sort_values(
+            by=["split", "model"],
+            key=lambda col: col.map(custom_sort_key) if col.name == "model" else col
+        )
+        df = df[["split", "model"] + [col for col in df.columns if col != "model" and col != "split"]]
+        df = df.sort_values(by=["split", "model", "prompt_index", "num_words_from_end", "num_proportion_from_end", 
+                               "num_sequences", "max_length_to_sequence", "temperature", "max_tokens", 
+                               "remove_bad_first", "min_ngram", "creativity_min_ngram"])
+        
+        output_csv = os.path.join(base_output, f"aggregated_scores_{metric_name}.csv")
+        df.to_csv(output_csv, index=False)
+        print(f"Aggregated {metric_name} scores saved to {output_csv}")
 
-    print(f"Aggregated scores saved to {output_csv}")
+    # Process and save all metrics
+    process_and_save_df(rows_auc, "roc_auc")
+    process_and_save_df(rows_tpr_05, "tpr_at_0.5pct_fpr")
+    process_and_save_df(rows_tpr_1, "tpr_at_1pct_fpr")
+    process_and_save_df(rows_tpr_5, "tpr_at_5pct_fpr")
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser(formatter_class=argparse.ArgumentDefaultsHelpFormatter)
