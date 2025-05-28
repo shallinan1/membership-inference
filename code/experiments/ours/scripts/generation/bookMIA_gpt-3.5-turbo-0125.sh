@@ -366,3 +366,59 @@ python3 -m code.experiments.ours.generate \
     --num_proportion_from_end 0.5 \
     --remove_bad_first \
     --data_split train;
+
+# More length ablation
+python3 -m code.experiments.ours.generate \
+    --openai \
+    --model gpt-3.5-turbo-0125 \
+    --num_sequences 20 \
+    --temperature 1.0 \
+    --task_prompt_idx 5 \
+    --task bookMIA \
+    --prompt_with_words_not_sent \
+    --max_length_to_sequence_length \
+    --num_proportion_from_end 0.975 \
+    --remove_bad_first \
+    --data_split train;
+
+# More length ablation
+python3 -m code.experiments.ours.generate \
+    --openai \
+    --model gpt-3.5-turbo-0125 \
+    --num_sequences 20 \
+    --temperature 1.0 \
+    --task_prompt_idx 5 \
+    --task bookMIA \
+    --prompt_with_words_not_sent \
+    --max_length_to_sequence_length \
+    --num_proportion_from_end 0.975 \
+    --remove_bad_first \
+    --data_split train;
+
+# More length ablation
+python3 -m code.experiments.ours.generate \
+    --openai \
+    --model gpt-3.5-turbo-0125 \
+    --num_sequences 128 \
+    --temperature 1.0 \
+    --task_prompt_idx 5 \
+    --task bookMIA \
+    --prompt_with_words_not_sent \
+    --max_length_to_sequence_length \
+    --num_proportion_from_end 0.5 \
+    --remove_bad_first \
+    --data_split train;
+
+# More length ablation
+python3 -m code.experiments.ours.generate \
+    --openai \
+    --model gpt-3.5-turbo-0125 \
+    --num_sequences 128 \
+    --temperature 0.8 \
+    --task_prompt_idx 5 \
+    --task bookMIA \
+    --prompt_with_words_not_sent \
+    --max_length_to_sequence_length \
+    --num_proportion_from_end 0.5 \
+    --remove_bad_first \
+    --data_split train;
