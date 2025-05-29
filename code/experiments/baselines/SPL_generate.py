@@ -267,7 +267,7 @@ if __name__ == '__main__':
         --split test \
         --remove_bad_first
 
-    python -m code.experiments.baselines.SPL_generate \
+    CUDA_VISIBLE_DEVICES=0,1,2,3,4,5,6,7 python -m code.experiments.baselines.SPL_generate \
         --model huggyllama/llama-65b \
         --task wikiMIA \
         --split test \
@@ -292,7 +292,7 @@ if __name__ == '__main__':
         --split test \
         --remove_bad_first
 
-    python -m code.experiments.baselines.SPL_generate \
+    CUDA_VISIBLE_DEVICES=0,1,2,3,4,5,6,7 python -m code.experiments.baselines.SPL_generate \
         --model huggyllama/llama-65b \
         --task wikiMIA_hard \
         --split test \
@@ -340,4 +340,47 @@ if __name__ == '__main__':
         --split test \
         --openai \
         --remove_bad_first
+    
+    # Tulu
+    python -m code.experiments.baselines.SPL_generate \
+        --model allenai/tulu-v1-llama2-7b \
+        --task tulu_v1 \
+        --split test \
+        --key_name snippet;
+
+    python -m code.experiments.baselines.SPL_generate \
+        --model allenai/tulu-v1-llama2-13b \
+        --task tulu_v1 \
+        --split test \
+        --key_name snippet;
+
+    python -m code.experiments.baselines.SPL_generate \
+        --model /gscratch/xlab/hallisky/cache/tulu-7b-finalized \
+        --task tulu_v1 \
+        --split test \
+        --key_name snippet;
+
+    python -m code.experiments.baselines.SPL_generate \
+        --model /gscratch/xlab/hallisky/cache/tulu-13b-finalized \
+        --task tulu_v1 \
+        --split test \
+        --key_name snippet;
+
+    python -m code.experiments.baselines.SPL_generate \
+        --model /gscratch/xlab/hallisky/cache/tulu-30b-finalized \
+        --task tulu_v1 \
+        --split test \
+        --key_name snippet;
+
+    python -m code.experiments.baselines.SPL_generate \
+        --model allenai/tulu-v1-llama2-70b \
+        --task tulu_v1 \
+        --split test \
+        --key_name snippet;
+
+    python -m code.experiments.baselines.SPL_generate \
+        --model /gscratch/xlab/hallisky/cache/tulu-65b-finalized \
+        --task tulu_v1 \
+        --split test \
+        --key_name snippet;
     """
