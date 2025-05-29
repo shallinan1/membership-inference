@@ -1,18 +1,3 @@
-python3 -m code.experiments.ours.generate \
-    --model allenai/tulu-v1-llama2-7b \
-    --num_sequences 20 \
-    --max_tokens 512 \
-    --task_prompt_idx 0 \
-    --task tulu_v1 \
-    --data_split train;
-
-python3 -m code.experiments.ours.generate \
-    --model allenai/tulu-v1-llama2-7b \
-    --num_sequences 20 \
-    --max_tokens 512 \
-    --task_prompt_idx 0 \
-    --task tulu_v1 \
-    --data_split val;
 
 python3 -m code.experiments.ours.generate \
     --model allenai/tulu-v1-llama2-7b \
@@ -24,25 +9,7 @@ python3 -m code.experiments.ours.generate \
 
 python3 -m code.experiments.ours.generate \
     --model allenai/tulu-v1-llama2-7b \
-    --num_sequences 20 \
-    --max_tokens 512 \
-    --task_prompt_idx 0 \
-    --task tulu_v1 \
-    --temperature 0.2 \
-    --data_split train;
-
-python3 -m code.experiments.ours.generate \
-    --model allenai/tulu-v1-llama2-7b \
-    --num_sequences 20 \
-    --max_tokens 512 \
-    --task_prompt_idx 0 \
-    --task tulu_v1 \
-    --temperature 0.2 \
-    --data_split val;
-
-python3 -m code.experiments.ours.generate \
-    --model allenai/tulu-v1-llama2-7b \
-    --num_sequences 20 \
+    --num_sequences 50 \
     --max_tokens 512 \
     --task_prompt_idx 0 \
     --task tulu_v1 \
