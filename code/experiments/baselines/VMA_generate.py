@@ -32,6 +32,7 @@ def main(args):
     temperature = 1.0
     max_tokens = 200
     num_sequences = 5
+    min_tokens = 0  # Hard-coded to 0
     
     # Get model string and check if it's valid
     model_str = args.model.split("/")[-1]
@@ -177,6 +178,7 @@ def main(args):
             prompts=prompts,
             temperature=temperature,
             max_new_tokens=max_tokens,
+            min_tokens=min_tokens,  # Hard-coded to 0
             n=num_sequences
         )
 
@@ -231,5 +233,120 @@ if __name__ == '__main__':
         --split train \
         --openai \
         --key_name snippet \
+        --remove_bad_first
+
+    # WikiMIA commands
+    python -m code.experiments.baselines.VMA_generate \
+        --model gpt-3.5-turbo-1106 \
+        --task wikiMIA \
+        --split test \
+        --openai \
+        --remove_bad_first
+
+    python -m code.experiments.baselines.VMA_generate \
+        --model gpt-3.5-turbo-0125 \
+        --task wikiMIA \
+        --split test \
+        --openai \
+        --remove_bad_first
+
+    python -m code.experiments.baselines.VMA_generate \
+        --model gpt-3.5-turbo-instruct \
+        --task wikiMIA \
+        --split test \
+        --openai \
+        --remove_bad_first
+
+    # HuggingFace Llama models for wikiMIA
+    python -m code.experiments.baselines.VMA_generate \
+        --model huggyllama/llama-7b \
+        --task wikiMIA \
+        --split test \
+        --remove_bad_first
+
+    python -m code.experiments.baselines.VMA_generate \
+        --model huggyllama/llama-13b \
+        --task wikiMIA \
+        --split test \
+        --remove_bad_first
+
+    python -m code.experiments.baselines.VMA_generate \
+        --model huggyllama/llama-30b \
+        --task wikiMIA \
+        --split test \
+        --remove_bad_first
+
+    python -m code.experiments.baselines.VMA_generate \
+        --model huggyllama/llama-65b \
+        --task wikiMIA \
+        --split test \
+        --remove_bad_first
+
+    # HuggingFace Llama models for wikiMIA_hard
+    python -m code.experiments.baselines.VMA_generate \
+        --model huggyllama/llama-7b \
+        --task wikiMIA_hard \
+        --split test \
+        --remove_bad_first
+
+    python -m code.experiments.baselines.VMA_generate \
+        --model huggyllama/llama-13b \
+        --task wikiMIA_hard \
+        --split test \
+        --remove_bad_first
+
+    python -m code.experiments.baselines.VMA_generate \
+        --model huggyllama/llama-30b \
+        --task wikiMIA_hard \
+        --split test \
+        --remove_bad_first
+
+    python -m code.experiments.baselines.VMA_generate \
+        --model huggyllama/llama-65b \
+        --task wikiMIA_hard \
+        --split test \
+        --remove_bad_first
+
+    python -m code.experiments.baselines.VMA_generate \
+        --model gpt-3.5-turbo-1106 \
+        --task wikiMIA_hard \
+        --split test \
+        --openai \
+        --remove_bad_first
+
+    python -m code.experiments.baselines.VMA_generate \
+        --model gpt-3.5-turbo-0125 \
+        --task wikiMIA_hard \
+        --split test \
+        --openai \
+        --remove_bad_first
+
+    python -m code.experiments.baselines.VMA_generate \
+        --model gpt-3.5-turbo-instruct \
+        --task wikiMIA_hard \
+        --split test \
+        --openai \
+        --remove_bad_first
+
+    python -m code.experiments.baselines.VMA_generate \
+        --model gpt-4o-2024-11-20 \
+        --task wikiMIA_hard \
+        --split test \
+        --openai \
+        --remove_bad_first
+
+    python -m code.experiments.baselines.VMA_generate \
+        --model gpt-4o-mini-2024-07-18 \
+        --task wikiMIA_hard \
+        --split test \
+        --openai \
+        --remove_bad_first
+
+    # Caution (Cost)
+    python -m code.experiments.baselines.VMA_generate \
+        --model gpt-4-turbo-2024-04-09 \
+        --task wikiMIA_hard \
+        --split test \
+        --openai \
         --remove_bad_first
     """
