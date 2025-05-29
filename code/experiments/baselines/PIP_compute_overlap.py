@@ -90,6 +90,5 @@ if __name__ == '__main__':
     """
     python -m code.experiments.baselines.PIP_compute_overlap \
         --task bookMIA \
-        --split train \
-        --num_processes 8
+        --split train 
     """ 
