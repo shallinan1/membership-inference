@@ -11,10 +11,6 @@ from tqdm import tqdm
 import numpy as np
 from multiprocessing import Pool, cpu_count
 from functools import partial
-
-import numpy as np
-from sklearn.metrics import roc_curve, auc
-from utils import load_jsonl
 import re
 from collections import Counter
 import zlib
@@ -53,14 +49,15 @@ def clean_text(text: str, model_name: str) -> str:
         return re.sub(r'</s>', '', text)
     return text
 
-def get_suffix(text: str, prefix_ratio: float, text_length: int) -> list:
+def get_suffix(text: str, prefix_ratio: float) -> list:
     """
-    Extracts a suffix from the given text, based on the specified prefix ratio and text length.
+    Extracts a suffix from the given text, based on the specified prefix ratio.
+    The text length is computed dynamically from the input text.
     """
     words = text.split(" ")
     words = [word for word in words if word != ""]
-    words = words[round(text_length*prefix_ratio):]
-    return words
+    text_length = len(words)
+    return words[round(text_length*prefix_ratio):]
 
 def main(args):
     # Create output directory
@@ -92,7 +89,8 @@ def main(args):
                 gold_text = item.get("input" if "wikiMIA" in args.task else "snippet", "")
                 generations = item.get("generation", [])
                 
-                suffix_ref = get_suffix(gold_text, 0.5, args.text_length)
+                suffix_ref = get_suffix(gold_text, 0.5)
+                item["rest_of_text"] = " ".join(suffix_ref)  # Set the rest_of_text field
                 item_rouge_scores = []
                 
                 for gen in generations:
@@ -111,6 +109,7 @@ def main(args):
             output_file = os.path.join(output_dir, filename.replace('.jsonl', '_zlib.jsonl' if use_zlib else '.jsonl'))
             for item, scores in zip(data, rouge_scores):
                 item["rouge_scores"] = scores
+                item["final_score"] = np.mean(scores) if scores else 0.0  # Compute average of rouge scores
             
             save_to_jsonl(data, output_file)
             print(f"Saved {'zlib ' if use_zlib else ''}results to {output_file}")
@@ -126,5 +125,4 @@ if __name__ == '__main__':
     python -m code.experiments.baselines.SPL_compute_overlap \
         --task bookMIA \
         --split train \
-        --num_processes 8
     """ 
