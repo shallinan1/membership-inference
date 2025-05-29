@@ -17,22 +17,15 @@ from code.helper.generation.generate_utils import task_prompts_dict_book, make_p
 import random
 from datetime import datetime
 
-def get_first_n_tokens(text, tokenizer, n=50):
-    """Get the first n tokens from the text."""
-    tokens = tokenizer.encode(text, add_special_tokens=False)
-    if len(tokens) <= n:
-        return text
-    return tokenizer.decode(tokens[:n])
-
 def main(args):
     # Set up random seed
     random.seed(args.seed)
     
-    # Hard-coded sampling parameters
-    temperature = 1.0
-    max_tokens = 200
-    num_sequences = 5
-    min_tokens = 0  # Hard-coded to 0
+    # PIP-specific sampling parameters
+    temperature = 0.0  # Set to 0 for deterministic outputs
+    max_tokens = 30
+    num_sequences = 1
+    min_tokens = 0
     
     # Get model string and check if it's valid
     model_str = args.model.split("/")[-1]
@@ -60,7 +53,7 @@ def main(args):
             d[args.key_name] = remove_first_sentence_if_needed(d[args.key_name])
 
     # Create output directory
-    output_dir = f"outputs/baselines/{args.task}/{args.split}/VMA_generations"
+    output_dir = f"outputs/baselines/{args.task}/{args.split}/PIP_generations"
     os.makedirs(output_dir, exist_ok=True)
 
     # Initialize tokenizer for splitting text
@@ -74,7 +67,7 @@ def main(args):
         def encode(text): return tokenizer.encode(text, add_special_tokens=False)
         def decode(tokens): return tokenizer.decode(tokens)
 
-    # Split input texts into first 50 tokens
+    # Split input texts into exactly 50 tokens, with first 20 as prefix
     prompt_texts = []
     rest_of_texts = []
     for d in data:
@@ -84,13 +77,18 @@ def main(args):
             prompt_texts.append(full_text)
             rest_of_texts.append("")
         else:
-            prompt_texts.append(decode(tokens[:50]))
-            rest_of_texts.append(decode(tokens[50:]))
+            # Take exactly 50 tokens
+            truncated_text = decode(tokens[:50])
+            # Split into 20-token prefix and 30-token suffix
+            prefix = decode(tokens[:20])
+            suffix = decode(tokens[20:50])
+            prompt_texts.append(prefix)
+            rest_of_texts.append(suffix)
 
     # Get the base task prompt from the dictionary
     base_task_prompt = task_prompts_dict_book[args.task][model_str][0]
-    # Override just the task_prompt field
-    base_task_prompt["task_prompt"] = "According to the original document, please complete the following text with more than 150 words: "
+    # Override the task prompt to match PIP's approach
+    base_task_prompt["task_prompt"] = ""
 
     # Format prompts using make_prompts
     prompts = make_prompts(
@@ -211,7 +209,7 @@ if __name__ == '__main__':
     main(parser.parse_args())
 
     """
-    python -m code.experiments.baselines.VMA_generate \
+    python -m code.experiments.baselines.PIP_generate \
         --model gpt-3.5-turbo-1106 \
         --task bookMIA \
         --split train \
@@ -219,7 +217,7 @@ if __name__ == '__main__':
         --key_name snippet \
         --remove_bad_first
 
-    python -m code.experiments.baselines.VMA_generate \
+    python -m code.experiments.baselines.PIP_generate \
         --model gpt-3.5-turbo-0125 \
         --task bookMIA \
         --split train \
@@ -227,7 +225,7 @@ if __name__ == '__main__':
         --key_name snippet \
         --remove_bad_first
 
-    python -m code.experiments.baselines.VMA_generate \
+    python -m code.experiments.baselines.PIP_generate \
         --model gpt-3.5-turbo-instruct \
         --task bookMIA \
         --split train \
@@ -236,21 +234,21 @@ if __name__ == '__main__':
         --remove_bad_first
 
     # WikiMIA commands
-    python -m code.experiments.baselines.VMA_generate \
+    python -m code.experiments.baselines.PIP_generate \
         --model gpt-3.5-turbo-1106 \
         --task wikiMIA \
         --split test \
         --openai \
         --remove_bad_first
 
-    python -m code.experiments.baselines.VMA_generate \
+    python -m code.experiments.baselines.PIP_generate \
         --model gpt-3.5-turbo-0125 \
         --task wikiMIA \
         --split test \
         --openai \
         --remove_bad_first
 
-    python -m code.experiments.baselines.VMA_generate \
+    python -m code.experiments.baselines.PIP_generate \
         --model gpt-3.5-turbo-instruct \
         --task wikiMIA \
         --split test \
@@ -258,84 +256,84 @@ if __name__ == '__main__':
         --remove_bad_first
 
     # HuggingFace Llama models for wikiMIA
-    python -m code.experiments.baselines.VMA_generate \
+    python -m code.experiments.baselines.PIP_generate \
         --model huggyllama/llama-7b \
         --task wikiMIA \
         --split test \
         --remove_bad_first
 
-    python -m code.experiments.baselines.VMA_generate \
+    python -m code.experiments.baselines.PIP_generate \
         --model huggyllama/llama-13b \
         --task wikiMIA \
         --split test \
         --remove_bad_first
 
-    python -m code.experiments.baselines.VMA_generate \
+    python -m code.experiments.baselines.PIP_generate \
         --model huggyllama/llama-30b \
         --task wikiMIA \
         --split test \
         --remove_bad_first
 
-    python -m code.experiments.baselines.VMA_generate \
+    python -m code.experiments.baselines.PIP_generate \
         --model huggyllama/llama-65b \
         --task wikiMIA \
         --split test \
         --remove_bad_first
 
     # HuggingFace Llama models for wikiMIA_hard
-    python -m code.experiments.baselines.VMA_generate \
+    python -m code.experiments.baselines.PIP_generate \
         --model huggyllama/llama-7b \
         --task wikiMIA_hard \
         --split test \
         --remove_bad_first
 
-    python -m code.experiments.baselines.VMA_generate \
+    python -m code.experiments.baselines.PIP_generate \
         --model huggyllama/llama-13b \
         --task wikiMIA_hard \
         --split test \
         --remove_bad_first
 
-    python -m code.experiments.baselines.VMA_generate \
+    python -m code.experiments.baselines.PIP_generate \
         --model huggyllama/llama-30b \
         --task wikiMIA_hard \
         --split test \
         --remove_bad_first
 
-    python -m code.experiments.baselines.VMA_generate \
+    python -m code.experiments.baselines.PIP_generate \
         --model huggyllama/llama-65b \
         --task wikiMIA_hard \
         --split test \
         --remove_bad_first
 
-    python -m code.experiments.baselines.VMA_generate \
+    python -m code.experiments.baselines.PIP_generate \
         --model gpt-3.5-turbo-1106 \
         --task wikiMIA_hard \
         --split test \
         --openai \
         --remove_bad_first
 
-    python -m code.experiments.baselines.VMA_generate \
+    python -m code.experiments.baselines.PIP_generate \
         --model gpt-3.5-turbo-0125 \
         --task wikiMIA_hard \
         --split test \
         --openai \
         --remove_bad_first
 
-    python -m code.experiments.baselines.VMA_generate \
+    python -m code.experiments.baselines.PIP_generate \
         --model gpt-3.5-turbo-instruct \
         --task wikiMIA_hard \
         --split test \
         --openai \
         --remove_bad_first
 
-    python -m code.experiments.baselines.VMA_generate \
+    python -m code.experiments.baselines.PIP_generate \
         --model gpt-4o-2024-11-20 \
         --task wikiMIA_hard \
         --split test \
         --openai \
         --remove_bad_first
 
-    python -m code.experiments.baselines.VMA_generate \
+    python -m code.experiments.baselines.PIP_generate \
         --model gpt-4o-mini-2024-07-18 \
         --task wikiMIA_hard \
         --split test \
@@ -343,7 +341,7 @@ if __name__ == '__main__':
         --remove_bad_first
 
     # Caution (Cost)
-    python -m code.experiments.baselines.VMA_generate \
+    python -m code.experiments.baselines.PIP_generate \
         --model gpt-4-turbo-2024-04-09 \
         --task wikiMIA_hard \
         --split test \
