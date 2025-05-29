@@ -1,10 +1,10 @@
 import os
 import json
-import jsonlines
 import numpy as np
 from sklearn.metrics import roc_auc_score, roc_curve
 import pandas as pd
 from pathlib import Path
+from code.utils import load_jsonl
 
 def calculate_metrics(y_true, y_pred):
     """Calculate AUROC and TPR at different FPR thresholds."""
@@ -14,20 +14,20 @@ def calculate_metrics(y_true, y_pred):
     # Calculate TPR at different FPR thresholds
     tpr_at_fpr = {}
     for target_fpr in [0.001, 0.005, 0.01, 0.05]:  # 0.1%, 0.5%, 1%, 5%
-        idx = np.argmin(np.abs(fpr - target_fpr))
-        tpr_at_fpr[f"TPR@{target_fpr*100}%"] = tpr[idx]
+        valid_indices = np.where(fpr <= target_fpr)[0]
+        if len(valid_indices) > 0:
+            idx = valid_indices[-1]  # Get the last (highest) FPR that's <= target
+            tpr_at_fpr[f"TPR@{target_fpr*100}%"] = tpr[idx]
+        else:
+            tpr_at_fpr[f"TPR@{target_fpr*100}%"] = 0.0  # If no FPR <= target, set TPR to 0
     
     return {"AUROC": auroc, **tpr_at_fpr}
 
 def process_overlaps_file(file_path):
     """Process a single overlaps file and return metrics."""
-    y_true = []
-    y_pred = []
-    
-    with jsonlines.open(file_path) as reader:
-        for obj in reader:
-            y_true.append(obj['label'])
-            y_pred.append(obj['score'])
+    data = load_jsonl(file_path)
+    y_true = [obj['label'] for obj in data]
+    y_pred = [obj['score'] for obj in data]
     
     return calculate_metrics(np.array(y_true), np.array(y_pred))
 
@@ -112,6 +112,7 @@ def main():
                             "Value": value
                         })
     
+    from IPython import embed; embed()
     # Create and save tables
     for metric_name, data in results.items():
         if data:  # Only create table if we have data
@@ -131,3 +132,7 @@ def main():
 
 if __name__ == "__main__":
     main() 
+
+    """
+    python3 -m code.experiments.baselines.process_results
+    """
