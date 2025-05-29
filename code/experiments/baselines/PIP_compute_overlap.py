@@ -11,39 +11,13 @@ from tqdm import tqdm
 import numpy as np
 from multiprocessing import Pool, cpu_count
 from functools import partial
+from rouge_score import rouge_scorer
 
-def compute_lcs(text1, text2):
-    """Compute the longest common subsequence between two texts using dynamic programming."""
-    # Split into words
-    words1 = text1.split()
-    words2 = text2.split()
-    
-    # Create DP table
-    m, n = len(words1), len(words2)
-    dp = [[0] * (n + 1) for _ in range(m + 1)]
-    
-    # Fill DP table
-    for i in range(1, m + 1):
-        for j in range(1, n + 1):
-            if words1[i-1] == words2[j-1]:
-                dp[i][j] = dp[i-1][j-1] + 1
-            else:
-                dp[i][j] = max(dp[i-1][j], dp[i][j-1])
-    
-    # Reconstruct the LCS
-    lcs_words = []
-    i, j = m, n
-    while i > 0 and j > 0:
-        if words1[i-1] == words2[j-1]:
-            lcs_words.append(words1[i-1])
-            i -= 1
-            j -= 1
-        elif dp[i-1][j] > dp[i][j-1]:
-            i -= 1
-        else:
-            j -= 1
-    
-    return dp[m][n], ' '.join(reversed(lcs_words))
+def compute_rouge_l(text1, text2):
+    """Compute the Rouge-L score between two texts."""
+    scorer = rouge_scorer.RougeScorer(['rougeL'], use_stemmer=True)
+    scores = scorer.score(text1, text2)
+    return scores['rougeL'].fmeasure
 
 def process_item(item):
     """Process a single item's generations against its gold text."""
@@ -53,29 +27,26 @@ def process_item(item):
     # Get all generations
     generations = item.get("generation", [])
     
-    # Compute LCS length and words for each generation
-    lcs_lengths = []
-    lcs_words = []
+    # Compute Rouge-L scores for each generation
+    rouge_scores = []
     for gen in generations:
-        lcs_length, lcs_text = compute_lcs(gen, gold_text)
-        lcs_lengths.append(lcs_length)
-        lcs_words.append(lcs_text)
+        score = compute_rouge_l(gen, gold_text)
+        rouge_scores.append(score)
     
-    # Add LCS lengths and words to the item
-    item["lcs_lengths"] = lcs_lengths
-    item["lcs_words"] = lcs_words
-    item["max_lcs_length"] = max(lcs_lengths) if lcs_lengths else 0
-    item["max_lcs_words"] = lcs_words[np.argmax(lcs_lengths)] if lcs_lengths else ""
+    # Add Rouge-L scores to the item
+    item["rouge_scores"] = rouge_scores
+    item["final_score"] = max(rouge_scores) if rouge_scores else 0
+    item["best_generation"] = generations[np.argmax(rouge_scores)] if rouge_scores else ""
     
     return item
 
 def main(args):
     # Create output directory
-    output_dir = f"outputs/baselines/{args.task}/{args.split}/VMA_overlaps"
+    output_dir = f"outputs/baselines/{args.task}/{args.split}/PIP_overlaps"
     os.makedirs(output_dir, exist_ok=True)
     
-    # Get all files in the VMA_generations directory
-    input_dir = f"outputs/baselines/{args.task}/{args.split}/VMA_generations"
+    # Get all files in the PIP_generations directory
+    input_dir = f"outputs/baselines/{args.task}/{args.split}/PIP_generations"
     if not os.path.exists(input_dir):
         print(f"Input directory {input_dir} does not exist")
         return
@@ -99,7 +70,7 @@ def main(args):
             processed_data = list(tqdm(
                 pool.imap(process_item, data),
                 total=len(data),
-                desc="Computing LCS"
+                desc="Computing Rouge-L scores"
             ))
         
         # Save the results
@@ -117,7 +88,7 @@ if __name__ == '__main__':
     main(parser.parse_args())
 
     """
-    python -m code.experiments.baselines.VMA_compute_overlap \
+    python -m code.experiments.baselines.PIP_compute_overlap \
         --task bookMIA \
         --split train \
         --num_processes 8

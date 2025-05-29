@@ -64,7 +64,7 @@ def process_item(item):
     # Add LCS lengths and words to the item
     item["lcs_lengths"] = lcs_lengths
     item["lcs_words"] = lcs_words
-    item["max_lcs_length"] = max(lcs_lengths) if lcs_lengths else 0
+    item["final_score"] = max(lcs_lengths) if lcs_lengths else 0
     item["max_lcs_words"] = lcs_words[np.argmax(lcs_lengths)] if lcs_lengths else ""
     
     return item
