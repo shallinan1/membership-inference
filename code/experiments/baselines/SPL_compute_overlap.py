@@ -12,62 +12,55 @@ import numpy as np
 from multiprocessing import Pool, cpu_count
 from functools import partial
 
-def compute_lcs(text1, text2):
-    """Compute the longest common subsequence between two texts using dynamic programming."""
-    # Split into words
-    words1 = text1.split()
-    words2 = text2.split()
-    
-    # Create DP table
-    m, n = len(words1), len(words2)
-    dp = [[0] * (n + 1) for _ in range(m + 1)]
-    
-    # Fill DP table
-    for i in range(1, m + 1):
-        for j in range(1, n + 1):
-            if words1[i-1] == words2[j-1]:
-                dp[i][j] = dp[i-1][j-1] + 1
-            else:
-                dp[i][j] = max(dp[i-1][j], dp[i][j-1])
-    
-    # Reconstruct the LCS
-    lcs_words = []
-    i, j = m, n
-    while i > 0 and j > 0:
-        if words1[i-1] == words2[j-1]:
-            lcs_words.append(words1[i-1])
-            i -= 1
-            j -= 1
-        elif dp[i-1][j] > dp[i][j-1]:
-            i -= 1
-        else:
-            j -= 1
-    
-    return dp[m][n], ' '.join(reversed(lcs_words))
+import numpy as np
+from sklearn.metrics import roc_curve, auc
+from utils import load_jsonl
+import re
+from collections import Counter
+import zlib
+import argparse
 
-def process_item(item):
-    """Process a single item's generations against its gold text."""
-    # Get the gold text (rest_of_text)
-    gold_text = item.get("rest_of_text", "")
-    
-    # Get all generations
-    generations = item.get("generation", [])
-    
-    # Compute LCS length and words for each generation
-    lcs_lengths = []
-    lcs_words = []
-    for gen in generations:
-        lcs_length, lcs_text = compute_lcs(gen, gold_text)
-        lcs_lengths.append(lcs_length)
-        lcs_words.append(lcs_text)
-    
-    # Add LCS lengths and words to the item
-    item["lcs_lengths"] = lcs_lengths
-    item["lcs_words"] = lcs_words
-    item["final_score"] = max(lcs_lengths) if lcs_lengths else 0
-    item["max_lcs_words"] = lcs_words[np.argmax(lcs_lengths)] if lcs_lengths else ""
-    
-    return item
+
+def ngrams(sequence, n) -> zip:
+    """
+    Generates n-grams from a sequence.
+    """
+    return zip(*[sequence[i:] for i in range(n)])
+
+def rouge_n(candidate: list, reference: list, n=1) -> float:
+    """
+    Calculates the ROUGE-N score between a candidate and a reference.
+    """
+    if not candidate or not reference:
+        return 0
+    candidate_ngrams = list(ngrams(candidate, n))
+    reference_ngrams = list(ngrams(reference, n))
+    ref_words_count = Counter(reference_ngrams)
+    cand_words_count = Counter(candidate_ngrams)
+    overlap = ref_words_count & cand_words_count
+    recall = sum(overlap.values()) / len(reference)
+    precision = sum(overlap.values()) / len(candidate)
+    return recall
+
+def clean_text(text: str, model_name: str) -> str:
+    """
+    Removes specific special tokens from the text based on the model's output.
+    """
+    if "gpt-j-6B" in model_name or "pythia-6.9b" in model_name:
+        return re.sub(r'<\|endoftext\|>', '', text)
+    elif "Llama-2-7b" in model_name or "opt-6.7b" in model_name:
+        text = re.sub(r'<s> ', '', text)
+        return re.sub(r'</s>', '', text)
+    return text
+
+def get_suffix(text: str, prefix_ratio: float, text_length: int) -> list:
+    """
+    Extracts a suffix from the given text, based on the specified prefix ratio and text length.
+    """
+    words = text.split(" ")
+    words = [word for word in words if word != ""]
+    words = words[round(text_length*prefix_ratio):]
+    return words
 
 def main(args):
     # Create output directory
@@ -80,39 +73,52 @@ def main(args):
         print(f"Input directory {input_dir} does not exist")
         return
     
-    # Determine number of processes to use
-    num_processes = min(cpu_count(), args.num_processes) if args.num_processes > 0 else cpu_count()
-    print(f"Using {num_processes} processes")
-    
     for filename in os.listdir(input_dir):
         if not filename.endswith('.jsonl'):
             continue
             
         print(f"Processing {filename}...")
         
+        # Extract model name from filename
+        model_name = filename.split('_')[0]  # Assuming filename format is "modelname_*.jsonl"
+        
         # Load the data
         data = load_jsonl(os.path.join(input_dir, filename))
         
-        # Create a pool of workers
-        with Pool(processes=num_processes) as pool:
-            # Process items in parallel with progress bar
-            processed_data = list(tqdm(
-                pool.imap(process_item, data),
-                total=len(data),
-                desc="Computing LCS"
-            ))
-        
-        # Save the results
-        output_file = os.path.join(output_dir, filename)
-        save_to_jsonl(processed_data, output_file)
-        print(f"Saved results to {output_file}")
+        # Process both regular and zlib versions
+        for use_zlib in [False, True]:
+            rouge_scores = []
+            for item in tqdm(data, desc=f"Computing {'zlib ' if use_zlib else ''}ROUGE scores"):
+                gold_text = item.get("input" if "wikiMIA" in args.task else "snippet", "")
+                generations = item.get("generation", [])
+                
+                suffix_ref = get_suffix(gold_text, 0.5, args.text_length)
+                item_rouge_scores = []
+                
+                for gen in generations:
+                    text_output = clean_text(gen, model_name)
+                    suffix_cand = get_suffix(text_output, 0.5)
+                    
+                    if use_zlib:
+                        zlib_cand = zlib.compress(" ".join(suffix_cand).encode('utf-8'))
+                        item_rouge_scores.append(rouge_n(suffix_cand, suffix_ref, n=1) * len(zlib_cand))
+                    else:
+                        item_rouge_scores.append(rouge_n(suffix_cand, suffix_ref, n=1))
+                
+                rouge_scores.append(item_rouge_scores)
+            
+            # Save results by appending to existing file
+            output_file = os.path.join(output_dir, filename.replace('.jsonl', '_zlib.jsonl' if use_zlib else '.jsonl'))
+            for item, scores in zip(data, rouge_scores):
+                item["rouge_scores"] = scores
+            
+            save_to_jsonl(data, output_file)
+            print(f"Saved {'zlib ' if use_zlib else ''}results to {output_file}")
 
 if __name__ == '__main__':
-    parser = argparse.ArgumentParser(formatter_class=argparse.ArgumentDefaultsHelpFormatter)
-    parser.add_argument('--task', type=str, default="bookMIA", help='The task (dataset)')
-    parser.add_argument('--split', type=str, default="train", help='The data split')
-    parser.add_argument('--num_processes', type=int, default=-1, 
-                      help='Number of processes to use. Default (-1) uses all available CPUs.')
+    parser = argparse.ArgumentParser()
+    parser.add_argument("--task", type=str, default="bookMIA", help='The task (dataset)')
+    parser.add_argument("--split", type=str, default="train", help='The data split')
     
     main(parser.parse_args())
 
