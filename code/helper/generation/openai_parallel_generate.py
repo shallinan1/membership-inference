@@ -26,6 +26,10 @@ requests_limits_dict = {
         "max_requests_per_minute": (50000 * 4)// 5,
         "max_tokens_per_minute": (150000000 * 4) // 5
     },
+    "gpt-4-turbo-2024-04-09": {
+        "max_requests_per_minute": (10000 * 4)// 5,
+        "max_tokens_per_minute": (2000000 * 4) // 5
+    },
 }
 requests_limits_dict["gpt-3.5-turbo-1106"] = requests_limits_dict["gpt-3.5-turbo-0125"]
 requests_limits_dict["gpt-4-0314"] = requests_limits_dict["gpt-4-0613"]
@@ -36,7 +40,7 @@ requests_url_dict = {
     "gpt-3.5-turbo-0125": "https://api.openai.com/v1/chat/completions",
     "gpt-3.5-turbo-instruct": "https://api.openai.com/v1/completions"
 }
-for model in ["gpt-4-0613", "gpt-3.5-turbo-1106", "gpt-4-0314","gpt-4o-mini-2024-07-18", "o1-mini-2024-09-12", "gpt-4o-2024-11-20"]:
+for model in ["gpt-4-0613", "gpt-3.5-turbo-1106", "gpt-4-0314","gpt-4o-mini-2024-07-18", "o1-mini-2024-09-12", "gpt-4o-2024-11-20", "gpt-4-turbo-2024-04-09"]:
     requests_url_dict[model] = requests_url_dict["gpt-3.5-turbo-0125"]
 
 async def openai_parallel_generate(requests, 
