@@ -31,7 +31,7 @@ def main(args):
     temperature = 1.0
     max_tokens = 1024
     top_k = 50
-    top_p = 1.0
+    top_p = 1.0  # For vLLM
     num_sequences = 10
     prefix_ratio = 0.5
     min_tokens = 0  # Hard-coded to 0
@@ -62,7 +62,7 @@ def main(args):
             d[args.key_name] = remove_first_sentence_if_needed(d[args.key_name])
 
     # Create output directory
-    output_dir = f"outputs/baselines/{args.task}/{args.split}/VMA_generations"
+    output_dir = f"outputs/baselines/{args.task}/{args.split}/SPL_generations"
     os.makedirs(output_dir, exist_ok=True)
 
     # Split input texts using prefix ratio
@@ -99,8 +99,7 @@ def main(args):
                 "model": args.model,
                 "max_tokens": max_tokens,
                 "temperature": temperature,
-                "top_p": top_p,
-                "top_k": top_k,
+                "top_p": 0.95,  # OpenAI specific
                 "seed": args.seed,
                 "n": num_sequences,
                 "metadata": {"request_id": request_id},
