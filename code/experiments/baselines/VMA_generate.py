@@ -17,13 +17,6 @@ from code.helper.generation.generate_utils import task_prompts_dict_book, make_p
 import random
 from datetime import datetime
 
-def get_first_n_tokens(text, tokenizer, n=50):
-    """Get the first n tokens from the text."""
-    tokens = tokenizer.encode(text, add_special_tokens=False)
-    if len(tokens) <= n:
-        return text
-    return tokenizer.decode(tokens[:n])
-
 def main(args):
     # Set up random seed
     random.seed(args.seed)
