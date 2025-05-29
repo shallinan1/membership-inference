@@ -383,4 +383,72 @@ if __name__ == '__main__':
         --task tulu_v1 \
         --split test \
         --key_name snippet;
+
+    # New WikiMIA (wikiMIA_update)
+    python -m code.experiments.baselines.SPL_generate \
+        --model huggyllama/llama-7b \
+        --task wikiMIA_update \
+        --split test \
+        --remove_bad_first
+
+    python -m code.experiments.baselines.SPL_generate \
+        --model huggyllama/llama-13b \
+        --task wikiMIA_update \
+        --split test \
+        --remove_bad_first
+
+    python -m code.experiments.baselines.SPL_generate \
+        --model huggyllama/llama-30b \
+        --task wikiMIA_update \
+        --split test \
+        --remove_bad_first
+
+    CUDA_VISIBLE_DEVICES=0,1,2,3,4,5,6,7 python -m code.experiments.baselines.SPL_generate \
+        --model huggyllama/llama-65b \
+        --task wikiMIA_update \
+        --split test \
+        --remove_bad_first
+
+    python -m code.experiments.baselines.SPL_generate \
+        --model gpt-3.5-turbo-1106 \
+        --task wikiMIA_update \
+        --split test \
+        --openai \
+        --remove_bad_first
+
+    python -m code.experiments.baselines.SPL_generate \
+        --model gpt-3.5-turbo-0125 \
+        --task wikiMIA_update \
+        --split test \
+        --openai \
+        --remove_bad_first
+
+    python -m code.experiments.baselines.SPL_generate \
+        --model gpt-3.5-turbo-instruct \
+        --task wikiMIA_update \
+        --split test \
+        --openai \
+        --remove_bad_first
+
+    python -m code.experiments.baselines.SPL_generate \
+        --model gpt-4o-2024-11-20 \
+        --task wikiMIA_update \
+        --split test \
+        --openai \
+        --remove_bad_first
+
+    python -m code.experiments.baselines.SPL_generate \
+        --model gpt-4o-mini-2024-07-18 \
+        --task wikiMIA_update \
+        --split test \
+        --openai \
+        --remove_bad_first
+
+    # Caution (Cost)
+    python -m code.experiments.baselines.SPL_generate \
+        --model gpt-4-turbo-2024-04-09 \
+        --task wikiMIA_update \
+        --split test \
+        --openai \
+        --remove_bad_first
     """
