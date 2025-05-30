@@ -29,6 +29,7 @@ ACTIVATE_ENV="source activate vllmgen"
 
 # SLURM command to request resources (updated to run commands within it)
 SLURM_COMMAND="srun -p gpu-rtx6k -A xlab --time=8:00:00 --nodes=1 --cpus-per-task=4 --mem=25G --pty /bin/bash -c"
+SLURM_COMMAND="srun -p gpu-a100 -A xlab --time=8:00:00 --nodes=1 --cpus-per-task=4 --mem=10G --pty /bin/bash -c"
 
 # Iterate over gen_data files in the folder
 for gen_data_file in "$GEN_DATA_FOLDER"/*.jsonl; do
