@@ -79,7 +79,7 @@ def main():
             continue
             
         # Check for required folders
-        if not (eval_dir / "results").exists() and not (eval_dir / "decop_probs").exists():
+        if not (eval_dir / "results").exists() and not (eval_dir / "decop_results").exists():
             continue
             
         # Process results folder if it exists
@@ -100,13 +100,19 @@ def main():
                                     results[dataset_name][metric_name][model_name] = {}
                                 results[dataset_name][metric_name][model_name][method] = value
         
-        # Process decop_probs folder if it exists
-        decop_dir = eval_dir / "decop_probs"
+        # Process decop_results folder if it exists
+        decop_dir = eval_dir / "decop_results"
         if decop_dir.exists():
-            for model_file in decop_dir.glob("*.jsonl"):
-                model_name = model_file.stem
-                # TODO: Process decop_probs files
-                pass
+            for scores_file in decop_dir.glob("*.json"):
+                # Extract model name from filename (everything after the last underscore)
+                model_name = scores_file.stem.split("_")[-1]
+                metrics = process_scores_file(scores_file)
+                for method, method_metrics in metrics.items():
+                    for metric_name, value in method_metrics.items():
+                        if value is not None:
+                            if model_name not in results[dataset_name][metric_name]:
+                                results[dataset_name][metric_name][model_name] = {}
+                            results[dataset_name][metric_name][model_name][method] = value
         
         # Process overlaps folders
         for overlap_type in ["PIP_overlaps", "SPL_overlaps", "VMA_overlaps"]:
