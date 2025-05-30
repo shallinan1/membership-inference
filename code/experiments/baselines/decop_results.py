@@ -126,42 +126,215 @@ if __name__ == "__main__":
     --paraphrase_model gpt-4o-2024-11-20 \
     --task wikiMIA \
     --split test \
-    --model gpt-3.5-turbo-1106 
+    --model gpt-3.5-turbo-1106; 
 
     python3 -m code.experiments.baselines.decop_results \
     --paraphrase_model gpt-4o-2024-11-20 \
     --task wikiMIA \
     --split test \
-    --model gpt-3.5-turbo-0125
+    --model gpt-3.5-turbo-0125;
 
     python3 -m code.experiments.baselines.decop_results \
     --paraphrase_model gpt-4o-2024-11-20 \
     --task wikiMIA \
     --split test \
-    --model gpt-3.5-turbo-instruct
+    --model gpt-3.5-turbo-instruct;
 
 
     python3 -m code.experiments.baselines.decop_results \
     --paraphrase_model gpt-4o-2024-11-20 \
     --task wikiMIA \
     --split test \
-    --model llama-7b
+    --model llama-7b;
 
     python3 -m code.experiments.baselines.decop_results \
     --paraphrase_model gpt-4o-2024-11-20 \
     --task wikiMIA \
     --split test \
-    --model llama-13b
+    --model llama-13b;
 
     python3 -m code.experiments.baselines.decop_results \
     --paraphrase_model gpt-4o-2024-11-20 \
     --task wikiMIA \
     --split test \
-    --model llama-30b
+    --model llama-30b;
 
     python3 -m code.experiments.baselines.decop_results \
     --paraphrase_model gpt-4o-2024-11-20 \
     --task wikiMIA \
     --split test \
-    --model llama-65b
+    --model llama-65b;
+
+    # Wikimia_hard test decop results
+
+    python3 -m code.experiments.baselines.decop_results \
+    --paraphrase_model gpt-4o-2024-11-20 \
+    --task wikiMIA_hard \
+    --split test \
+    --model gpt-3.5-turbo-1106; 
+
+    python3 -m code.experiments.baselines.decop_results \
+    --paraphrase_model gpt-4o-2024-11-20 \
+    --task wikiMIA_hard \
+    --split test \
+    --model gpt-3.5-turbo-0125;
+
+    python3 -m code.experiments.baselines.decop_results \
+    --paraphrase_model gpt-4o-2024-11-20 \
+    --task wikiMIA_hard \
+    --split test \
+    --model gpt-3.5-turbo-instruct;
+
+    python3 -m code.experiments.baselines.decop_results \
+    --paraphrase_model gpt-4o-2024-11-20 \
+    --task wikiMIA_hard \
+    --split test \
+    --model gpt-4o-2024-11-20;
+
+    python3 -m code.experiments.baselines.decop_results \
+    --paraphrase_model gpt-4o-2024-11-20 \
+    --task wikiMIA_hard \
+    --split test \
+    --model gpt-4o-mini-2024-07-18;
+
+    python3 -m code.experiments.baselines.decop_results \
+    --paraphrase_model gpt-4o-2024-11-20 \
+    --task wikiMIA_hard \
+    --split test \
+    --model gpt-4-turbo-2024-04-09;
+
+    python3 -m code.experiments.baselines.decop_results \
+    --paraphrase_model gpt-4o-2024-11-20 \
+    --task wikiMIA_hard \
+    --split test \
+    --model llama-7b;
+
+    python3 -m code.experiments.baselines.decop_results \
+    --paraphrase_model gpt-4o-2024-11-20 \
+    --task wikiMIA_hard \
+    --split test \
+    --model llama-13b;
+
+    python3 -m code.experiments.baselines.decop_results \
+    --paraphrase_model gpt-4o-2024-11-20 \
+    --task wikiMIA_hard \
+    --split test \
+    --model llama-30b;
+
+    python3 -m code.experiments.baselines.decop_results \
+    --paraphrase_model gpt-4o-2024-11-20 \
+    --task wikiMIA_hard \
+    --split test \
+    --model llama-65b;
+
+    # Wikimia_update train decop results
+
+    python3 -m code.experiments.baselines.decop_results \
+    --paraphrase_model gpt-4o-2024-11-20 \
+    --task wikiMIA_update \
+    --split test \
+    --model gpt-3.5-turbo-1106; 
+
+    python3 -m code.experiments.baselines.decop_results \
+    --paraphrase_model gpt-4o-2024-11-20 \
+    --task wikiMIA_update \
+    --split test \
+    --model gpt-3.5-turbo-0125;
+
+    python3 -m code.experiments.baselines.decop_results \
+    --paraphrase_model gpt-4o-2024-11-20 \
+    --task wikiMIA_update \
+    --split test \
+    --model gpt-3.5-turbo-instruct;
+
+    python3 -m code.experiments.baselines.decop_results \
+    --paraphrase_model gpt-4o-2024-11-20 \
+    --task wikiMIA_update \
+    --split test \
+    --model gpt-4o-2024-11-20;
+
+    python3 -m code.experiments.baselines.decop_results \
+    --paraphrase_model gpt-4o-2024-11-20 \
+    --task wikiMIA_update \
+    --split test \
+    --model gpt-4o-mini-2024-07-18;
+
+    python3 -m code.experiments.baselines.decop_results \
+    --paraphrase_model gpt-4o-2024-11-20 \
+    --task wikiMIA_update \
+    --split test \
+    --model gpt-4-turbo-2024-04-09;
+
+    python3 -m code.experiments.baselines.decop_results \
+    --paraphrase_model gpt-4o-2024-11-20 \
+    --task wikiMIA_update \
+    --split test \
+    --model llama-7b;
+
+    python3 -m code.experiments.baselines.decop_results \
+    --paraphrase_model gpt-4o-2024-11-20 \
+    --task wikiMIA_update \
+    --split test \
+    --model llama-13b;
+
+    python3 -m code.experiments.baselines.decop_results \
+    --paraphrase_model gpt-4o-2024-11-20 \
+    --task wikiMIA_update \
+    --split test \
+    --model llama-30b;
+
+    python3 -m code.experiments.baselines.decop_results \
+    --paraphrase_model gpt-4o-2024-11-20 \
+    --task wikiMIA_update \
+    --split test \
+    --model llama-65b;
+
+    # Tulu
+
+    python3 -m code.experiments.baselines.decop_results \
+    --paraphrase_model gpt-4o-2024-11-20 \
+    --task tulu_v1 \
+    --split test \
+    --model tulu-7b-finalized;
+
+    python3 -m code.experiments.baselines.decop_results \
+        --paraphrase_model gpt-4o-2024-11-20 \
+        --task tulu_v1 \
+        --split test \
+        --model tulu-13b-finalized;
+
+    python3 -m code.experiments.baselines.decop_results \
+        --paraphrase_model gpt-4o-2024-11-20 \
+        --task tulu_v1 \
+        --split test \
+        --model tulu-30b-finalized;
+
+    python3 -m code.experiments.baselines.decop_results \
+        --paraphrase_model gpt-4o-2024-11-20 \
+        --task tulu_v1 \
+        --split test \
+        --model tulu-65b-finalized;
+
+    # BookMIA
+
+    python3 -m code.experiments.baselines.decop_results \
+        --paraphrase_model gpt-4o-2024-11-20 \
+        --task bookMIA \
+        --split train \
+        --model gpt-3.5-turbo-0125 \
+        --remove_bad_first
+
+    python3 -m code.experiments.baselines.decop_results \
+        --paraphrase_model gpt-4o-2024-11-20 \
+        --task bookMIA \
+        --split train \
+        --model gpt-3.5-turbo-1106 \
+        --remove_bad_first
+
+    python3 -m code.experiments.baselines.decop_results \
+        --paraphrase_model gpt-4o-2024-11-20 \
+        --task bookMIA \
+        --split train \
+        --model gpt-3.5-turbo-instruct \
+        --remove_bad_first
     """
