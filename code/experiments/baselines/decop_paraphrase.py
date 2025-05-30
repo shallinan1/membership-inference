@@ -53,8 +53,8 @@ def main(args):
     if args.closed_model and "claude" not in model:
         for d in tqdm(data, desc="Generating paraphrases"):
             if "tulu_v1" in args.task:
-                # This is the v2 version - paraphrasing both user and assistant response
-                if True:
+                # This is the v2 version - paraphrasing both user and assistant response # TODO
+                if False:
                     d["user_turn"] = d["messages"][0]["content"]
                     # TODO finish this
                     # d[args.key_name] = f'User: {d["messages"][0]["content"]}\nAssistant: {d["messages"][1]["content"]}'
