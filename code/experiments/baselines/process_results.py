@@ -44,8 +44,8 @@ def process_scores_file(file_path):
                 "AUROC": method_scores['roc_auc'],
                 "TPR@0.1%": method_scores.get('tpr_at_0.1_fpr', None),
                 "TPR@0.5%": method_scores.get('tpr_at_0.5_fpr', None),
-                "TPR@1%": method_scores.get('tpr_at_1_fpr', None),
-                "TPR@5%": method_scores.get('tpr_at_5_fpr', None)
+                "TPR@1.0%": method_scores.get('tpr_at_1.0_fpr', None),
+                "TPR@5.0%": method_scores.get('tpr_at_5.0_fpr', None)
             }
     
     return metrics
@@ -99,14 +99,22 @@ def main():
                                 if model_name not in results[dataset_name][metric_name]:
                                     results[dataset_name][metric_name][model_name] = {}
                                 results[dataset_name][metric_name][model_name][method] = value
-        from IPython import embed; embed()
-
+        
+        # Process decop_probs folder if it exists
+        decop_dir = eval_dir / "decop_probs"
+        if decop_dir.exists():
+            for model_file in decop_dir.glob("*.jsonl"):
+                model_name = model_file.stem
+                # TODO: Process decop_probs files
+                pass
+        
         # Process overlaps folders
         for overlap_type in ["PIP_overlaps", "SPL_overlaps", "VMA_overlaps"]:
             overlaps_dir = eval_dir / overlap_type
             if overlaps_dir.exists():
                 for model_file in overlaps_dir.glob("*.jsonl"):
-                    model_name = model_file.stem
+                    # Remove _zlib from model name if present
+                    model_name = model_file.stem.replace("_zlib", "")
                     metrics = process_overlaps_file(model_file)
                     # Determine method name based on file name
                     if overlap_type == "SPL_overlaps":
