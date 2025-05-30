@@ -88,7 +88,9 @@ if __name__ == '__main__':
     main(parser.parse_args())
 
     """
-    python -m code.experiments.baselines.PIP_compute_overlap \
-        --task bookMIA \
-        --split train 
+    python -m code.experiments.baselines.PIP_compute_overlap --task bookMIA --split train;
+    python -m code.experiments.baselines.PIP_compute_overlap --task wikiMIA --split test;
+    python -m code.experiments.baselines.PIP_compute_overlap --task wikiMIA_hard --split test;
+    python -m code.experiments.baselines.PIP_compute_overlap --task wikiMIA_update --split test;
+    python -m code.experiments.baselines.PIP_compute_overlap --task tulu_v1 --split test;
     """ 
