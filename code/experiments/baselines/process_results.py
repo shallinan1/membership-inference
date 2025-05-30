@@ -39,7 +39,19 @@ def process_scores_file(file_path):
     # Extract metrics from scores.json
     metrics = {}
     for method, method_scores in scores.items():
-        if isinstance(method_scores, dict) and 'roc_auc' in method_scores:
+        if method == "ReferenceLoss":
+            # Handle nested reference loss structure
+            assert len(method_scores) == 1
+            for ref_model, ref_scores in method_scores.items():
+                if isinstance(ref_scores, dict) and 'roc_auc' in ref_scores:
+                    metrics["Reference Loss"] = {
+                        "AUROC": ref_scores['roc_auc'],
+                        "TPR@0.1%": ref_scores.get('tpr_at_0.1_fpr', None),
+                        "TPR@0.5%": ref_scores.get('tpr_at_0.5_fpr', None),
+                        "TPR@1.0%": ref_scores.get('tpr_at_1.0_fpr', None),
+                        "TPR@5.0%": ref_scores.get('tpr_at_5.0_fpr', None)
+                    }
+        elif isinstance(method_scores, dict) and 'roc_auc' in method_scores:
             metrics[method] = {
                 "AUROC": method_scores['roc_auc'],
                 "TPR@0.1%": method_scores.get('tpr_at_0.1_fpr', None),
@@ -99,7 +111,7 @@ def main():
                                 if model_name not in results[dataset_name][metric_name]:
                                     results[dataset_name][metric_name][model_name] = {}
                                 results[dataset_name][metric_name][model_name][method] = value
-        
+
         # Process decop_results folder if it exists
         decop_dir = eval_dir / "decop_results"
         if decop_dir.exists():
@@ -113,7 +125,6 @@ def main():
                             if model_name not in results[dataset_name][metric_name]:
                                 results[dataset_name][metric_name][model_name] = {}
                             results[dataset_name][metric_name][model_name][method] = value
-        
         # Process overlaps folders
         for overlap_type in ["PIP_overlaps", "SPL_overlaps", "VMA_overlaps"]:
             overlaps_dir = eval_dir / overlap_type
@@ -134,20 +145,30 @@ def main():
                         if model_name not in results[dataset_name][metric_name]:
                             results[dataset_name][metric_name][model_name] = {}
                         results[dataset_name][metric_name][model_name][method] = value
-    
     from IPython import embed; embed()
     # Create and save tables
+    print("\nProcessing results for tables:")
     for dataset_name, dataset_results in results.items():
         for metric_name, model_results in dataset_results.items():
             if model_results:  # Only create table if we have data
                 # Convert to DataFrame
                 df = pd.DataFrame.from_dict(model_results, orient='index').round(4)
+                print(df.columns)
+
+                # Define column order
+                column_order = ['PIP', 'VMA', 'SPL', 'SPL_zlib', 'Decop', 'Loss', 'Reference Loss', 'Zlib', 'MinK-0.05', 'MinK-0.1', 'MinK-0.2', 'MinK-0.3', 'MinK-0.4', 'MinK-0.5', 'MinK-0.6']
+                # Only keep columns that exist in the DataFrame
+                existing_columns = [col for col in column_order if col in df.columns]
+                df = df[existing_columns]
+                df = df.sort_index()
                 
                 # Save to CSV
-                output_file = f"tables/{dataset_name}_{metric_name}_table.csv"
-                os.makedirs("tables", exist_ok=True)
+                output_file = f"outputs/tables/{dataset_name}_{metric_name}_table.csv"
+                os.makedirs("outputs/tables", exist_ok=True)
                 df.to_csv(output_file)
-                print(f"Saved {dataset_name} {metric_name} table to {output_file}")
+                print(f"  Saved table to {output_file}")
+            else:
+                print("  No data for this metric")
 
 if __name__ == "__main__":
     main() 
