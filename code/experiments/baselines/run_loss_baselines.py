@@ -144,5 +144,35 @@ if __name__ == '__main__':
     python3 -m code.experiments.baselines.run_loss_baselines \
         --target_model_probs outputs/baselines/pile_external/train/probs/pythia-1.4b.jsonl \
         --ref_model_probs outputs/baselines/pile_external/train/probs/stablelm-base-alpha-3b-v2.jsonl;
+
+    python3 -m code.experiments.baselines.run_loss_baselines \
+    --target_model_probs /gscratch/xlab/hallisky/membership-inference/outputs/baselines/tulu_v1/test/probs/tulu-7b-finalized.jsonl \
+    --ref_model_probs /gscratch/xlab/hallisky/membership-inference/outputs/baselines/tulu_v1/test/probs/tulu-7b-finalized.jsonl;
+
+    python3 -m code.experiments.baselines.run_loss_baselines \
+    --target_model_probs /gscratch/xlab/hallisky/membership-inference/outputs/baselines/tulu_v1/test/probs/tulu-13b-finalized.jsonl \
+    --ref_model_probs /gscratch/xlab/hallisky/membership-inference/outputs/baselines/tulu_v1/test/probs/tulu-7b-finalized.jsonl;
+
+        python3 -m code.experiments.baselines.run_loss_baselines \
+    --target_model_probs /gscratch/xlab/hallisky/membership-inference/outputs/baselines/tulu_v1/test/probs/tulu-30b-finalized.jsonl \
+    --ref_model_probs /gscratch/xlab/hallisky/membership-inference/outputs/baselines/tulu_v1/test/probs/tulu-7b-finalized.jsonl;
+
+            python3 -m code.experiments.baselines.run_loss_baselines \
+    --target_model_probs /gscratch/xlab/hallisky/membership-inference/outputs/baselines/tulu_v1/test/probs/tulu-65b-finalized.jsonl \
+    --ref_model_probs /gscratch/xlab/hallisky/membership-inference/outputs/baselines/tulu_v1/test/probs/tulu-7b-finalized.jsonl;
+
+
+    python3 -m code.experiments.baselines.run_loss_baselines \
+    --target_model_probs /gscratch/xlab/hallisky/membership-inference/outputs/baselines/tulu_v1/test/probs/tulu-v1-llama2-7b.jsonl \
+    --ref_model_probs /gscratch/xlab/hallisky/membership-inference/outputs/baselines/tulu_v1/test/probs/tulu-v1-llama2-7b.jsonl;
+
+    python3 -m code.experiments.baselines.run_loss_baselines \
+    --target_model_probs /gscratch/xlab/hallisky/membership-inference/outputs/baselines/tulu_v1/test/probs/tulu-v1-llama2-13b.jsonl \
+    --ref_model_probs /gscratch/xlab/hallisky/membership-inference/outputs/baselines/tulu_v1/test/probs/tulu-v1-llama2-7b.jsonl;
+
+    python3 -m code.experiments.baselines.run_loss_baselines \
+    --target_model_probs /gscratch/xlab/hallisky/membership-inference/outputs/baselines/tulu_v1/test/probs/tulu-v1-llama2-70b.jsonl \
+    --ref_model_probs /gscratch/xlab/hallisky/membership-inference/outputs/baselines/tulu_v1/test/probs/tulu-v1-llama2-7b.jsonl;
+
     """
 
