@@ -337,4 +337,48 @@ if __name__ == "__main__":
         --split train \
         --model gpt-3.5-turbo-instruct \
         --remove_bad_first
+
+    # Tulu
+    python3 -m code.experiments.baselines.decop_results \
+        --paraphrase_model gpt-4o-2024-11-20 \
+        --model tulu-v1-llama2-70b  \
+        --task tulu_v1 \
+        --split test;
+
+    python3 -m code.experiments.baselines.decop_results \
+        --paraphrase_model gpt-4o-2024-11-20 \
+        --model tulu-v1-llama2-7b  \
+        --task tulu_v1 \
+        --split test;
+
+    python3 -m code.experiments.baselines.decop_results \
+        --paraphrase_model gpt-4o-2024-11-20 \
+        --model tulu-v1-llama2-13b  \
+        --task tulu_v1 \
+        --split test;
+
+    python3 -m code.experiments.baselines.decop_results \
+        --paraphrase_model gpt-4o-2024-11-20 \
+        --model tulu-7b-finalized \
+        --task tulu_v1 \
+        --split test;
+
+    python3 -m code.experiments.baselines.decop_results \
+        --paraphrase_model gpt-4o-2024-11-20 \
+        --model tulu-13b-finalized \
+        --task tulu_v1 \
+        --split test;
+
+    python3 -m code.experiments.baselines.decop_results \
+        --paraphrase_model gpt-4o-2024-11-20 \
+        --model tulu-30b-finalized \
+        --task tulu_v1 \
+        --split test;
+
+    python3 -m code.experiments.baselines.decop_results \
+        --paraphrase_model gpt-4o-2024-11-20 \
+        --model tulu-65b-finalized \
+        --task tulu_v1 \
+        --split test;
+
     """
