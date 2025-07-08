@@ -77,17 +77,17 @@ if __name__ == "__main__":
 # embed()
 """
 python3 -m code.plotting.plot_metrics \
-    --data_path code/plotting/temp_data_min_num_sequences.tsv \
+    --data_path code/plotting/num_sequences_metrics.tsv \
     --save_name num_sequences \
     --x_label "Number of Sequences Generated"
     
 python3 -m code.plotting.plot_metrics \
-    --data_path code/plotting/temp_data_min_proportion.tsv \
+    --data_path code/plotting/proportion_from_end_metrics.tsv \
     --save_name num_proportion_from_end \
     --x_label "Proportion of Text as Prompt"
 
 python3 -m code.plotting.plot_metrics \
-    --data_path code/plotting/temp_data_temp.tsv \
+    --data_path code/plotting/temperature_metrics.tsv \
     --save_name temperature  \
     --x_label "Temperature"
 """
