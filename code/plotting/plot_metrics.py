@@ -28,7 +28,7 @@ def main(args):
     num_metrics = len(metrics)
 
     # Setup subplot grid
-    fig, axes = plt.subplots(1, num_metrics, figsize=(3 * num_metrics, 2), sharey=True)
+    fig, axes = plt.subplots(1, num_metrics, figsize=(3 * num_metrics, 1.5), sharey=True)
 
     # Make sure axes is iterable even with one subplot
     if num_metrics == 1:
@@ -59,10 +59,10 @@ def main(args):
             ax.set_xticks([10, 20, 50, 100])
         ax.grid(alpha=0.3)
         if i == num_metrics-3:
-            ax.legend(ncols=num_metrics+1, loc='upper center', bbox_to_anchor=(0.95, 1.5))
+            ax.legend(ncols=num_metrics+1, loc='upper center', bbox_to_anchor=(0.95, 1.55))
 
     fig.subplots_adjust(wspace=0.1) 
-    fig.supxlabel(args.x_label, fontsize=16, font=bold_font, y=-0.18)
+    fig.supxlabel(args.x_label, fontsize=16, font=bold_font, y=-0.22)
     plt.savefig(f"code/plotting/plots/{args.save_name}.pdf", bbox_inches="tight")
     plt.show()
 
