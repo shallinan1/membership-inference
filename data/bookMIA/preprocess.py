@@ -1,5 +1,10 @@
-from code.user_secrets import CACHE_PATH
 import os
+from dotenv import load_dotenv
+
+# Load environment variables
+load_dotenv()
+CACHE_PATH = os.getenv("CACHE_PATH")
+
 # Set up environment variables
 os.environ["HF_HOME"] = CACHE_PATH
 os.environ["HF_DATASETS_PATH"] = CACHE_PATH
@@ -82,5 +87,5 @@ if __name__ == "__main__":
 
     """
     # To run this file, use:
-    python3 -m data.preprocess
+    python3 -m data.bookMIA.preprocess
     """
