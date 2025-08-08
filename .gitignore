@@ -10,8 +10,6 @@ __pycache__/
 *.jsonl
 *.json
 
-user_secrets.py
-
 # C extensions
 *.so
 
