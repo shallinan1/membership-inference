@@ -6,3 +6,4 @@ scikit-learn
 accelerate
 openai
 python-dotenv
+datasets
