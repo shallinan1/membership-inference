@@ -1,7 +1,12 @@
 from code.helper.generation.api_request_parallel_processor import process_api_requests
 import asyncio
 import logging
-from code.user_secrets import OPENAI_API_KEY
+import os
+from dotenv import load_dotenv
+
+# Load environment variables
+load_dotenv()
+OPENAI_API_KEY = os.getenv("OPENAI_API_KEY")
 import time
 from IPython import embed
 

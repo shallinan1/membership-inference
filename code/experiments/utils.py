@@ -208,8 +208,13 @@ if __name__ == "__main__":
     # Example usage:
     encoding = tiktoken.encoding_for_model("gpt-3.5-turbo")
     import nltk
-    from code.user_secrets import CACHE_PATH
     import os
+    from dotenv import load_dotenv
+    
+    # Load environment variables
+    load_dotenv()
+    CACHE_PATH = os.getenv("CACHE_PATH")
+    
     os.environ["HF_HOME"] = CACHE_PATH
     os.environ["HF_DATASETS_PATH"] = CACHE_PATH
     from transformers import AutoTokenizer

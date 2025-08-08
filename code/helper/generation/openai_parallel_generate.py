@@ -1,5 +1,10 @@
-from code.user_secrets import OPENAI_API_KEY
+import os
+from dotenv import load_dotenv
 from openai import OpenAI
+
+# Load environment variables
+load_dotenv()
+OPENAI_API_KEY = os.getenv("OPENAI_API_KEY")
 import time
 import logging
 from code.helper.generation.api_request_parallel_processor import process_api_requests

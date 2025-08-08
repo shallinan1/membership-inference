@@ -1,4 +1,10 @@
-from code.user_secrets import CACHE_PATH, OPENAI_API_KEY
+import os
+from dotenv import load_dotenv
+
+# Load environment variables
+load_dotenv()
+OPENAI_API_KEY = os.getenv("OPENAI_API_KEY")
+CACHE_PATH = os.getenv("CACHE_PATH")
 from openai import OpenAI
 
 import os
