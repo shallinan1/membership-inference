@@ -5,3 +5,4 @@ matplotlib
 scikit-learn
 accelerate
 openai
+python-dotenv
