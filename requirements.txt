@@ -11,3 +11,4 @@ Levenshtein
 requests
 tqdm
 wikitextparser
+nltk
