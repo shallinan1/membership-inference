@@ -176,7 +176,7 @@ def extract_plain_summary(wikitext):
     if "\n\n\nthumb" in summary:
         index = summary.find("\n\n\nthumb")
         if index != 1:
-            summary = summary[:index].split()
+            summary =  summary[:index].strip()
 
     if summary == "":
         return ""
@@ -354,10 +354,8 @@ def main():
                        help='Output file path (default: data/wikiMIA_hard/scraped/scraped.jsonl)')
     parser.add_argument('--debug', action='store_true',
                        help='Enable debug output (shows skipped/unchanged articles)')
-    
     args = parser.parse_args()
     
-    # Set global debug mode
     global DEBUG_MODE
     DEBUG_MODE = args.debug
     
@@ -394,7 +392,6 @@ def main():
         p.start()
         print(f"Started worker {i}")
     
-    # Wait for all workers to complete
     for p in processes:
         p.join()
     
