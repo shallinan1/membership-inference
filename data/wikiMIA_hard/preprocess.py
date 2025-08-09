@@ -84,7 +84,7 @@ def main(args):
     print(f"After deduplication: {len(deduplicated_data)} entries")
     
     # Sample from deduplicated data
-    filtered_data = random.sample(deduplicated_data, min(125, len(deduplicated_data)))
+    filtered_data = random.sample(deduplicated_data, min(1000, len(deduplicated_data)))
 
     val_split_adjusted = args.val_split / (args.val_split + args.test_split)
     # Split nonmember and member data
