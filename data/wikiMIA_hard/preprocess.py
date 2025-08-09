@@ -72,7 +72,19 @@ def main(args):
         if shorter / longer >= 0.8 and r["percent_diff"] >= 0.5:
             filtered_data.append(r)
 
-    filtered_data = random.sample(filtered_data, 125)
+    # Deduplicate by title - keep only the first occurrence of each title
+    seen_titles = set()
+    deduplicated_data = []
+    for item in filtered_data:
+        if item["title"] not in seen_titles:
+            seen_titles.add(item["title"])
+            deduplicated_data.append(item)
+    
+    print(f"Filtered data: {len(filtered_data)} entries")
+    print(f"After deduplication: {len(deduplicated_data)} entries")
+    
+    # Sample from deduplicated data
+    filtered_data = random.sample(deduplicated_data, min(125, len(deduplicated_data)))
 
     val_split_adjusted = args.val_split / (args.val_split + args.test_split)
     # Split nonmember and member data
