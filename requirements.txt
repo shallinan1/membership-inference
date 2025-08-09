@@ -8,3 +8,6 @@ openai
 python-dotenv
 datasets
 Levenshtein
+requests
+tqdm
+wikitextparser
