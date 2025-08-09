@@ -15,10 +15,10 @@ This directory contains preprocessing scripts to create datasets for membership 
   
 - **wikiMIA_hard/**: Temporal Wikipedia changes (before/after article versions)
   
-  To scrape articles and generate the processed dataset, run:
+  To create the dataset from scratch (scrape articles and filter data), run:
   ```bash
   python3 -m data.wikiMIA_hard.scrape_articles
-  python3 -m data.wikiMIA_hard.preprocess
+  python3 -m data.wikiMIA_hard.filter_articles
   ```
   
 - **wikiMIA_update/**: Updated WikiMIA-24 benchmark dataset ([paper](https://arxiv.org/abs/2408.08661))

@@ -141,5 +141,5 @@ if __name__ == "__main__":
 
     """
     # To run this file, use:
-    python3 -m data.wikiMIA_hard.preprocess
+    python3 -m data.wikiMIA_hard.filter_articles
     """
