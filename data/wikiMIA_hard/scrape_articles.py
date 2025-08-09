@@ -12,8 +12,12 @@ from tqdm import tqdm
 import Levenshtein
 from datetime import datetime
 from unidecode import unidecode
-from code.utils import save_to_jsonl
 import json
+import argparse
+import os
+import multiprocessing as mp
+from multiprocessing import Queue
+import threading
 
 # Create a persistent session for API requests to Wikipedia
 session = requests.Session()
@@ -67,9 +71,9 @@ def get_random_article():
             "disambiguation" in title.lower() or
             is_stub(title)
         ):
-            print(f"[SKIPPED] {title} — list/disambig/stub")
+            debug_print(f"[SKIPPED] {title} — list/disambig/stub")
             continue
-
+        
         # Double-check for disambiguation pages via pageprops
         page_info = session.get(BASE_URL, params={
             "format": "json",
@@ -196,10 +200,16 @@ def extract_plain_summary(wikitext):
 
 # Global variables for the scraping process
 results = []  # Store results (currently unused, writing directly to file instead)
+DEBUG_MODE = False  # Global debug flag
 
 # Target date for historical comparison (end of 2016)
 raw_date = "2016-12-31T23:59:59Z"
 parsed_date = datetime.fromisoformat(raw_date.replace("Z", "+00:00"))
+
+def debug_print(*args, **kwargs):
+    """Print only if debug mode is enabled"""
+    if DEBUG_MODE:
+        print(*args, **kwargs)
 
 def compare_summaries(title):
     """
@@ -232,7 +242,7 @@ def compare_summaries(title):
     # This ensures we're looking at articles that are actively maintained
     latest_revision_date = datetime.fromisoformat(timestamp.replace("Z", "+00:00"))
     if latest_revision_date < datetime(2024, 1, 1, tzinfo=latest_revision_date.tzinfo):
-        print(f"[SKIPPED: TOO OLD] {title} — Last edit on {latest_revision_date.date()}")
+        debug_print(f"[SKIPPED: TOO OLD] {title} — Last edit on {latest_revision_date.date()}")
         return False
 
     # Extract clean summaries from both versions
@@ -245,13 +255,13 @@ def compare_summaries(title):
 
     # Check if the summaries have changed
     if old_summary == new_summary:
-        print(f"[UNCHANGED] {title}")
+        debug_print(f"[UNCHANGED] {title}")
         return False
     else:
         # Calculate edit distance between summaries
         diff_chars = Levenshtein.distance(old_summary, new_summary)
 
-        print(f"[CHANGED] {title} — Levenshtein Distance: {diff_chars} characters")
+        debug_print(f"[CHANGED] {title} — Levenshtein Distance: {diff_chars} characters")
 
         # Return structured data about the changes
         return {
@@ -264,41 +274,150 @@ def compare_summaries(title):
             "last_edit_date": latest_revision_date.date().isoformat()
         }
 
-# Main scraping loop
-# This searches through random Wikipedia articles looking for ones that have
-# changed significantly between 2016 and now (with recent 2024+ edits)
-
-count = 0  # Number of articles found with significant changes
-tries = 0  # Total articles examined
-max_tries = 200000  # Maximum articles to examine
-
-print(f"Starting Wikipedia article scraping for membership inference dataset...")
-print(f"Looking for articles changed between 2016 and present (with 2024+ edits)")
-print(f"Will examine up to {max_tries} random articles")
-
-for tries in tqdm(range(max_tries)):
-    tries += 1
-    title = get_random_article()  # Get a random suitable article
-    result = compare_summaries(title)  # Compare 2016 vs current summary
+def worker_process(worker_id, articles_per_worker, results_queue):
+    """
+    Worker process function that scrapes articles and puts results in a queue
+    Each worker has its own requests session to avoid conflicts
+    """
+    # Create a new session for this worker process
+    worker_session = requests.Session()
     
-    if result:  # If the article has changed significantly
-        count += 1
-        # Save the result immediately to avoid losing data
-        with open("data/wikiMIA_hard/scraped/scraped.jsonl", "a") as f:
-            f.write(json.dumps(result) + "\n")
+    # Override the global session for this worker
+    global session
+    session = worker_session
     
-    # Rate limiting - be nice to Wikipedia's servers
-    time.sleep(0.1)
+    count = 0  # Articles found by this worker
+    
+    # Create progress bar for this worker
+    pbar = tqdm(range(articles_per_worker), desc=f"Worker {worker_id}", position=int(worker_id.split('_')[1]))
+    
+    for i in pbar:
+        try:
+            title = get_random_article()
+            print(title)
+            result = compare_summaries(title)
+            
+            if result:
+                count += 1
+                # Send result to main process via queue
+                results_queue.put(result)
+            
+            # Update progress bar with hit rate
+            processed = i + 1
+            hit_rate = (count / processed * 100) if processed > 0 else 0
+            pbar.set_postfix(hits=count, rate=f"{hit_rate:.1f}%")
+            
+            # Rate limiting - be nice to Wikipedia's servers
+            time.sleep(0.1)
+            
+        except Exception as e:
+            debug_print(f"Worker {worker_id} error: {e}")
+            continue
+    
+    pbar.close()
+    print(f"Worker {worker_id} complete: found {count} articles")
 
-print(f"Scraping complete. Found {count} changed articles out of {tries} examined.")
+def file_writer_thread(results_queue, output_file, total_expected):
+    """
+    Background thread that writes results from queue to file
+    This prevents blocking the worker processes
+    """
+    results_written = 0
+    
+    with open(output_file, "a") as f:
+        while results_written < total_expected:
+            try:
+                # Get result from queue (with timeout to check for completion)
+                result = results_queue.get(timeout=30)
+                if result is None:  # Sentinel value to stop
+                    break
+                    
+                f.write(json.dumps(result) + "\n")
+                f.flush()  # Ensure data is written immediately
+                results_written += 1
+                
+                if results_written % 10 == 0:
+                    debug_print(f"Written {results_written} results to {output_file}")
+                    
+            except:
+                # Timeout - check if all workers are done
+                break
 
-# Backup save (though results list is currently unused)
-save_to_jsonl(results, "data/wikiMIA_hard/scraped/scraped_temp_copy.jsonl")
+def main():
+    """Main function to handle command line arguments and run the scraper"""
+    parser = argparse.ArgumentParser(description='Scrape Wikipedia articles for membership inference research')
+    parser.add_argument('--max-tries', type=int, default=200000,
+                       help='Maximum number of articles to examine (default: 200000)')
+    parser.add_argument('--workers', type=int, default=4,
+                       help='Number of parallel worker processes (default: 4)')
+    parser.add_argument('--output-file', type=str, default="data/wikiMIA_hard/scraped/scraped.jsonl",
+                       help='Output file path (default: data/wikiMIA_hard/scraped/scraped.jsonl)')
+    parser.add_argument('--debug', action='store_true',
+                       help='Enable debug output (shows skipped/unchanged articles)')
+    
+    args = parser.parse_args()
+    
+    # Set global debug mode
+    global DEBUG_MODE
+    DEBUG_MODE = args.debug
+    
+    output_dir = os.path.dirname(args.output_file)
+    os.makedirs(output_dir, exist_ok=True)
 
-# Drop into interactive mode for debugging/analysis
-embed()
+    print(f"Starting Wikipedia article scraping with {args.workers} parallel workers")
+    print(f"Looking for articles changed between 2016 and present (with 2024+ edits)")
+    print(f"Will examine {args.max_tries} total articles ({args.max_tries // args.workers} per worker)")
+    print(f"Output file: {args.output_file}")
+    
+    # Calculate work distribution
+    articles_per_worker = args.max_tries // args.workers
+    
+    # Create queue for results communication between workers and main process
+    results_queue = Queue()
+    
+    # Start background thread to write results to file
+    writer_thread = threading.Thread(
+        target=file_writer_thread,
+        args=(results_queue, args.output_file, args.max_tries)
+    )
+    writer_thread.daemon = True
+    writer_thread.start()
+    
+    # Create and start worker processes
+    processes = []
+    for i in range(args.workers):
+        p = mp.Process(
+            target=worker_process,
+            args=(f"worker_{i}", articles_per_worker, results_queue)
+        )
+        processes.append(p)
+        p.start()
+        print(f"Started worker {i}")
+    
+    # Wait for all workers to complete
+    for p in processes:
+        p.join()
+    
+    # Signal file writer thread to stop and wait for it
+    results_queue.put(None)  # Sentinel value
+    writer_thread.join(timeout=10)
+    
+    print("All workers complete!")
+    print(f"Results saved to: {args.output_file}")
+
+if __name__ == "__main__":
+    main()
 
 """
 To run this script:
+
+Basic usage (4 workers, respects rate limits):
 python3 -m data.wikiMIA_hard.scrape_articles
+
+Custom configuration:
+python3 -m data.wikiMIA_hard.scrape_articles --workers 8 --max-tries 1000000
+
+Note: Each worker waits 0.1 seconds between requests to respect Wikipedia's rate limits.
+With 4 workers, this means ~40 requests per second across all workers.
+Adjust --workers based on your needs, but be mindful of Wikipedia's servers.
 """
