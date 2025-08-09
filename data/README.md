@@ -15,6 +15,11 @@ This directory contains preprocessing scripts to create datasets for membership 
   
 - **wikiMIA_hard/**: Temporal Wikipedia changes (before/after article versions)
   
+  To download the processed dataset from HuggingFace, run:
+  ```bash
+  python3 -m data.wikiMIA_hard.preprocess
+  ```
+  
   To create the dataset from scratch (scrape articles and filter data), run:
   ```bash
   python3 -m data.wikiMIA_hard.scrape_articles
