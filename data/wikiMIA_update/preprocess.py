@@ -1,3 +1,8 @@
+"""
+Preprocesses the WikiMIA-24 dataset to match the size and format of the original WikiMIA dataset.
+Downloads from HuggingFace, samples equal numbers from each label (271 each for 542 total),
+and creates train/val/test splits.
+"""
 import os
 from dotenv import load_dotenv
 
@@ -13,19 +18,18 @@ from datasets import load_dataset
 import random
 import numpy as np
 import argparse
-import os
 import pandas as pd
-from data.bookMIA.utils import clean_snippet
 from sklearn.model_selection import train_test_split
-from IPython import embed
 
 def main(args):
     # Load dataset
     ds = load_dataset("wjfu99/WikiMIA-24")
 
     df = ds["WikiMIA_length64"].to_pandas()
-    sample_size = 542//2 # Match WikiMIA dataset
-
+    
+    # Match original WikiMIA dataset size: 542 total examples (271 per label)
+    sample_size = 542 // 2
+    
     # Sample equal number of examples from each label
     label_0 = df[df['label'] == 0].sample(n=sample_size, random_state=args.seed)
     label_1 = df[df['label'] == 1].sample(n=sample_size, random_state=args.seed)
@@ -39,9 +43,9 @@ def main(args):
     save_folder = os.path.join("data", "wikiMIA_update", "split-random-overall")
     os.makedirs(save_folder, exist_ok=True)
     
-    # Save train, val, and test splits
+    # Save train, val, and test splits (note: train/test filenames are swapped for MIA convention)
     train_df.to_json(os.path.join(save_folder, "test.jsonl"), lines=True, orient='records')
-    test_df.to_json(os.path.join(save_folder, "train.jsonl"), lines=True, orient='records') # Make the "train set" the test set, since we want it to be the majority
+    test_df.to_json(os.path.join(save_folder, "train.jsonl"), lines=True, orient='records')
     val_df.to_json(os.path.join(save_folder, "val.jsonl"), lines=True, orient='records')
 
     print("Data splits saved in folder:", save_folder)        
