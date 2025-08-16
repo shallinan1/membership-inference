@@ -1,3 +1,8 @@
+"""
+Preprocesses the TULU v1 instruction-following dataset with sophisticated length distribution matching.
+Uses 2D binning (user_length x response_length) and proportional sampling to ensure balanced
+length distributions between member (core TULU) and non-member (complementary) datasets.
+"""
 import os
 from dotenv import load_dotenv
 
@@ -12,16 +17,13 @@ os.environ["HF_DATASETS_PATH"] = CACHE_PATH
 import random
 import numpy as np
 import argparse
-import os
 from sklearn.model_selection import train_test_split
 from code.utils import save_to_jsonl, load_jsonl
-from IPython import embed
-from datasets import load_dataset
 from tqdm import tqdm
-import seaborn as sns
 import matplotlib.pyplot as plt
 
 def calculate_word_counts(sample):
+    """Calculate word counts for user prompt and assistant response"""
     user_message = sample["messages"][0]["content"]
     response_message = sample["messages"][1]["content"]
 
@@ -30,7 +32,7 @@ def calculate_word_counts(sample):
     return {
         "user_length": user_length, 
         "response_length": response_length, 
-        "total_length": user_length+response_length
+        "total_length": user_length + response_length
     }
 
 def print_length_percentiles(sampled_member, sampled_nonmember):
@@ -114,8 +116,6 @@ def main(args):
     member_response_lengths = [sample["response_length"] for sample in data_member]
     nonmember_response_lengths = [sample["response_length"] for sample in data_nonmember]
 
-    # all_user_lengths = member_user_lengths + nonmember_user_lengths
-    # all_response_lengths = member_response_lengths + nonmember_response_lengths
     
     tail_amount = 5
     # Prune extreme length responses
@@ -152,7 +152,11 @@ def main(args):
 
     def sample_uniformly_by_length(data_member, data_nonmember, n_bins=4):
         """
-        Sample data uniformly based on user_length and response_length bins.
+        Sample data using 2D binning to match length distributions.
+        
+        Creates a grid of bins based on user_length × response_length, then samples
+        proportionally from each bin to ensure member/nonmember sets have similar
+        length characteristics across multiple source datasets.
         """
         # Combine data to calculate percentiles for bin edges
         all_user_lengths = [sample["user_length"] for sample in data_member + data_nonmember]
@@ -217,8 +221,10 @@ def main(args):
                         nonmember_samples_by_dataset[cur_dataset] = []
                     nonmember_samples_by_dataset[cur_dataset].append(nm)
                 
-                sample_amount_member = int(30 * bin_counts_dict_total[i][j] * len(nonmember_samples_by_dataset))
-                sample_amount_nonmember = int(30 * bin_counts_dict_total[i][j] * len(member_samples_by_dataset))
+                # Target 30 samples per dataset per bin (balanced across source datasets)
+                samples_per_dataset = 30
+                sample_amount_member = int(samples_per_dataset * bin_counts_dict_total[i][j] * len(nonmember_samples_by_dataset))
+                sample_amount_nonmember = int(samples_per_dataset * bin_counts_dict_total[i][j] * len(member_samples_by_dataset))
                                 
                 for m in member_samples_by_dataset:
                     cur_data = member_samples_by_dataset[m]
@@ -230,7 +236,6 @@ def main(args):
                     cur_data = nonmember_samples_by_dataset[nm]
                     if len(cur_data) < sample_amount_nonmember:
                         print(nm, len(cur_data))
-                        # print(nm, len(cur_data))
                     sampled_nonmember.extend(random.sample(cur_data, min(len(cur_data), sample_amount_nonmember)))
         
         return sampled_member, sampled_nonmember
@@ -286,9 +291,9 @@ def main(args):
     print(len(train_data), len(test_data), len(val_data))
 
 if __name__ == "__main__":
-    parser = argparse.ArgumentParser(description="Make data splits")
-    parser.add_argument("--val_split", type=float, default=0.05) # Others: wikiMIA, Pile?
-    parser.add_argument("--test_split", type=float, default=0.05) # Others: wikiMIA, Pile?
+    parser = argparse.ArgumentParser(description="Process TULU v1 dataset with length distribution matching")
+    parser.add_argument("--val_split", type=float, default=0.05)
+    parser.add_argument("--test_split", type=float, default=0.05)
     parser.add_argument("--seed", type=int, default=0, help="Random seed for reproducibility")
     args = parser.parse_args()
 
