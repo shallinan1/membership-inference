@@ -45,15 +45,17 @@ def main(args):
     dataset_nonmember = dataset_nonmember.filter(lambda x: common_lower <= x["length"] <= common_upper).shuffle(seed=args.seed)
 
     # Group texts by length buckets to ensure similar length distributions
+    # This prevents bias where member/nonmember sets have different length characteristics
     def create_length_buckets(dataset, num_buckets=10):
         lengths = dataset["length"]
         min_len, max_len = min(lengths), max(lengths)
         bucket_size = (max_len - min_len) / num_buckets
         
-        # Assign each example to a bucket
+        # Assign each example to a bucket based on word count
+        # E.g., if range is 10-100 words with 10 buckets: bucket 0 = 10-19 words, bucket 1 = 20-29 words, etc.
         return dataset.map(lambda x: {"length_bucket": int((x["length"] - min_len) // bucket_size)})
 
-    # Create buckets in both datasets
+    # Create buckets in both datasets and find common buckets
     dataset_member = create_length_buckets(dataset_member)
     dataset_nonmember = create_length_buckets(dataset_nonmember)
     member_buckets = set(dataset_member["length_bucket"])
@@ -61,6 +63,7 @@ def main(args):
     common_buckets = member_buckets.intersection(nonmember_buckets)
 
     # Count examples in each bucket across both datasets
+    # This determines how many samples to take from each bucket proportionally
     bucket_counts = {}
     for bucket in common_buckets:
         member_count = sum(1 for b in dataset_member["length_bucket"] if b == bucket)
