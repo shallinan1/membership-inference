@@ -1,3 +1,8 @@
+"""
+Preprocesses the Dolma v1.7 dataset with sophisticated length distribution matching.
+Downloads member data from a 0.01% subsample and nonmember data from Paloma evaluation set.
+Uses length-based bucketing to ensure similar text length distributions between member/nonmember sets.
+"""
 import os
 from dotenv import load_dotenv
 
@@ -12,10 +17,8 @@ os.environ["HF_DATASETS_PATH"] = CACHE_PATH
 import random
 import numpy as np
 import argparse
-import os
 from sklearn.model_selection import train_test_split
-from code.utils import load_jsonl, save_to_jsonl
-from IPython import embed
+from code.utils import save_to_jsonl
 from datasets import load_dataset
 
 def main(args):   
@@ -67,14 +70,15 @@ def main(args):
     # Calculate total examples in common buckets
     total_examples = sum(bucket_counts.values())
 
-    # Sample proportionally to the distribution of examples
+    # Sample proportionally to maintain length distribution (target: 500 examples each)
+    target_samples = 500
     sampled_member = []
     sampled_nonmember = []
 
     for bucket in common_buckets:
         # Calculate proportional samples for this bucket
         proportion = bucket_counts[bucket] / total_examples
-        bucket_samples = int(500 * proportion)
+        bucket_samples = int(target_samples * proportion)
         
         # Ensure at least 1 sample from each bucket if possible
         bucket_samples = max(1, bucket_samples)
@@ -90,20 +94,20 @@ def main(args):
         sampled_member.extend(bucket_member)
         sampled_nonmember.extend(bucket_nonmember)
 
-    # Adjust if we don't have exactly 500 samples
-    if len(sampled_member) < 500:
+    # Adjust if we don't have exactly target_samples
+    if len(sampled_member) < target_samples:
         remaining_indices = [i for i in range(len(dataset_member)) if i not in sampled_member]
-        additional = random.sample(remaining_indices, min(500 - len(sampled_member), len(remaining_indices)))
+        additional = random.sample(remaining_indices, min(target_samples - len(sampled_member), len(remaining_indices)))
         sampled_member.extend(additional)
-    elif len(sampled_member) > 500:
-        sampled_member = sampled_member[:500]
+    elif len(sampled_member) > target_samples:
+        sampled_member = sampled_member[:target_samples]
 
-    if len(sampled_nonmember) < 500:
+    if len(sampled_nonmember) < target_samples:
         remaining_indices = [i for i in range(len(dataset_nonmember)) if i not in sampled_nonmember]
-        additional = random.sample(remaining_indices, min(500 - len(sampled_nonmember), len(remaining_indices)))
+        additional = random.sample(remaining_indices, min(target_samples - len(sampled_nonmember), len(remaining_indices)))
         sampled_nonmember.extend(additional)
-    elif len(sampled_nonmember) > 500:
-        sampled_nonmember = sampled_nonmember[:500]
+    elif len(sampled_nonmember) > target_samples:
+        sampled_nonmember = sampled_nonmember[:target_samples]
 
     data_member = dataset_member.select(sampled_member).to_list()
     data_nonmember = dataset_nonmember.select(sampled_nonmember).to_list()
