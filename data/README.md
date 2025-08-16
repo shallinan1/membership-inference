@@ -1,6 +1,6 @@
 # Dataset Preprocessing
 
-This directory contains preprocessing scripts to reproduce the datasets for membership inference experiments in the paper. Each dataset is processed and saved to `split-random-overall/` subdirectories with train/val/test splits.
+This directory contains preprocessing scripts to reproduce the datasets for experiments in the paper. Each dataset is processed and saved to `split-random-overall/` subdirectories with train/val/test splits.
 
 ## Prerequisites
 
@@ -20,6 +20,8 @@ To download the dataset, run:
 python3 -m data.wikiMIA.preprocess
 ```
 
+---
+
 ### WikiMIA_2024 Hard
 The WikiMIA_2024 Hard dataset is introduced in our paper, and consists of Wikipedia articles with different versions based on date cutoffs.
 
@@ -34,6 +36,8 @@ python3 -m data.wikiMIA_hard.scrape_articles
 python3 -m data.wikiMIA_hard.filter_articles
 ```
 
+---
+
 ### WikiMIA-24
 This is the WikiMIA-24 benchmark dataset ([paper](https://arxiv.org/abs/2408.08661)), specifically the length-64 set.
 
@@ -41,6 +45,8 @@ To download the dataset, run:
 ```bash
 python3 -m data.wikiMIA_update.preprocess
 ```
+
+---
 
 ### BookMIA
 This is a book membership inference dataset ([paper](https://arxiv.org/abs/2310.16789)).
@@ -50,8 +56,10 @@ To download the dataset, run:
 python3 -m data.bookMIA.preprocess
 ```
 
+---
+
 ### TULU v1
-This is the TULU v1 instruction-following dataset
+This is the TULU v1 instruction-following dataset.
 
 To download, reformat, and generate the processed dataset, run:
 ```bash
@@ -65,16 +73,20 @@ python3 data/tulu_v1/reformat_datasets.py --raw_data_dir data/tulu_v1/raw_train/
 python3 -m data.tulu_v1.preprocess
 ```
 
+---
+
 ### Dolma (v1.7)
-This is the Dolma v1.7 pre-training corpus ()
+This is the Dolma v1.7 pre-training corpus ([paper](https://arxiv.org/abs/2402.00159)).
 
 To download the dataset, run:
 ```bash
 python3 -m data.dolma_v17.preprocess
 ```
 
+---
+
 ### Pile (MIMIR)
-External Pile dataset from MIMIR ([paper](https://arxiv.org/abs/2402.07841))
+This is the Pile dataset from MIMIR ([paper](https://arxiv.org/abs/2402.07841)).
 
 To download the dataset, run:
 ```bash
