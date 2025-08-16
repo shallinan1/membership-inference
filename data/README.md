@@ -55,7 +55,7 @@ python3 -m data.bookMIA.preprocess
 This is the TULU v1 instruction-following dataset.
 
 #### Recreating the Dataset
-These are the steps to dwnload, reformat, and generate the processed dataset,
+These are the steps to download, reformat, and generate the processed dataset,
 
 ##### Prerequisites
 
@@ -68,7 +68,7 @@ This part requires a HuggingFace token for accessing the LIMA dataset (part of T
 
 Now, run:
 ```bash
-# Download raw datasets (requires HF_TOKEN - see Prerequisites above)
+# Download raw datasets (requires HF_TOKEN)
 ./data/tulu_v1/download_data.sh
 
 # Reformat datasets into standardized format
