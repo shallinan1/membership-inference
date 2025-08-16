@@ -2,14 +2,6 @@
 
 This directory contains preprocessing scripts to reproduce the datasets for experiments in the paper. Each dataset is processed and saved to `split-random-overall/` subdirectories with train/val/test splits.
 
-## Prerequisites
-
-The **tulu_v1** dataset requires a HuggingFace token for accessing the LIMA dataset:
-- Request access at https://huggingface.co/datasets/GAIR/lima and set the `HF_TOKEN` environment variable:
-  ```bash
-  export HF_TOKEN=your_token_here
-  ```
-
 ## Dataset Preprocessing Scripts
 
 ### WikiMIA
@@ -65,9 +57,13 @@ This is the TULU v1 instruction-following dataset.
 #### Recreating the Dataset
 These are the steps to dwnload, reformat, and generate the processed dataset,
 
-##### Prequisites
+##### Prerequisites
 
-
+This part requires a HuggingFace token for accessing the LIMA dataset (part of TULU):
+- Request access at https://huggingface.co/datasets/GAIR/lima and set the `HF_TOKEN` environment variable:
+  ```bash
+  export HF_TOKEN=your_token_here
+  ```
 ##### Creation
 
 Now, run:
