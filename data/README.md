@@ -12,69 +12,74 @@ The **tulu_v1** dataset requires a HuggingFace token for accessing the LIMA data
 
 ## Dataset Preprocessing Scripts
 
-### Wikipedia-based
+### WikiMIA
+This is the original WikiMIA benchmark dataset ([paper](https://arxiv.org/abs/2310.16789)), specifically the length-64 set. 
 
-- **wikiMIA/**: Original WikiMIA benchmark dataset ([paper](https://arxiv.org/abs/2310.16789))
-  
-  To generate the processed dataset, run:
-  ```bash
-  python3 -m data.wikiMIA.preprocess
-  ```
-  
-- **wikiMIA_hard/**: WikiMIA-2024 Hard dataset (temporal Wikipedia changes before/after article versions, introduced in our paper)
-  
-  To download the processed dataset from HuggingFace, run:
-  ```bash
-  python3 -m data.wikiMIA_hard.preprocess
-  ```
-  
-  To instead create the dataset from scratch (scrape articles and filter data), run:
-  ```bash
-  python3 -m data.wikiMIA_hard.scrape_articles
-  python3 -m data.wikiMIA_hard.filter_articles
-  ```
-  
-- **wikiMIA_update/**: Updated WikiMIA-24 benchmark dataset ([paper](https://arxiv.org/abs/2408.08661))
-  
-  To generate the processed dataset, run:
-  ```bash
-  python3 -m data.wikiMIA_update.preprocess
-  ```
+To download the dataset, run:
+```bash
+python3 -m data.wikiMIA.preprocess
+```
 
-### Other Domains
+### WikiMIA_2024 Hard
+The WikiMIA_2024 Hard dataset is introduced in our paper, and consists of Wikipedia articles with different versions based on date cutoffs.
 
-- **bookMIA/**: Book membership inference dataset ([paper](https://arxiv.org/abs/2310.16789))
-  
-  To generate the processed dataset, run:
-  ```bash
-  python3 -m data.bookMIA.preprocess
-  ```
-- **tulu_v1/**: Tulu v1 instruction-following dataset
-  
-  To download, reformat, and generate the processed dataset, run:
-  ```bash
-  # Download raw datasets (requires HF_TOKEN - see Prerequisites above)
-  ./data/tulu_v1/download_data.sh
-  
-  # Reformat datasets into standardized format
-  python3 data/tulu_v1/reformat_datasets.py --raw_data_dir data/tulu_v1/raw_train/ --output_dir data/tulu_v1/processed/ --dataset tulu_v1
-  
-  # Create final train/val/test splits
-  python3 -m data.tulu_v1.preprocess
-  ```
-- **dolma_v17/**: Dolma v1.7 pre-training corpus
-  
-  To generate the processed dataset, run:
-  ```bash
-  python3 -m data.dolma_v17.preprocess
-  ```
+To download the dataset, run:
+```bash
+python3 -m data.wikiMIA_hard.preprocess
+```
 
-- **pile_external/**: External Pile dataset from MIMIR ([paper](https://arxiv.org/abs/2402.07841))
-  
-  To generate the processed dataset, run:
-  ```bash
-  python3 -m data.pile_external.preprocess
-  ```
+To instead create the dataset from scratch (scrape articles and filter data), run:
+```bash
+python3 -m data.wikiMIA_hard.scrape_articles
+python3 -m data.wikiMIA_hard.filter_articles
+```
+
+### WikiMIA-24
+This is the WikiMIA-24 benchmark dataset ([paper](https://arxiv.org/abs/2408.08661)), specifically the length-64 set.
+
+To download the dataset, run:
+```bash
+python3 -m data.wikiMIA_update.preprocess
+```
+
+### BookMIA
+This is a book membership inference dataset ([paper](https://arxiv.org/abs/2310.16789)).
+
+To download the dataset, run:
+```bash
+python3 -m data.bookMIA.preprocess
+```
+
+### TULU v1
+This is the TULU v1 instruction-following dataset
+
+To download, reformat, and generate the processed dataset, run:
+```bash
+# Download raw datasets (requires HF_TOKEN - see Prerequisites above)
+./data/tulu_v1/download_data.sh
+
+# Reformat datasets into standardized format
+python3 data/tulu_v1/reformat_datasets.py --raw_data_dir data/tulu_v1/raw_train/ --output_dir data/tulu_v1/processed/ --dataset tulu_v1
+
+# Create final train/val/test splits
+python3 -m data.tulu_v1.preprocess
+```
+
+### Dolma (v1.7)
+This is the Dolma v1.7 pre-training corpus ()
+
+To download the dataset, run:
+```bash
+python3 -m data.dolma_v17.preprocess
+```
+
+### Pile (MIMIR)
+External Pile dataset from MIMIR ([paper](https://arxiv.org/abs/2402.07841))
+
+To download the dataset, run:
+```bash
+python3 -m data.pile_external.preprocess
+```
 
 ## Output Format
 
