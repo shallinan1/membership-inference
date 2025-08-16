@@ -50,11 +50,6 @@ The **tulu_v1** dataset requires a HuggingFace token for accessing the LIMA data
   python3 -m data.bookMIA.preprocess
   ```
 - **tulu_v1/**: Tulu v1 instruction-following dataset
-  - Downloads 15+ diverse instruction datasets (Super-NaturalInstructions, Flan v2, ShareGPT, etc.)
-  - Reformats each dataset into standardized conversation format with user/assistant roles
-  - Creates two splits: core Tulu v1 datasets vs. complementary datasets (inverse_tulu_v1)
-  - Applies length-based filtering and stratified sampling to balance distributions
-  - Final preprocessing creates train/val/test splits with length histogram matching
   
   To download, reformat, and generate the processed dataset, run:
   ```bash
@@ -103,11 +98,3 @@ Each line contains a JSON object with fields like:
 }
 ```
 
-## Usage
-
-Each dataset has its specific preprocessing commands listed above. The general pattern is:
-```bash
-python3 -m data.[dataset_name].preprocess
-```
-
-This will download, process, and save the dataset to `data/[dataset_name]/split-random-overall/` with train/val/test splits ready for membership inference experiments.
