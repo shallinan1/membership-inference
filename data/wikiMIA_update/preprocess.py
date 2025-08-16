@@ -43,9 +43,9 @@ def main(args):
     save_folder = os.path.join("data", "wikiMIA_update", "split-random-overall")
     os.makedirs(save_folder, exist_ok=True)
     
-    # Save train, val, and test splits (note: train/test filenames are swapped for MIA convention)
+    # Save train, val, and test splits
     train_df.to_json(os.path.join(save_folder, "test.jsonl"), lines=True, orient='records')
-    test_df.to_json(os.path.join(save_folder, "train.jsonl"), lines=True, orient='records')
+    test_df.to_json(os.path.join(save_folder, "train.jsonl"), lines=True, orient='records') # Make the "train set" the test set, since we want it to be the majority
     val_df.to_json(os.path.join(save_folder, "val.jsonl"), lines=True, orient='records')
 
     print("Data splits saved in folder:", save_folder)        
