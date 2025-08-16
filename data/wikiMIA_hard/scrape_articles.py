@@ -3,9 +3,7 @@
 # to identify articles that have changed significantly over time
 
 import requests
-import difflib
 import time
-from IPython import embed
 from wikitextparser import remove_markup, parse
 import re
 from tqdm import tqdm
@@ -199,7 +197,6 @@ def extract_plain_summary(wikitext):
     return unidecode(summary)
 
 # Global variables for the scraping process
-results = []  # Store results (currently unused, writing directly to file instead)
 DEBUG_MODE = False  # Global debug flag
 
 # Target date for historical comparison (end of 2016)
