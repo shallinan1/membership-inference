@@ -1,3 +1,8 @@
+"""
+Filters scraped Wikipedia articles for the WikiMIA-2024 Hard dataset.
+Applies quality filters, removes bad content, and creates paired examples
+where old summaries (2016) are labeled as members (1) and new summaries as non-members (0).
+"""
 import os
 from dotenv import load_dotenv
 
@@ -12,14 +17,12 @@ os.environ["HF_DATASETS_PATH"] = CACHE_PATH
 import random
 import numpy as np
 import argparse
-import os
 from sklearn.model_selection import train_test_split
 from code.utils import load_jsonl, save_to_jsonl
-from IPython import embed
-from code.utils import load_jsonl
 import re
 
 def remove_thumb(summary):
+    """Remove thumbnail markup artifacts from Wikipedia summaries"""
     while summary.startswith("thumb"):
         index = summary.find("\n")
         if index != -1:
@@ -28,47 +31,53 @@ def remove_thumb(summary):
     return summary
 
 def has_period_followed_by_capital(text):
+    """Check for malformed sentences (period directly followed by capital letter)"""
     pattern = r"\.[A-Z]"
     return bool(re.search(pattern, text))
 
-bad_strings = ["ISBN", "United States Patent Office", "Decreto", "CASE STUDY", "the source of this method's name", "\mathbf", "Mairie de Montrea", "FCCdata.org/CBY",
-               "Today National Correspondent"]
+# List of strings that indicate low-quality or problematic content
+bad_strings = ["ISBN", "United States Patent Office", "Decreto", "CASE STUDY", "the source of this method's name", 
+               "\mathbf", "Mairie de Montrea", "FCCdata.org/CBY", "Today National Correspondent"]
 
 def main(args):  
+    # Load scraped Wikipedia article data
     raw_data = load_jsonl("data/wikiMIA_hard/scraped/scraped.jsonl")
     
     filtered_data = []
     for r in raw_data:
+        # Clean thumbnail artifacts
         r["old_summary"] = remove_thumb(r["old_summary"])
         r["new_summary"] = remove_thumb(r["new_summary"])
 
+        # Clean empty parentheses and limit to 256 words
         r["old_summary"] = " ".join(re.sub(r'\(\s*[\W_]*\s*\)', '', r["old_summary"]).split()[:256])
         r["new_summary"] = " ".join(re.sub(r'\(\s*[\W_]*\s*\)', '', r["new_summary"]).split()[:256])
         old_sum = r["old_summary"]
         new_sum = r["new_summary"]
 
-        bad=False
+        # Filter out articles with problematic content
+        bad = False
         for b in bad_strings:
             if b in old_sum or b in new_sum:
                 bad = True
                 break
             if has_period_followed_by_capital(old_sum) or has_period_followed_by_capital(new_sum):
-                bad=True
+                bad = True
                 break
         if bad:
             continue
 
-        # Don't include this if either of the lengths is 50% or longer than the other
+        # Filter by length constraints
         len_old = len(old_sum)
         len_new = len(new_sum)
-
         shorter = min(len_old, len_new)
         longer = max(len_old, len_new)
 
+        # Require at least 25 words in each summary
         if len(r["old_summary"].split()) < 25 or len(r["new_summary"].split()) < 25:
             continue
 
-        # Keep only if shorter is at least 2/3 the length of the longer
+        # Keep only articles with similar lengths (80%+) and significant differences (50%+)
         if shorter / longer >= 0.8 and r["percent_diff"] >= 0.5:
             filtered_data.append(r)
 
@@ -123,14 +132,12 @@ def main(args):
     print("Data splits saved in folder:", save_folder)        
     print(train_data[0])
     print(len(train_data), len(test_data), len(val_data))
-    embed()
 
 if __name__ == "__main__":
-    parser = argparse.ArgumentParser(description="Make data splits")
+    parser = argparse.ArgumentParser(description="Filter and split Wikipedia articles")
 
     parser.add_argument("--val_split", type=float, default=0.05)
     parser.add_argument("--test_split", type=float, default=0.05)
-    parser.add_argument("--min_percentile", type=float, default=2.5)
     parser.add_argument("--seed", type=int, default=0, help="Random seed for reproducibility")
     args = parser.parse_args()
 
