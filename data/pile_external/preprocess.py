@@ -1,3 +1,7 @@
+"""
+Preprocesses the external Pile dataset from MIMIR.
+Downloads the pile_cc subset with ngram_7_0.2 split and creates train/val/test splits.
+"""
 import os
 from dotenv import load_dotenv
 
@@ -12,14 +16,12 @@ os.environ["HF_DATASETS_PATH"] = CACHE_PATH
 import random
 import numpy as np
 import argparse
-import os
 from sklearn.model_selection import train_test_split
-from code.utils import load_jsonl, save_to_jsonl
-from IPython import embed
+from code.utils import save_to_jsonl
 from datasets import load_dataset
 
-# This code is to re-use the Pile data from the "Do MIA work" paper
 def main(args):   
+    # Load MIMIR Pile dataset with pre-computed member/nonmember splits
     dataset = load_dataset("iamgroot42/mimir", "pile_cc", split="ngram_7_0.2", cache_dir=CACHE_PATH, trust_remote_code=True)
     
     data_member = [{"snippet": d, "label": 1} for d in dataset["member"]]
@@ -58,8 +60,8 @@ def main(args):
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="Make data splits")
 
-    parser.add_argument("--val_split", type=float, default=0.05) # Others: wikiMIA, Pile?
-    parser.add_argument("--test_split", type=float, default=0.05) # Others: wikiMIA, Pile?
+    parser.add_argument("--val_split", type=float, default=0.05)
+    parser.add_argument("--test_split", type=float, default=0.05)
     parser.add_argument("--seed", type=int, default=0, help="Random seed for reproducibility")
     args = parser.parse_args()
 
