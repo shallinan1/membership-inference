@@ -30,6 +30,7 @@ To download the dataset, run:
 python3 -m data.wikiMIA_hard.preprocess
 ```
 
+#### Recreating the Dataset
 To instead create the dataset from scratch (scrape articles and filter data), run:
 ```bash
 python3 -m data.wikiMIA_hard.scrape_articles
@@ -61,7 +62,15 @@ python3 -m data.bookMIA.preprocess
 ### TULU v1
 This is the TULU v1 instruction-following dataset.
 
-To download, reformat, and generate the processed dataset, run:
+#### Recreating the Dataset
+These are the steps to dwnload, reformat, and generate the processed dataset,
+
+##### Prequisites
+
+
+##### Creation
+
+Now, run:
 ```bash
 # Download raw datasets (requires HF_TOKEN - see Prerequisites above)
 ./data/tulu_v1/download_data.sh
