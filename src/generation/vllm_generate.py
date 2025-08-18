@@ -1,3 +1,43 @@
+"""
+vLLM-based text generation utility for large language models.
+
+This module provides a ModelGenerator class that uses vLLM for efficient parallel
+text generation from Hugging Face models. It supports various model types including
+LLaMA, OLMo, and other transformer models with optimized GPU utilization.
+
+Key Features:
+    - Parallel text generation using vLLM
+    - Automatic tokenization and prompt handling
+    - GPU memory optimization
+    - Support for various sampling parameters
+    - Multi-GPU tensor parallelism
+
+Requirements:
+    - vLLM library
+    - PyTorch with CUDA support
+    - Hugging Face transformers
+    - Optional: Hugging Face token for private models
+
+Usage:
+    # Initialize generator
+    generator = ModelGenerator(
+        model="meta-llama/Llama-2-7b-hf",
+        hf_token="your_hf_token",  # if needed
+        gpu_memory_utilization=0.8
+    )
+    
+    # Generate text
+    prompts = ["Tell me about", "The future of AI"]
+    final_prompts, outputs, prompt_logprobs, output_logprobs = generator.generate_vllm(
+        prompts=prompts,
+        temperature=0.7,
+        max_new_tokens=256
+    )
+
+Example:
+    python -m src.generation.vllm_generate
+"""
+
 from huggingface_hub import login
 import argparse
 from transformers import AutoTokenizer, set_seed
@@ -5,7 +45,6 @@ import torch
 import os
 import json
 from IPython import embed
-from code.helper.generation.generate_utils import make_prompts
 from vllm import LLM, SamplingParams
 from typing import List, Tuple, Optional, Union
 
@@ -56,7 +95,7 @@ class ModelGenerator:
             model=model,
             tensor_parallel_size=torch.cuda.device_count(), # Install ray if > 1 GPUs
             download_dir=cache_dir,
-            gpu_memory_utilization=0.95, # TODO fix this
+            gpu_memory_utilization=gpu_memory_utilization,
             max_model_len = 2048, # Set manually for large models which have large context lengths
             # dtype="float32", # vllm sets fp32 to fp16 if this is auto 
             # swap_space=10 #GiB # Getting error if we have dtype not auto: "Aborted due to the lack of CPU swap space. Please increase the swap space to avoid this error."
@@ -64,7 +103,7 @@ class ModelGenerator:
         
         # Create the tokenizer
         tokenizer_str = tokenizer if tokenizer else model  # Use a cached tokenizer for efficiency if provided
-        add_bos_token = True if "OLMo" not in model else False# Adding the BOS token explicitly as some models have it set to False by default
+        add_bos_token = True if "OLMo" not in model else False # Adding the BOS token explicitly as some models have it set to False by default
         self.tokenizer = AutoTokenizer.from_pretrained(
             tokenizer_str,
             padding_side="left",
@@ -112,7 +151,7 @@ class ModelGenerator:
         extra_stop_tokens = [int(a) for a in extra_stop_tokens] if extra_stop_tokens else []
 
         outputs, final_prompts = [], []
-        print(len(prompts))
+        print(f"Number of prompts to generate: {len(prompts)}")
 
         # Tokenize prompts without padding and truncate to max_length
         input_ids_list = self.tokenizer(prompts, truncation=True, max_length=max_length).input_ids
@@ -164,6 +203,7 @@ class ModelGenerator:
         all_text_outputs = []
         all_prompt_logprobs = []
         all_output_logprobs = []
+        
         # Decode the generated outputs
         for o in output:
             cur_output = []
