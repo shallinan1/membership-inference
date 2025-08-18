@@ -389,27 +389,31 @@ def main(args):
         cur_generation["longest_substring_char"] = longest_substring_char
         cur_generation["longest_sublist_word"] = longest_sublist_word
 
-    # Can't save in progress if we're using multiprocessing - too complex
     with open(args.output_file, 'w') as f:
         json.dump(generations, f, indent=4)
         f.flush()
 
     # TODO use num_sequences to potentially unmerge these and get stats wrt each prompt
     # embed()
+    
 if __name__ == '__main__':
-    parser = argparse.ArgumentParser()
+    parser = argparse.ArgumentParser(description="N-gram coverage attack tool for analyzing text generation and detecting potential membership inference vulnerabilities by comparing generated texts against source documents using exact n-gram matching and longest common subsequence analysis.")
     parser.add_argument('--task', type=str, default='bookMIA',
-                        help="which type of corpus to analyze")
-    parser.add_argument('--gen_data', type=str)
-    parser.add_argument('--source_docs', type=str)
-    parser.add_argument('--output_dir', type=str)
+                        help="Type of corpus to analyze (bookMIA, tulu_v1, pile_external, wikiMIA, dolma_v17, articles). Determines how source documents are loaded and processed.")
+    parser.add_argument('--gen_data', type=str, required=True,
+                        help="Path to JSONL file containing generated text data to analyze for potential membership inference vulnerabilities")
+    parser.add_argument('--source_docs', type=str,
+                        help="Path to source document dataset (HuggingFace dataset name or path). Required for bookMIA with multiple documents, optional for single-document tasks")
+    parser.add_argument('--output_dir', type=str, required=True,
+                        help="Directory where analysis results will be saved. Output filename will be derived from input filename with ngram size suffix")
     parser.add_argument("--min_ngram", type=int, default=3,
-                        help="minimum n-gram size")
+                        help="Minimum n-gram size for exact matching analysis (default: 3). Larger values require longer exact matches")
     parser.add_argument("--subset", type=int, default=int(1e6),
-                        help="size of example subset to run search on")
+                        help="Maximum number of examples to process from the input data (default: 1,000,000). Use smaller values for testing")
     parser.add_argument("--generation_field", type=str, default="generation",
-                        help="Name of generations")
-    parser.add_argument('--parallel', action="store_true")
+                        help="Name of the field in the input JSONL containing the generated text sequences to analyze")
+    parser.add_argument('--parallel', action="store_true",
+                        help="Enable parallel processing using multiple CPU cores for faster analysis of large datasets")
 
     args = parser.parse_args()
     main(args)
