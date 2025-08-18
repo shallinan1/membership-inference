@@ -1,10 +1,40 @@
-    
+"""
+Utilities for text processing and chunking in the n-gram coverage attack.
+
+This module provides functions for extracting specific portions of text based on
+sentence boundaries while preserving the original formatting (newlines).
+"""
+
 import os
 from code.utils import load_jsonl, load_json, combine_lists, combine_dicts, combine_list_of_dicts
 from enum import Enum
 from nltk import sent_tokenize
 
-def split_text_and_newlines(text):
+def split_text_and_newlines(text: str) -> Tuple[List[str], List[int]]:
+    """
+    Split text by newlines while tracking the number of consecutive newlines.
+    
+    This function separates text into non-empty segments and keeps track of how
+    many newlines appeared between each segment. This is useful for preserving
+    the original formatting when reconstructing text.
+    
+    Args:
+        text: The input text containing potential newline characters.
+    
+    Returns:
+        A tuple containing:
+            - texts: List of non-empty text segments (stripped of whitespace)
+            - newline_counts: List of integers indicating the number of newlines
+                            after each text segment (except the last one)
+    
+    Example:
+        >>> text = "Hello\\n\\nWorld\\nPython"
+        >>> texts, counts = split_text_and_newlines(text)
+        >>> texts
+        ['Hello', 'World', 'Python']
+        >>> counts
+        [2, 1]
+    """
     texts = []
     newline_counts = []
     parts = text.split("\n")
@@ -24,10 +54,48 @@ def split_text_and_newlines(text):
     return texts, newline_counts
 
 def extract_chunk_words(text, start_word, num_words):
-    # TODO fill
-    pass
+    pass # TODO fill
 
-def extract_chunk_sentence(text, start_sentence, num_sentences):
+def extract_chunk_sentence(text: str, start_sentence: int, num_sentences: int) -> Tuple[Optional[str], str]:
+    """
+    Extract a chunk of text based on sentence boundaries while preserving formatting.
+    
+    This function extracts a specified number of sentences starting from a given
+    position, preserving the original newline structure of the text. It's designed
+    for creating prompts from text while maintaining the distinction between what's
+    used as prompt and what remains.
+    
+    Args:
+        text: The input text to extract sentences from.
+        start_sentence: The index of the first sentence to extract (0-indexed).
+        num_sentences: The maximum number of sentences to extract.
+    
+    Returns:
+        A tuple containing:
+            - prompt_text: The extracted sentences as a single string, or None if
+                         extraction fails (e.g., invalid indices).
+            - rest_of_text: The remaining text after the extracted sentences.
+    
+    Behavior:
+        - Preserves newline formatting between paragraphs
+        - Joins sentences within paragraphs with spaces
+        - Adjusts num_sentences if it would exceed available sentences
+        - Returns at least one sentence if possible (for generation)
+    
+    Example:
+        >>> text = "First sentence. Second sentence.\\n\\nThird sentence."
+        >>> prompt, rest = extract_chunk_sentence(text, 0, 2)
+        >>> prompt
+        'First sentence. Second sentence.'
+        >>> rest
+        '\\n\\nThird sentence.'
+    
+    Edge Cases:
+        - If start_sentence is beyond available sentences, returns None for prompt
+        - If num_sentences would go past the last sentence, it's capped at the
+          second-to-last sentence (leaving at least one for generation)
+    """
+
     # Split the text by new lines and remember the spacing
     split_texts, newline_counts = split_text_and_newlines(text)
 
@@ -101,6 +169,7 @@ def extract_chunk_sentence(text, start_sentence, num_sentences):
 
 
 if __name__ == "__main__":
+  
   # Example usage - testing the above
   text1 = "Hello\n\n\nWorld. The world is bright \nhahaha...wohoo\nPython\n\nis\nGreat"
   text2 = "hey\n\hah\n\nhoh\n\nhehe\nhar\n\ntest"
