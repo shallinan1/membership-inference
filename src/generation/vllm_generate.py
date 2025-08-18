@@ -108,7 +108,7 @@ class ModelGenerator:
             padding_side="left",
             trust_remote_code=True,
             add_bos_token=add_bos_token
-        ) # Check this for LLama models - used to not add bos for some variants
+        ) # TODO Check this for LLama models - used to not add bos for some variants
 
     def generate_vllm(
         self,
