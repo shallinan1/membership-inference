@@ -99,32 +99,34 @@ def extract_chunk_sentence(text, start_sentence, num_sentences):
 
     return prompt_text, rest_of_text
 
-# Example usage - testing the above
-# text1 = "Hello\n\n\nWorld. The world is bright \nhahaha...wohoo\nPython\n\nis\nGreat"
-# text2 = "hey\n\hah\n\nhoh\n\nhehe\nhar\n\ntest"
-# text3 = "Math\n\nThe eigenvector associating zero eigenvalue of is . Remember what mean? If and is collinear,"
-# text4 = "The eigenvector associating zero eigenvalue of is . Remember what mean? If and is collinear."
-# for text in [text1, text2, text3, text4]:
-#   a,b = extract_chunk_sentence(text, 0, 4)
-#   print(repr(a), repr(b))
-  
-#   a,b = extract_chunk_sentence(text, 2, 1)
-#   print(repr(a), repr(b))
 
-#   a,b = extract_chunk_sentence(text, 1, 1)
-#   print(repr(a), repr(b))
+if __name__ == "__main__":
+  # Example usage - testing the above
+  text1 = "Hello\n\n\nWorld. The world is bright \nhahaha...wohoo\nPython\n\nis\nGreat"
+  text2 = "hey\n\hah\n\nhoh\n\nhehe\nhar\n\ntest"
+  text3 = "Math\n\nThe eigenvector associating zero eigenvalue of is . Remember what mean? If and is collinear,"
+  text4 = "The eigenvector associating zero eigenvalue of is . Remember what mean? If and is collinear."
+  for text in [text1, text2, text3, text4]:
+    a,b = extract_chunk_sentence(text, 0, 4)
+    print(repr(a), repr(b))
+    
+    a,b = extract_chunk_sentence(text, 2, 1)
+    print(repr(a), repr(b))
 
-#   a,b = extract_chunk_sentence(text, 3, 10)
-#   print(repr(a), repr(b))
-  
-#   a,b = extract_chunk_sentence(text, 0, 10)
-#   print(repr(a), repr(b))
+    a,b = extract_chunk_sentence(text, 1, 1)
+    print(repr(a), repr(b))
 
-#   a,b = extract_chunk_sentence(text, 0, 2)
-#   print(repr(a), repr(b))
+    a,b = extract_chunk_sentence(text, 3, 10)
+    print(repr(a), repr(b))
+    
+    a,b = extract_chunk_sentence(text, 0, 10)
+    print(repr(a), repr(b))
+
+    a,b = extract_chunk_sentence(text, 0, 2)
+    print(repr(a), repr(b))
 
 
-#   a,b = extract_chunk_sentence(text, 0, 1)
-#   print(repr(a), repr(b))
+    a,b = extract_chunk_sentence(text, 0, 1)
+    print(repr(a), repr(b))
 
-#   print("\n")
+    print("\n")
