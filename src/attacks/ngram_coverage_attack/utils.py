@@ -3,12 +3,18 @@ Utilities for text processing and chunking in the n-gram coverage attack.
 
 This module provides functions for extracting specific portions of text based on
 sentence boundaries while preserving the original formatting (newlines).
+
+Requirements:
+    Before using this module, you must download the NLTK punkt tokenizer:
+    >>> import nltk
+    >>> nltk.download('punkt')
 """
 
 import os
-from code.utils import load_jsonl, load_json, combine_lists, combine_dicts, combine_list_of_dicts
+from src.utils import load_jsonl, load_json, combine_lists, combine_dicts, combine_list_of_dicts
 from enum import Enum
 from nltk import sent_tokenize
+from typing import List, Tuple, Optional
 
 def split_text_and_newlines(text: str) -> Tuple[List[str], List[int]]:
     """
@@ -168,34 +174,51 @@ def extract_chunk_sentence(text: str, start_sentence: int, num_sentences: int) -
     return prompt_text, rest_of_text
 
 
+def run_tests():
+    """Run comprehensive tests for the text extraction functions."""
+    
+    # Test data with various formatting scenarios
+    test_cases = [
+        ("Multi-paragraph with mixed formatting", 
+         "Hello\n\n\nWorld. The world is bright \nhahaha...wohoo\nPython\n\nis\nGreat"),
+        ("Short text with newlines", 
+         "hey\n\hah\n\nhoh\n\nhehe\nhar\n\ntest"),
+        ("Math text with incomplete sentence", 
+         "Math\n\nThe eigenvector associating zero eigenvalue of is . Remember what mean? If and is collinear,"),
+        ("Complete math sentence", 
+         "The eigenvector associating zero eigenvalue of is . Remember what mean? If and is collinear.")
+    ]
+    
+    # Test parameters: (start_sentence, num_sentences, description)
+    test_params = [
+        (0, 4, "Extract first 4 sentences"),
+        (2, 1, "Extract 1 sentence starting from index 2"),
+        (1, 1, "Extract 1 sentence starting from index 1"), 
+        (3, 10, "Extract 10 sentences starting from index 3 (boundary test)"),
+        (0, 10, "Extract 10 sentences from beginning (boundary test)"),
+        (0, 2, "Extract first 2 sentences"),
+        (0, 1, "Extract first sentence only")
+    ]
+    
+    print("Testing extract_chunk_sentence function")
+    print("=" * 50)
+    
+    for case_name, text in test_cases:
+        print(f"\nTest Case: {case_name}")
+        print(f"Input text: {repr(text)}")
+        print("-" * 30)
+        
+        for start_idx, num_sents, description in test_params:
+            try:
+                prompt, rest = extract_chunk_sentence(text, start_idx, num_sents)
+                print(f"{description}:")
+                print(f"  Prompt: {repr(prompt)}")
+                print(f"  Rest: {repr(rest)}")
+            except Exception as e:
+                print(f"{description}: ERROR - {e}")
+        
+        print()
+
+
 if __name__ == "__main__":
-  
-  # Example usage - testing the above
-  text1 = "Hello\n\n\nWorld. The world is bright \nhahaha...wohoo\nPython\n\nis\nGreat"
-  text2 = "hey\n\hah\n\nhoh\n\nhehe\nhar\n\ntest"
-  text3 = "Math\n\nThe eigenvector associating zero eigenvalue of is . Remember what mean? If and is collinear,"
-  text4 = "The eigenvector associating zero eigenvalue of is . Remember what mean? If and is collinear."
-  for text in [text1, text2, text3, text4]:
-    a,b = extract_chunk_sentence(text, 0, 4)
-    print(repr(a), repr(b))
-    
-    a,b = extract_chunk_sentence(text, 2, 1)
-    print(repr(a), repr(b))
-
-    a,b = extract_chunk_sentence(text, 1, 1)
-    print(repr(a), repr(b))
-
-    a,b = extract_chunk_sentence(text, 3, 10)
-    print(repr(a), repr(b))
-    
-    a,b = extract_chunk_sentence(text, 0, 10)
-    print(repr(a), repr(b))
-
-    a,b = extract_chunk_sentence(text, 0, 2)
-    print(repr(a), repr(b))
-
-
-    a,b = extract_chunk_sentence(text, 0, 1)
-    print(repr(a), repr(b))
-
-    print("\n")
+    run_tests()
