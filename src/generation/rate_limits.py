@@ -9,7 +9,7 @@ SAFETY_MARGIN = 0.75
 requests_limits_dict = {
     "gpt-3.5-turbo-0125": {
         "max_requests_per_minute": int(10000 * SAFETY_MARGIN),
-        "max_tokens_per_minute": int(30000000 * SAFETY_MARGIN)
+        "max_tokens_per_minute": int(50000000 * SAFETY_MARGIN)
     },
     "gpt-4-0613": {
         "max_requests_per_minute": int(10000 * SAFETY_MARGIN),
@@ -24,8 +24,8 @@ requests_limits_dict = {
         "max_tokens_per_minute": int(150000000 * SAFETY_MARGIN)
     },
     "gpt-4o-2024-11-20": {
-        "max_requests_per_minute": int(50000 * SAFETY_MARGIN),
-        "max_tokens_per_minute": int(150000000 * SAFETY_MARGIN)
+        "max_requests_per_minute": int(10000 * SAFETY_MARGIN),
+        "max_tokens_per_minute": int(30000000 * SAFETY_MARGIN)
     },
     "gpt-4-turbo-2024-04-09": {
         "max_requests_per_minute": int(10000 * SAFETY_MARGIN),
