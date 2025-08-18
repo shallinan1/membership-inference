@@ -91,13 +91,19 @@ def make_prompts(
     Constructs and formats a list of prompts based on the specified model type and other parameters.
 
     Args:
-        prompts (List[str]): A list of prompt strings to be formatted.
+        prompts (Union[List[str], str]): A list of prompt strings to be formatted, or a single string.
         task_prompt (str): The task-specific prompt to be prepended to each prompt.
-        model_name (str, optional): The name of the model to determine formatting style. Default is "default".
-        prompt_key (Optional[str], optional): A key to look up specific prompt instructions for models that support it. Default is None.
+        task_preprompt (str, optional): Additional text inserted between task_prompt and the main prompt. Defaults to "".
+        task_postprompt (str, optional): Text appended after the main prompt content. Defaults to "".
+        model_name (str, optional): The name of the model to determine formatting style. Defaults to "default".
+        prompt_key (Optional[str], optional): A key to look up specific prompt instructions for chat models 
+            (e.g., "full", "light", "lightest" for LLaMA chat models). Defaults to None.
 
     Returns:
         List[str]: A list of formatted prompts ready for use with the specified model.
+        
+    Raises:
+        NotImplementedError: If the specified model type is not yet supported.
     """
     if isinstance(prompts, str):
         prompts = [prompts]
@@ -163,7 +169,7 @@ def make_prompts(
             prompts = [f"{task_prompt}{' '.join(p.strip().split())}{task_postprompt}" for p in prompts]
     
     else: # Default branch (no instructions) for all other models such as openai model
-            prompts = [f"{task_prompt}{task_preprompt}{p}{task_postprompt}" for p in prompts]
+        prompts = [f"{task_prompt}{task_preprompt}{p}{task_postprompt}" for p in prompts]
     return prompts
 
 # Task prompts
@@ -251,7 +257,7 @@ extra commentary, formatting, or additional text.\n\nComplete the prefix: """,
         {"instruct-autoregressive":
             [
                 {
-                    "task_prompt": "", # Blank string - Tulu data already has instrucitons,
+                    "task_prompt": "", # Blank string - Tulu data already has instructions,
                     "task_postprompt": "",
                     "task_preprompt": ""
                 },
@@ -374,12 +380,8 @@ for task_key in task_prompts_dict_book:
     cur_task_prompts_dict_book = task_prompts_dict_book[task_key]
 
     for mod in ["davinci-002", "gpt2-large", "Llama-2-7b-hf", "Llama-2-70b-hf","gpt-3.5-turbo-instruct", "pythia-1.4b","pythia-2.8b","pythia-6.9b", "pythia-12b", "llama-7b", "llama-13b", "llama-30b", "llama-65b", "OLMo-1B-0724-hf", "OLMo-7B-0724-hf"]:
-        try:
+        if "noninstruct-autoregressive" in cur_task_prompts_dict_book:
             cur_task_prompts_dict_book[mod] = cur_task_prompts_dict_book["noninstruct-autoregressive"]
-        except:
-            continue
     for mod in ["gpt-4o-2024-05-13", "Llama-3.1-8B-Instruct","gpt-4o-mini-2024-07-18","gpt-4-turbo-2024-04-09", "o1-mini-2024-09-12", "gpt-3.5-turbo-0125", "Llama-3.1-70B-Instruct", "Llama-2-70b-chat-hf","tulu-7b-finalized", "tulu-13b-finalized", "tulu-30b-finalized", "tulu-65b-finalized", "gpt-4-0613", "gpt-3.5-turbo-1106", "gpt-3.5-turbo-instruct", "tulu-v1-llama2-7b", "tulu-v1-llama2-13b", "tulu-v1-llama2-70b", "OLMo-7B-0724-Instruct-hf", "OLMo-7B-0724-SFT-hf", "gpt-4o-2024-11-20", "o1-mini-2024-09-12", "gpt-4-turbo-2024-04-09"]:
-        try:
+        if "instruct-autoregressive" in cur_task_prompts_dict_book:
             cur_task_prompts_dict_book[mod] = cur_task_prompts_dict_book["instruct-autoregressive"]
-        except: 
-            continue
