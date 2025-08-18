@@ -73,5 +73,5 @@ Or to run them all:
 5. Aggregate results
 
 ```
-python3 -m code.experiments.ours.aggregate_results
+python3 -m src.analysis.aggregate_results
 ```

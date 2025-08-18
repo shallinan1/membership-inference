@@ -143,5 +143,5 @@ if __name__ == '__main__':
 
     
 """
-python3 -m code.experiments.ours.aggregate_results --task tulu_v1
+python3 -m src.analysis.aggregate_results --task tulu_v1
 """
