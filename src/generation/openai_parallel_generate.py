@@ -91,13 +91,14 @@ if __name__ == "__main__":
                 max_tokens_per_minute=requests_limits_dict["gpt-3.5-turbo-0125"]["max_tokens_per_minute"],
                 request_url=requests_url_dict["gpt-3.5-turbo-0125"]
             )
-
-            print(results)
             
             print(f"✓ Successfully processed {len(results)} requests")
             for i, result in enumerate(results):
-                if result and 'choices' in result:
-                    print(f"  Request {i+1}: {result['choices'][0]['message']['content'][:50]}...")
+                # Each result is [original_request, api_response]
+                if len(result) > 1 and result[1] and 'choices' in result[1]:
+                    api_response = result[1]
+                    content = api_response['choices'][0]['message']['content']
+                    print(f"  Request {i+1}: {content[:50]}...")
                 else:
                     print(f"  Request {i+1}: Error or empty response")
                     
