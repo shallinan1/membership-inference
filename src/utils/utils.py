@@ -3,17 +3,6 @@ from tqdm import tqdm
 # Load gen_path as jsonl
 import re
 
-def load_jsonl(file_path):
-    with open(file_path, 'r') as f:
-        data = [json.loads(line) for line in tqdm(f, "Loading jsonl")]
-    return data
-
-# Load coverage_path as a json
-def load_json(file_path):
-    with open(file_path, 'r') as f:
-        data = json.load(f)
-    return data
-
 def combine_lists(list1, list2):
     output_list = []
     for l1, l2 in zip(list1, list2):
@@ -55,19 +44,6 @@ def combine_list_of_dicts(list1, list2):
         combined_list.append(combined_dict)
     
     return combined_list
-
-def save_to_jsonl(data, file_path):
-    """
-    Saves a list of dictionaries to a JSONL file.
-
-    Parameters:
-    - data (list): A list of dictionaries to save.
-    - file_path (str): Path to the JSONL file.
-    """
-    with open(file_path, "w") as f:
-        for entry in data:
-            f.write(json.dumps(entry) + "\n")
-    print(f"Data saved to {file_path} in JSONL format.")
 
 
 def convert_to_tulu_v1_format(messages, turns = 1):
