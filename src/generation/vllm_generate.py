@@ -164,15 +164,22 @@ class ModelGenerator:
                 filtered_input_ids.append(input_ids)
                 final_prompts.append(prompt)
             else:
+                # Prompt + requested output would exceed max_length, so truncate the prompt
                 truncated += 1
-                # print(f"Truncating from {len(input_ids)} to {max_length-max_new_tokens}")
-                # Edge case
-                new_max_length = max_length-max_new_token
+                print(f"Truncating from {len(input_ids)} to {max_length-max_new_tokens}")
+                
+                # Calculate how much space to leave for the requested output tokens
+                new_max_length = max_length - max_new_token
+                
+                # Handle edge case where requested output tokens exceed total max_length
                 if new_max_length < 0:
-                    print("Edge case here - negative lengths")
-                    new_max_length = max_length
+                    print("Warning: max_new_tokens exceeds max_length, using full context for prompt")
+                    new_max_length = max_length  # Use full context, output may be truncated
+                
+                # Truncate prompt to fit within the calculated length and re-tokenize
                 shortened = self.tokenizer([prompt], truncation=True, max_length=new_max_length).input_ids[0]
                 filtered_input_ids.append(shortened)
+                # Convert truncated tokens back to text for the final prompt list
                 final_prompts.append(self.tokenizer.decode(shortened))
         print(f"Truncated {truncated} out of {len(final_prompts)}")
         
