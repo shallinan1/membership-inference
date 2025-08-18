@@ -1,3 +1,8 @@
+if [ -f .env ]; then
+    source .env
+    export HF_TOKEN  # explicitly export just what you need
+fi
+
 # check if there is $HF_TOKEN in the environment variables
 if [ -z "$HF_TOKEN" ]
 then
