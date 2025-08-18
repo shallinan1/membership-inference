@@ -11,8 +11,8 @@ Requirements:
 """
 
 import os
-from src.utils import load_jsonl, load_json, combine_lists, combine_dicts, combine_list_of_dicts
-from enum import Enum
+from src.utils.io_utils import load_jsonl, load_json
+from src.utils.data_utils import combine_lists, combine_dicts, combine_list_of_dicts
 from nltk import sent_tokenize
 from typing import List, Tuple, Optional
 
