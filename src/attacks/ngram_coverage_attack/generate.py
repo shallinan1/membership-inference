@@ -14,15 +14,15 @@ from nltk import sent_tokenize
 import pandas as pd
 from IPython import embed
 from tqdm import tqdm
-from code.helper.generation.vllm_generate import ModelGenerator 
-from code.helper.generation.generate_utils import task_prompts_dict_book, make_prompts
+from src.generation.vllm_generate import ModelGenerator 
+from src.generation.generate_utils import task_prompts_dict_book, make_prompts
 import random
 from datetime import datetime
-from code.experiments.ours.utils import extract_chunk_sentence
+from src.attacks.ngram_coverage_attack.utils import extract_chunk_sentence
 import asyncio
-from code.helper.generation.openai_parallel_generate import openai_parallel_generate, requests_limits_dict, requests_url_dict
-from code.utils import remove_first_sentence_if_needed
-from code.experiments.utils import zigzag_append, chunk_list, remove_last_n_words, bool_to_first_upper
+from src.generation.openai_parallel_generate import openai_parallel_generate, requests_limits_dict, requests_url_dict
+from src.utils import remove_first_sentence_if_needed
+from src.experiments.utils import zigzag_append, chunk_list, remove_last_n_words, bool_to_first_upper
 
 def main(args):
     # Seed model and get the model string
