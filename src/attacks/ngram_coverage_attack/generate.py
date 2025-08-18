@@ -12,7 +12,6 @@ os.environ["HF_DATASETS_PATH"] = CACHE_PATH
 
 from nltk import sent_tokenize
 import pandas as pd
-from IPython import embed
 from tqdm import tqdm
 from src.generation.vllm_generate import ModelGenerator 
 from src.generation.prompt_formatting import task_prompts_dict_book, make_prompts
@@ -25,6 +24,31 @@ from src.utils import remove_first_sentence_if_needed
 from src.experiments.utils import zigzag_append, chunk_list, remove_last_n_words, bool_to_first_upper
 
 def main(args):
+    """
+    Generate text using either OpenAI or vLLM models for membership inference attack evaluation.
+    
+    This function implements two generation pipelines:
+    1. OpenAI API: Uses async parallel generation with rate limiting for OpenAI models
+    2. vLLM: Uses local vLLM inference for open-source models
+    
+    The function extracts prompts from input text snippets (either sentence-based or word-based),
+    generates continuations using the specified model, and saves results with detailed metadata.
+    
+    Args:
+        args: Parsed command line arguments containing generation parameters, model settings,
+              and data configuration.
+    
+    Pipeline:
+        1. Load and validate input data
+        2. Extract prompts from text snippets based on sentence/word boundaries
+        3. Format prompts using task-specific templates
+        4. Generate text continuations using specified model
+        5. Save results with comprehensive metadata for downstream analysis
+    
+    Outputs:
+        JSONL file containing original snippets, prompts, generations, and metadata
+        saved to outputs/ours/{task}/generations/{data_split}/
+    """
     # Seed model and get the model string
     random.seed(args.seed)
     model_str = args.model.split("/")[-1] # Splits to get actual model name
@@ -269,40 +293,66 @@ _promptIdx{'-'.join(map(str, args.task_prompt_idx))}_len{len(final_subset)}_{dat
     print(f"Saved to {file_path}")
 
 if __name__ == "__main__":
-    parser = argparse.ArgumentParser(description="Generate text")
+    parser = argparse.ArgumentParser(
+        description="Generate text continuations for membership inference attack evaluation using OpenAI or vLLM models",
+        formatter_class=argparse.ArgumentDefaultsHelpFormatter
+    )
 
     # Generation parameters
-    parser.add_argument('--max_tokens', type=int, default=512, help='Maximum number of tokens to generation.')
-    parser.add_argument('--min_tokens', type=int, default=0, help='Maximum number of tokens to generation.')
-    parser.add_argument('--max_length', type=int, default=2048, help='Maximum length')
-    parser.add_argument('--num_sequences', type=int, default=1, help='Number of sequences to generation.')
-    parser.add_argument('--temperature', type=float, default=1.0, help='Model sampling temperature')
-    parser.add_argument('--top_p', type=float, default=0.95, help='Top-p sampling value.')
-    parser.add_argument('--max_length_to_sequence_length', action="store_true", help="Make the generation length equal to the length of the rest of the sequence")
+    parser.add_argument('--max_tokens', type=int, default=512, 
+                        help='Maximum number of tokens to generate per sequence')
+    parser.add_argument('--min_tokens', type=int, default=0, 
+                        help='Minimum number of tokens to generate per sequence (vLLM only)')
+    parser.add_argument('--max_length', type=int, default=2048, 
+                        help='Maximum total sequence length including prompt (vLLM only)')
+    parser.add_argument('--num_sequences', type=int, default=1, 
+                        help='Number of sequences to generate per prompt (automatically set to 1 for greedy decoding)')
+    parser.add_argument('--temperature', type=float, default=1.0, 
+                        help='Sampling temperature (0.0 for greedy decoding, higher values for more randomness)')
+    parser.add_argument('--top_p', type=float, default=0.95, 
+                        help='Top-p (nucleus) sampling threshold (0.0-1.0, lower values for more focused sampling)')
+    parser.add_argument('--max_length_to_sequence_length', action="store_true", 
+                        help="Set generation length to match the remaining text length")
 
     # What part of the samples to prompt with
-    parser.add_argument('--num_sentences', type=int, default=1, help='Number of sentences to use from the snippet.')
-    parser.add_argument('--start_sentence', type=int, default=1, help='Starting sentence to use from the snippet.')
+    parser.add_argument('--num_sentences', type=int, default=1, 
+                        help='Number of sentences to extract as prompt from each text snippet')
+    parser.add_argument('--start_sentence', type=int, default=1, 
+                        help='Index of first sentence to extract (0-indexed)')
 
-    parser.add_argument("--prompt_with_words_not_sent", action="store_true", help="whether or not to use words vs sentences")
-    parser.add_argument('--num_words_from_end', type=int, default=-1, help='Number of words to use from the snippet.')
-    parser.add_argument('--num_proportion_from_end', type=float, default=-1, help='Number of words to use from the snippet.')
-    parser.add_argument('--task_prompt_idx', type=int, nargs='+', default=[1], help='Index or list of indices of the task prompts to use.')
+    parser.add_argument("--prompt_with_words_not_sent", action="store_true", 
+                        help="Use word-based splitting instead of sentence-based splitting for prompt extraction")
+    parser.add_argument('--num_words_from_end', type=int, default=-1, 
+                        help='Number of words to remove from end when using word-based prompts (-1 to disable)')
+    parser.add_argument('--num_proportion_from_end', type=float, default=-1, 
+                        help='Proportion of words to remove from end (0.0-1.0, -1 to disable)')
+    parser.add_argument('--task_prompt_idx', type=int, nargs='+', default=[1], 
+                        help='Indices of task-specific prompt templates to use (can specify multiple)')
     # parser.add_argument('--start_word', type=int, default=1, help='Starting word to use from the snippet.')
 
     # Model details
-    parser.add_argument('--model', type=str, default="davinci-002", help='Model to use for text generation.')
-    parser.add_argument('--tokenizer', type=str, default=None, help='Pass in tokenizer manually. Optional.')
-    parser.add_argument('--hf_token', type=str, default=None, help='Pass in huggingface token.')
-    parser.add_argument("--openai", action="store_true")
-    parser.add_argument("--seed", type=int, default=0)
+    parser.add_argument('--model', type=str, default="davinci-002", 
+                        help='Model name or path (OpenAI model name or HuggingFace model path)')
+    parser.add_argument('--tokenizer', type=str, default=None, 
+                        help='Custom tokenizer path for vLLM models (optional, defaults to model tokenizer)')
+    parser.add_argument('--hf_token', type=str, default=None, 
+                        help='HuggingFace API token for accessing gated models')
+    parser.add_argument("--openai", action="store_true", 
+                        help="Use OpenAI API for generation (otherwise use vLLM)")
+    parser.add_argument("--seed", type=int, default=0, 
+                        help="Random seed for reproducible generation")
 
     # Data details
-    parser.add_argument("--task", type=str, default="bookMIA")
-    parser.add_argument("--data_split", type=str, default="train")
-    parser.add_argument("--remove_bad_first", action="store_true")
-    parser.add_argument("--keep_n_sentences", type=int, default=-1)
-    parser.add_argument("--key_name", type=str, default=None, help="text key name")
+    parser.add_argument("--task", type=str, default="bookMIA", 
+                        help="Dataset/task name (determines prompt templates and data loading)")
+    parser.add_argument("--data_split", type=str, default="train", 
+                        help="Data split to use (train/val/test)")
+    parser.add_argument("--remove_bad_first", action="store_true", 
+                        help="Remove malformed first sentences during preprocessing")
+    parser.add_argument("--keep_n_sentences", type=int, default=-1, 
+                        help="Limit text to first N sentences (-1 for no limit)")
+    parser.add_argument("--key_name", type=str, default=None, 
+                        help="Custom column name to use as text source (defaults to 'snippet')")
 
     main(parser.parse_args())
 
