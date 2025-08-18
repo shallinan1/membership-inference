@@ -15,7 +15,7 @@ python3 -m data.wikiMIA.preprocess
 ---
 
 ### WikiMIA_2024 Hard
-The WikiMIA_2024 Hard dataset is introduced in our paper, and consists of Wikipedia articles with different versions based on date cutoffs.
+The WikiMIA_2024 Hard dataset is introduced in our paper, and consists of Wikipedia articles with different versions based on date cutoffs. Requires `HF_TOKEN` to be set in your `.env` file.
 
 To download the dataset, run:
 ```bash
@@ -59,11 +59,8 @@ These are the steps to download, reformat, and generate the processed dataset,
 
 ##### Prerequisites
 
-This part requires a HuggingFace token for accessing the LIMA dataset (part of TULU):
-- Request access at https://huggingface.co/datasets/GAIR/lima and set the `HF_TOKEN` environment variable:
-  ```bash
-  export HF_TOKEN=your_token_here
-  ```
+This part requires a HuggingFace token for accessing the LIMA dataset (part of TULU). Request access at https://huggingface.co/datasets/GAIR/lima and ensure your `HF_TOKEN` is set in your `.env` file.
+
 ##### Creation
 
 Now, run:
