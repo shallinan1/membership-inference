@@ -1,4 +1,17 @@
 """
+
+This is a modified version of the script from the OpenAI Cookbook: https://github.com/openai/openai-cookbook/blob/main/examples/api_request_parallel_processor.py
+
+The main changes are:
+- Changed from reading requests from a file to accepting a pre-loaded list of requests
+- Added comprehensive progress tracking with dual tqdm progress bars for launched and completed jobs
+- Results are collected in memory and returned as a list instead of written directly to file
+- Added tqdm_async import for better progress visualization
+- Function renamed from process_api_requests_from_file() to process_api_requests()
+- Memory trade-off: loads all requests upfront but provides more programmatic flexibility
+
+Original documentation:
+
 API REQUEST PARALLEL PROCESSOR
 
 Using the OpenAI API to process lots of text quickly takes some care.
