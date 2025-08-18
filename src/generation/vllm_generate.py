@@ -36,6 +36,12 @@ Usage:
 
 Example:
     python -m src.generation.vllm_generate
+
+Important Configuration Notes:
+    - max_model_len is hardcoded to 2048 tokens for memory efficiency with large models
+    - Returns top 20 log probabilities for each token
+    - Commented out prompt_logprobs, but can be uncommented if needed
+    - Uses left padding for batch processing efficiency
 """
 
 from huggingface_hub import login
@@ -57,7 +63,6 @@ class ModelGenerator:
         tokenizer (str, optional): The tokenizer identifier or path. If None, uses the same identifier as the model. Defaults to None.
         seed (int, optional): Random seed for reproducibility. Defaults to 0.
         hf_token (str, optional): Hugging Face token for authentication. Required if accessing models from Hugging Face Hub. Defaults to None.
-        vllm (bool, optional): If True, uses the vLLM generation method; otherwise, raises an error since non-vLLM inference is not supported. Defaults to True.
         cache_dir (str, optional): Directory to cache the model and tokenizer files. Defaults to "../cache/".
 
     Attributes:
@@ -72,18 +77,12 @@ class ModelGenerator:
         tokenizer: str = None,
         seed: int = 0,
         hf_token: str = None,
-        vllm: bool = True,
         cache_dir: str = "../cache/",
         gpu_memory_utilization: int = 0.9
     ):
         print("Initializing vLLM model")
         set_seed(seed) # Set the random seed for reproducibility
-
-        # Determine the generation function to use
-        if vllm:
-            self.generate_function = self.generate_vllm
-        else:
-            raise NotImplementedError("Non-vLLM inference is not currently supported.")
+        self.generate_function = self.generate_vllm
         
         if hf_token:
             login(hf_token) # Log in to Hugging Face if a token is provided
@@ -96,7 +95,7 @@ class ModelGenerator:
             tensor_parallel_size=torch.cuda.device_count(), # Install ray if > 1 GPUs
             download_dir=cache_dir,
             gpu_memory_utilization=gpu_memory_utilization,
-            max_model_len = 2048, # Set manually for large models which have large context lengths
+            max_model_len = 2048, # Maximum sequence length - set to 2048 for memory efficiency with large models
             # dtype="float32", # vllm sets fp32 to fp16 if this is auto 
             # swap_space=10 #GiB # Getting error if we have dtype not auto: "Aborted due to the lack of CPU swap space. Please increase the swap space to avoid this error."
         )
@@ -190,8 +189,8 @@ class ModelGenerator:
             min_tokens=min_tokens,
             stop_token_ids=stop_token_ids,
             n=n,
-            logprobs=20,
-            # prompt_logprobs=5
+            logprobs=20,  # Number of top log probabilities to return for each token
+            # prompt_logprobs=5  # Uncomment to return number of prompt token log probabilities
         ) for mnt in max_new_tokens]
 
         # Generation
