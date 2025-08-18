@@ -4,11 +4,6 @@ from code.utils import load_jsonl, load_json, combine_lists, combine_dicts, comb
 from enum import Enum
 from nltk import sent_tokenize
 
-class BookMIALength(Enum):
-    TRAIN = 494  # Example length for training dataset
-    VAL = 493   # Example length for validation dataset
-    TEST = 8883    # Example length for test dataset
-
 def get_all_gen_paths(gen_path):
     # Assemble all the gen_paths
     gen_path_start = gen_path.rsplit("2024-", 1)[0]
