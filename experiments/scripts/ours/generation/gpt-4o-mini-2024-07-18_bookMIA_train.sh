@@ -1,4 +1,4 @@
-python3 -m code.experiments.ours.generate \
+python3 -m src.attacks.ngram_coverage_attack.generate \
     --openai \
     --model gpt-4o-mini-2024-07-18 \
     --start_sentence 1 \

@@ -1,6 +1,6 @@
 
 # Less words of context - more generation
-python3 -m code.experiments.ours.generate \
+python3 -m src.attacks.ngram_coverage_attack.generate \
     --openai \
     --model gpt-4o-2024-11-20 \
     --num_sequences 20 \
@@ -14,7 +14,7 @@ python3 -m code.experiments.ours.generate \
     --data_split test;
 
 # Less words of context - higher tempreature
-python3 -m code.experiments.ours.generate \
+python3 -m src.attacks.ngram_coverage_attack.generate \
     --openai \
     --model gpt-4o-2024-11-20 \
     --num_sequences 20 \
@@ -28,7 +28,7 @@ python3 -m code.experiments.ours.generate \
     --data_split test;
 
 # Commands to run
-python3 -m code.experiments.ours.generate \
+python3 -m src.attacks.ngram_coverage_attack.generate \
     --openai \
     --model gpt-4o-2024-11-20 \
     --num_sequences 20 \
@@ -41,7 +41,7 @@ python3 -m code.experiments.ours.generate \
     --num_proportion_from_end 0.5 \
     --data_split test;
 
-python3 -m code.experiments.ours.generate \
+python3 -m src.attacks.ngram_coverage_attack.generate \
     --openai \
     --model gpt-4o-2024-11-20 \
     --num_sequences 20 \
@@ -54,7 +54,7 @@ python3 -m code.experiments.ours.generate \
     --num_proportion_from_end 0.5 \
     --data_split test;
 
-python3 -m code.experiments.ours.generate \
+python3 -m src.attacks.ngram_coverage_attack.generate \
     --openai \
     --model gpt-4o-2024-11-20 \
     --num_sequences 50 \
@@ -67,7 +67,7 @@ python3 -m code.experiments.ours.generate \
     --num_proportion_from_end 0.5 \
     --data_split test;
 
-python3 -m code.experiments.ours.generate \
+python3 -m src.attacks.ngram_coverage_attack.generate \
     --openai \
     --model gpt-4o-2024-11-20 \
     --num_sequences 50 \
@@ -81,7 +81,7 @@ python3 -m code.experiments.ours.generate \
     --data_split test;
 
 
-python3 -m code.experiments.ours.generate \
+python3 -m src.attacks.ngram_coverage_attack.generate \
     --openai \
     --model gpt-4o-2024-11-20 \
     --num_sequences 50 \
@@ -94,7 +94,7 @@ python3 -m code.experiments.ours.generate \
     --num_proportion_from_end 0.25 \
     --data_split test;
 
-python3 -m code.experiments.ours.generate \
+python3 -m src.attacks.ngram_coverage_attack.generate \
     --openai \
     --model gpt-4o-2024-11-20 \
     --num_sequences 50 \
@@ -108,7 +108,7 @@ python3 -m code.experiments.ours.generate \
     --data_split test;
 
 # New from here
-python3 -m code.experiments.ours.generate \
+python3 -m src.attacks.ngram_coverage_attack.generate \
     --openai \
     --model gpt-4o-2024-11-20 \
     --num_sequences 50 \
@@ -122,7 +122,7 @@ python3 -m code.experiments.ours.generate \
     --data_split test;
 
 
-python3 -m code.experiments.ours.generate \
+python3 -m src.attacks.ngram_coverage_attack.generate \
     --openai \
     --model gpt-4o-2024-11-20 \
     --num_sequences 50 \
@@ -135,7 +135,7 @@ python3 -m code.experiments.ours.generate \
     --num_proportion_from_end 0.5 \
     --data_split test;
 
-python3 -m code.experiments.ours.generate \
+python3 -m src.attacks.ngram_coverage_attack.generate \
     --openai \
     --model gpt-4o-2024-11-20 \
     --num_sequences 50 \
@@ -149,7 +149,7 @@ python3 -m code.experiments.ours.generate \
     --data_split test;
 
 
-python3 -m code.experiments.ours.generate \
+python3 -m src.attacks.ngram_coverage_attack.generate \
     --openai \
     --model gpt-4o-2024-11-20 \
     --num_sequences 50 \

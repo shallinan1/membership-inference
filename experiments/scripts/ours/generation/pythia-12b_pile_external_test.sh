@@ -1,4 +1,4 @@
-CUDA_VISIBLE_DEVICES=0,1 python3 -m code.experiments.ours.generate \
+CUDA_VISIBLE_DEVICES=0,1 python3 -m src.attacks.ngram_coverage_attack.generate \
     --model EleutherAI/pythia-12b \
     --start_sentence 0 \
     --num_sentences 10 \
@@ -8,7 +8,7 @@ CUDA_VISIBLE_DEVICES=0,1 python3 -m code.experiments.ours.generate \
     --task pile_external \
     --data_split test;
 
-CUDA_VISIBLE_DEVICES=0,1 python3 -m code.experiments.ours.generate \
+CUDA_VISIBLE_DEVICES=0,1 python3 -m src.attacks.ngram_coverage_attack.generate \
     --model EleutherAI/pythia-12b \
     --start_sentence 0 \
     --num_sentences 5 \
@@ -18,7 +18,7 @@ CUDA_VISIBLE_DEVICES=0,1 python3 -m code.experiments.ours.generate \
     --task pile_external \
     --data_split test;
 
-CUDA_VISIBLE_DEVICES=0,1 python3 -m code.experiments.ours.generate \
+CUDA_VISIBLE_DEVICES=0,1 python3 -m src.attacks.ngram_coverage_attack.generate \
     --model EleutherAI/pythia-12b \
     --start_sentence 0 \
     --num_sentences 5 \
@@ -28,7 +28,7 @@ CUDA_VISIBLE_DEVICES=0,1 python3 -m code.experiments.ours.generate \
     --task pile_external \
     --data_split test;
 
-python3 -m code.experiments.ours.generate \
+python3 -m src.attacks.ngram_coverage_attack.generate \
     --model EleutherAI/pythia-12b \
     --start_sentence 0 \
     --num_sentences 5 \
@@ -38,7 +38,7 @@ python3 -m code.experiments.ours.generate \
     --task pile_external \
     --data_split test;
 
-python3 -m code.experiments.ours.generate \
+python3 -m src.attacks.ngram_coverage_attack.generate \
     --model EleutherAI/pythia-12b \
     --start_sentence 0 \
     --num_sentences 5 \
@@ -48,7 +48,7 @@ python3 -m code.experiments.ours.generate \
     --task pile_external \
     --data_split test;
 
-python3 -m code.experiments.ours.generate \
+python3 -m src.attacks.ngram_coverage_attack.generate \
     --model EleutherAI/pythia-12b \
     --start_sentence 0 \
     --num_sentences 5 \
@@ -58,7 +58,7 @@ python3 -m code.experiments.ours.generate \
     --task pile_external \
     --data_split test;
 
-python3 -m code.experiments.ours.generate \
+python3 -m src.attacks.ngram_coverage_attack.generate \
     --model EleutherAI/pythia-12b \
     --start_sentence 0 \
     --num_sentences 5 \
@@ -68,7 +68,7 @@ python3 -m code.experiments.ours.generate \
     --task pile_external \
     --data_split test;
 
-python3 -m code.experiments.ours.generate \
+python3 -m src.attacks.ngram_coverage_attack.generate \
     --model EleutherAI/pythia-12b \
     --num_sequences 20 \
     --prompt_with_words_not_sent \
@@ -78,7 +78,7 @@ python3 -m code.experiments.ours.generate \
     --task pile_external \
     --data_split test;
 
-python3 -m code.experiments.ours.generate \
+python3 -m src.attacks.ngram_coverage_attack.generate \
     --model EleutherAI/pythia-12b \
     --num_sequences 50 \
     --prompt_with_words_not_sent \
@@ -88,7 +88,7 @@ python3 -m code.experiments.ours.generate \
     --task pile_external \
     --data_split test;
 
-python3 -m code.experiments.ours.generate \
+python3 -m src.attacks.ngram_coverage_attack.generate \
     --model EleutherAI/pythia-12b \
     --num_sequences 20 \
     --prompt_with_words_not_sent \
@@ -98,7 +98,7 @@ python3 -m code.experiments.ours.generate \
     --task pile_external \
     --data_split test;
 
-python3 -m code.experiments.ours.generate \
+python3 -m src.attacks.ngram_coverage_attack.generate \
     --model EleutherAI/pythia-12b \
     --num_sequences 50 \
     --prompt_with_words_not_sent \
@@ -108,7 +108,7 @@ python3 -m code.experiments.ours.generate \
     --task pile_external \
     --data_split test;
 
-python3 -m code.experiments.ours.generate \
+python3 -m src.attacks.ngram_coverage_attack.generate \
     --model EleutherAI/pythia-12b \
     --num_sequences 50 \
     --prompt_with_words_not_sent \
@@ -118,7 +118,7 @@ python3 -m code.experiments.ours.generate \
     --task pile_external \
     --data_split test;
 
-python3 -m code.experiments.ours.generate \
+python3 -m src.attacks.ngram_coverage_attack.generate \
     --model EleutherAI/pythia-12b \
     --num_sequences 20 \
     --prompt_with_words_not_sent \
@@ -128,7 +128,7 @@ python3 -m code.experiments.ours.generate \
     --task pile_external \
     --data_split test;
 
-python3 -m code.experiments.ours.generate \
+python3 -m src.attacks.ngram_coverage_attack.generate \
     --model EleutherAI/pythia-12b \
     --num_sequences 20 \
     --prompt_with_words_not_sent \

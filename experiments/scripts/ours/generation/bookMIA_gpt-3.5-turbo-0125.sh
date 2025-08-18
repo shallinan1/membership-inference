@@ -1,4 +1,4 @@
-python3 -m code.experiments.ours.generate \
+python3 -m src.attacks.ngram_coverage_attack.generate \
     --openai \
     --model gpt-3.5-turbo-0125 \
     --start_sentence 1 \
@@ -9,7 +9,7 @@ python3 -m code.experiments.ours.generate \
     --task bookMIA \
     --data_split train;
 
-python3 -m code.experiments.ours.generate \
+python3 -m src.attacks.ngram_coverage_attack.generate \
     --openai \
     --model gpt-3.5-turbo-0125 \
     --start_sentence 1 \
@@ -21,7 +21,7 @@ python3 -m code.experiments.ours.generate \
     --task bookMIA \
     --data_split train;
 
-python3 -m code.experiments.ours.generate \
+python3 -m src.attacks.ngram_coverage_attack.generate \
     --openai \
     --model gpt-3.5-turbo-0125 \
     --start_sentence 1 \
@@ -32,7 +32,7 @@ python3 -m code.experiments.ours.generate \
     --task bookMIA \
     --data_split train;
 
-python3 -m code.experiments.ours.generate \
+python3 -m src.attacks.ngram_coverage_attack.generate \
     --openai \
     --model gpt-3.5-turbo-0125 \
     --start_sentence 1 \
@@ -46,7 +46,7 @@ python3 -m code.experiments.ours.generate \
 
 
 # Word level
-python3 -m code.experiments.ours.generate \
+python3 -m src.attacks.ngram_coverage_attack.generate \
     --openai \
     --model gpt-3.5-turbo-0125 \
     --num_sequences 20 \
@@ -59,7 +59,7 @@ python3 -m code.experiments.ours.generate \
     --data_split train;
 
 # Word level
-python3 -m code.experiments.ours.generate \
+python3 -m src.attacks.ngram_coverage_attack.generate \
     --openai \
     --model gpt-3.5-turbo-0125 \
     --num_sequences 20 \
@@ -73,7 +73,7 @@ python3 -m code.experiments.ours.generate \
     --data_split train;
 
 
-python3 -m code.experiments.ours.generate \
+python3 -m src.attacks.ngram_coverage_attack.generate \
     --openai \
     --model gpt-3.5-turbo-0125 \
     --num_sequences 20 \
@@ -86,7 +86,7 @@ python3 -m code.experiments.ours.generate \
     --remove_bad_first \
     --data_split train;
 
-python3 -m code.experiments.ours.generate \
+python3 -m src.attacks.ngram_coverage_attack.generate \
     --openai \
     --model gpt-3.5-turbo-0125 \
     --num_sequences 20 \
@@ -99,7 +99,7 @@ python3 -m code.experiments.ours.generate \
     --remove_bad_first \
     --data_split train;
 
-python3 -m code.experiments.ours.generate \
+python3 -m src.attacks.ngram_coverage_attack.generate \
     --openai \
     --model gpt-3.5-turbo-0125 \
     --num_sequences 20 \
@@ -112,7 +112,7 @@ python3 -m code.experiments.ours.generate \
     --remove_bad_first \
     --data_split train;
 
-python3 -m code.experiments.ours.generate \
+python3 -m src.attacks.ngram_coverage_attack.generate \
     --openai \
     --model gpt-3.5-turbo-0125 \
     --num_sequences 20 \
@@ -125,7 +125,7 @@ python3 -m code.experiments.ours.generate \
     --remove_bad_first \
     --data_split train;
 
-python3 -m code.experiments.ours.generate \
+python3 -m src.attacks.ngram_coverage_attack.generate \
     --openai \
     --model gpt-3.5-turbo-0125 \
     --num_sequences 20 \
@@ -138,7 +138,7 @@ python3 -m code.experiments.ours.generate \
     --remove_bad_first \
     --data_split train;
 
-python3 -m code.experiments.ours.generate \
+python3 -m src.attacks.ngram_coverage_attack.generate \
     --openai \
     --model gpt-3.5-turbo-0125 \
     --num_sequences 20 \
@@ -151,7 +151,7 @@ python3 -m code.experiments.ours.generate \
     --remove_bad_first \
     --data_split train;
 
-python3 -m code.experiments.ours.generate \
+python3 -m src.attacks.ngram_coverage_attack.generate \
     --openai \
     --model gpt-3.5-turbo-0125 \
     --num_sequences 20 \
@@ -164,7 +164,7 @@ python3 -m code.experiments.ours.generate \
     --remove_bad_first \
     --data_split train;
 
-python3 -m code.experiments.ours.generate \
+python3 -m src.attacks.ngram_coverage_attack.generate \
     --openai \
     --model gpt-3.5-turbo-0125 \
     --num_sequences 20 \
@@ -177,7 +177,7 @@ python3 -m code.experiments.ours.generate \
     --remove_bad_first \
     --data_split train;
 
-python3 -m code.experiments.ours.generate \
+python3 -m src.attacks.ngram_coverage_attack.generate \
     --openai \
     --model gpt-3.5-turbo-0125 \
     --num_sequences 10 \
@@ -190,7 +190,7 @@ python3 -m code.experiments.ours.generate \
     --remove_bad_first \
     --data_split train;
 
-python3 -m code.experiments.ours.generate \
+python3 -m src.attacks.ngram_coverage_attack.generate \
     --openai \
     --model gpt-3.5-turbo-0125 \
     --num_sequences 5 \
@@ -204,7 +204,7 @@ python3 -m code.experiments.ours.generate \
     --data_split train;
 
 # More iteration on 100
-python3 -m code.experiments.ours.generate \
+python3 -m src.attacks.ngram_coverage_attack.generate \
     --openai \
     --model gpt-3.5-turbo-0125 \
     --num_sequences 50 \
@@ -218,7 +218,7 @@ python3 -m code.experiments.ours.generate \
     --data_split train;
 
 # More iteration on 100
-python3 -m code.experiments.ours.generate \
+python3 -m src.attacks.ngram_coverage_attack.generate \
     --openai \
     --model gpt-3.5-turbo-0125 \
     --num_sequences 50 \
@@ -232,7 +232,7 @@ python3 -m code.experiments.ours.generate \
     --data_split train;
 
 # More iteration on 100
-python3 -m code.experiments.ours.generate \
+python3 -m src.attacks.ngram_coverage_attack.generate \
     --openai \
     --model gpt-3.5-turbo-0125 \
     --num_sequences 20 \
@@ -246,7 +246,7 @@ python3 -m code.experiments.ours.generate \
     --data_split train;
 
 # More iteration on 100 - 100 gens
-python3 -m code.experiments.ours.generate \
+python3 -m src.attacks.ngram_coverage_attack.generate \
     --openai \
     --model gpt-3.5-turbo-0125 \
     --num_sequences 100 \
@@ -261,7 +261,7 @@ python3 -m code.experiments.ours.generate \
 
 # Generating from a proportion rather than fixed words
 # More iteration on 100 - 100 gens
-python3 -m code.experiments.ours.generate \
+python3 -m src.attacks.ngram_coverage_attack.generate \
     --openai \
     --model gpt-3.5-turbo-0125 \
     --num_sequences 50 \
@@ -274,7 +274,7 @@ python3 -m code.experiments.ours.generate \
     --remove_bad_first \
     --data_split train;
 
-python3 -m code.experiments.ours.generate \
+python3 -m src.attacks.ngram_coverage_attack.generate \
     --openai \
     --model gpt-3.5-turbo-0125 \
     --num_sequences 100 \
@@ -289,7 +289,7 @@ python3 -m code.experiments.ours.generate \
 
 
 # Temperature ablation
-python3 -m code.experiments.ours.generate \
+python3 -m src.attacks.ngram_coverage_attack.generate \
     --openai \
     --model gpt-3.5-turbo-0125 \
     --num_sequences 20 \
@@ -302,7 +302,7 @@ python3 -m code.experiments.ours.generate \
     --remove_bad_first \
     --data_split train;
 
-python3 -m code.experiments.ours.generate \
+python3 -m src.attacks.ngram_coverage_attack.generate \
     --openai \
     --model gpt-3.5-turbo-0125 \
     --num_sequences 20 \
@@ -315,7 +315,7 @@ python3 -m code.experiments.ours.generate \
     --remove_bad_first \
     --data_split train;
 
-python3 -m code.experiments.ours.generate \
+python3 -m src.attacks.ngram_coverage_attack.generate \
     --openai \
     --model gpt-3.5-turbo-0125 \
     --num_sequences 20 \
@@ -328,7 +328,7 @@ python3 -m code.experiments.ours.generate \
     --remove_bad_first \
     --data_split train;
 
-python3 -m code.experiments.ours.generate \
+python3 -m src.attacks.ngram_coverage_attack.generate \
     --openai \
     --model gpt-3.5-turbo-0125 \
     --num_sequences 20 \
@@ -341,7 +341,7 @@ python3 -m code.experiments.ours.generate \
     --remove_bad_first \
     --data_split train;
 
-python3 -m code.experiments.ours.generate \
+python3 -m src.attacks.ngram_coverage_attack.generate \
     --openai \
     --model gpt-3.5-turbo-0125 \
     --num_sequences 20 \
@@ -354,7 +354,7 @@ python3 -m code.experiments.ours.generate \
     --remove_bad_first \
     --data_split train;
 
-python3 -m code.experiments.ours.generate \
+python3 -m src.attacks.ngram_coverage_attack.generate \
     --openai \
     --model gpt-3.5-turbo-0125 \
     --num_sequences 20 \
@@ -368,7 +368,7 @@ python3 -m code.experiments.ours.generate \
     --data_split train;
 
 # More length ablation
-python3 -m code.experiments.ours.generate \
+python3 -m src.attacks.ngram_coverage_attack.generate \
     --openai \
     --model gpt-3.5-turbo-0125 \
     --num_sequences 20 \
@@ -382,7 +382,7 @@ python3 -m code.experiments.ours.generate \
     --data_split train;
 
 # More length ablation
-python3 -m code.experiments.ours.generate \
+python3 -m src.attacks.ngram_coverage_attack.generate \
     --openai \
     --model gpt-3.5-turbo-0125 \
     --num_sequences 20 \
@@ -396,7 +396,7 @@ python3 -m code.experiments.ours.generate \
     --data_split train;
 
 # More length ablation
-python3 -m code.experiments.ours.generate \
+python3 -m src.attacks.ngram_coverage_attack.generate \
     --openai \
     --model gpt-3.5-turbo-0125 \
     --num_sequences 128 \
@@ -410,7 +410,7 @@ python3 -m code.experiments.ours.generate \
     --data_split train;
 
 # More length ablation
-python3 -m code.experiments.ours.generate \
+python3 -m src.attacks.ngram_coverage_attack.generate \
     --openai \
     --model gpt-3.5-turbo-0125 \
     --num_sequences 128 \

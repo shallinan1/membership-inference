@@ -1,5 +1,5 @@
 
-python3 -m code.experiments.ours.generate \
+python3 -m src.attacks.ngram_coverage_attack.generate \
     --model allenai/tulu-v1-llama2-7b \
     --num_sequences 20 \
     --max_tokens 512 \
@@ -7,7 +7,7 @@ python3 -m code.experiments.ours.generate \
     --task tulu_v1 \
     --data_split test;
 
-python3 -m code.experiments.ours.generate \
+python3 -m src.attacks.ngram_coverage_attack.generate \
     --model allenai/tulu-v1-llama2-7b \
     --num_sequences 50 \
     --max_tokens 512 \
@@ -17,7 +17,7 @@ python3 -m code.experiments.ours.generate \
     --data_split test;
 
 # To max seq length
-python3 -m code.experiments.ours.generate \
+python3 -m src.attacks.ngram_coverage_attack.generate \
     --model allenai/tulu-v1-llama2-7b \
     --num_sequences 20 \
     --max_tokens 512 \

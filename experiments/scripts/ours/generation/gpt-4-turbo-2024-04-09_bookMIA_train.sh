@@ -1,5 +1,5 @@
 # gpt-4-turbo
-python3 -m code.experiments.ours.generate \
+python3 -m src.attacks.ngram_coverage_attack.generate \
     --openai \
     --model gpt-4-turbo-2024-04-09 \
     --start_sentence 1 \

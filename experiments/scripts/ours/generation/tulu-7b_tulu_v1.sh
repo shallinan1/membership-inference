@@ -1,4 +1,4 @@
-python3 -m code.experiments.ours.generate \
+python3 -m src.attacks.ngram_coverage_attack.generate \
     --model /gscratch/xlab/hallisky/cache/tulu-7b-finalized \
     --num_sequences 20 \
     --max_tokens 512 \
@@ -6,7 +6,7 @@ python3 -m code.experiments.ours.generate \
     --task tulu_v1 \
     --data_split train;
 
-python3 -m code.experiments.ours.generate \
+python3 -m src.attacks.ngram_coverage_attack.generate \
     --model /gscratch/xlab/hallisky/cache/tulu-7b-finalized \
     --num_sequences 20 \
     --max_tokens 512 \
@@ -14,7 +14,7 @@ python3 -m code.experiments.ours.generate \
     --task tulu_v1 \
     --data_split val;
 
-python3 -m code.experiments.ours.generate \
+python3 -m src.attacks.ngram_coverage_attack.generate \
     --model /gscratch/xlab/hallisky/cache/tulu-7b-finalized \
     --num_sequences 20 \
     --max_tokens 512 \
@@ -22,7 +22,7 @@ python3 -m code.experiments.ours.generate \
     --task tulu_v1 \
     --data_split test;
 
-python3 -m code.experiments.ours.generate \
+python3 -m src.attacks.ngram_coverage_attack.generate \
     --model /gscratch/xlab/hallisky/cache/tulu-7b-finalized \
     --num_sequences 20 \
     --max_tokens 512 \
@@ -31,7 +31,7 @@ python3 -m code.experiments.ours.generate \
     --temperature 0.2 \
     --data_split train;
 
-python3 -m code.experiments.ours.generate \
+python3 -m src.attacks.ngram_coverage_attack.generate \
     --model /gscratch/xlab/hallisky/cache/tulu-7b-finalized \
     --num_sequences 20 \
     --max_tokens 512 \
@@ -40,7 +40,7 @@ python3 -m code.experiments.ours.generate \
     --temperature 0.2 \
     --data_split val;
 
-python3 -m code.experiments.ours.generate \
+python3 -m src.attacks.ngram_coverage_attack.generate \
     --model /gscratch/xlab/hallisky/cache/tulu-7b-finalized \
     --num_sequences 20 \
     --max_tokens 512 \
@@ -50,7 +50,7 @@ python3 -m code.experiments.ours.generate \
     --data_split test;
 
 # Max length
-python3 -m code.experiments.ours.generate \
+python3 -m src.attacks.ngram_coverage_attack.generate \
     --model /gscratch/xlab/hallisky/cache/tulu-7b-finalized \
     --num_sequences 20 \
     --max_tokens 512 \
@@ -60,7 +60,7 @@ python3 -m code.experiments.ours.generate \
     --data_split test;
 
 # Max length
-python3 -m code.experiments.ours.generate \
+python3 -m src.attacks.ngram_coverage_attack.generate \
     --model /gscratch/xlab/hallisky/cache/tulu-7b-finalized \
     --num_sequences 50 \
     --max_tokens 512 \

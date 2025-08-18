@@ -1,6 +1,6 @@
 
 # To run
-python3 -m code.experiments.ours.generate \
+python3 -m src.attacks.ngram_coverage_attack.generate \
     --model huggyllama/llama-7b \
     --num_sequences 50 \
     --temperature 1.0 \
@@ -12,7 +12,7 @@ python3 -m code.experiments.ours.generate \
     --num_proportion_from_end 0.5 \
     --data_split test;
 
-python3 -m code.experiments.ours.generate \
+python3 -m src.attacks.ngram_coverage_attack.generate \
     --model huggyllama/llama-7b \
     --num_sequences 50 \
     --temperature 1.0 \
@@ -24,7 +24,7 @@ python3 -m code.experiments.ours.generate \
     --num_proportion_from_end 0.5 \
     --data_split test;    
     
-python3 -m code.experiments.ours.generate \
+python3 -m src.attacks.ngram_coverage_attack.generate \
     --model huggyllama/llama-7b \
     --num_sequences 50 \
     --temperature 1.0 \
@@ -36,7 +36,7 @@ python3 -m code.experiments.ours.generate \
     --num_proportion_from_end 0.5 \
     --data_split test;
 
-python3 -m code.experiments.ours.generate \
+python3 -m src.attacks.ngram_coverage_attack.generate \
     --model huggyllama/llama-7b \
     --num_sequences 50 \
     --temperature 1.0 \
@@ -48,7 +48,7 @@ python3 -m code.experiments.ours.generate \
     --num_proportion_from_end 0.5 \
     --data_split test;
 
-python3 -m code.experiments.ours.generate \
+python3 -m src.attacks.ngram_coverage_attack.generate \
     --model huggyllama/llama-7b \
     --num_sequences 50 \
     --temperature 1.0 \

@@ -1,4 +1,4 @@
-python3 -m code.experiments.ours.generate \
+python3 -m src.attacks.ngram_coverage_attack.generate \
     --model allenai/OLMo-7B-0724-Instruct-hf \
     --max_tokens 512 \
     --task_prompt_idx 0 \
@@ -10,7 +10,7 @@ python3 -m code.experiments.ours.generate \
     --max_length_to_sequence_length \
     --num_proportion_from_end 0.1;
 
-python3 -m code.experiments.ours.generate \
+python3 -m src.attacks.ngram_coverage_attack.generate \
     --model allenai/OLMo-7B-0724-Instruct-hf \
     --max_tokens 512 \
     --task_prompt_idx 1 \
@@ -22,7 +22,7 @@ python3 -m code.experiments.ours.generate \
     --max_length_to_sequence_length \
     --num_proportion_from_end 0.1;
 
-python3 -m code.experiments.ours.generate \
+python3 -m src.attacks.ngram_coverage_attack.generate \
     --model allenai/OLMo-7B-0724-Instruct-hf \
     --max_tokens 512 \
     --task_prompt_idx 2 \
@@ -34,7 +34,7 @@ python3 -m code.experiments.ours.generate \
     --max_length_to_sequence_length \
     --num_proportion_from_end 0.1;
 
-python3 -m code.experiments.ours.generate \
+python3 -m src.attacks.ngram_coverage_attack.generate \
     --model allenai/OLMo-7B-0724-Instruct-hf \
     --max_tokens 512 \
     --task_prompt_idx 3 \
@@ -46,7 +46,7 @@ python3 -m code.experiments.ours.generate \
     --max_length_to_sequence_length \
     --num_proportion_from_end 0.1;
 
-python3 -m code.experiments.ours.generate \
+python3 -m src.attacks.ngram_coverage_attack.generate \
     --model allenai/OLMo-7B-0724-Instruct-hf \
     --max_tokens 512 \
     --task_prompt_idx 4 \
@@ -59,7 +59,7 @@ python3 -m code.experiments.ours.generate \
     --num_proportion_from_end 0.1;
 
 # Next Section
-python3 -m code.experiments.ours.generate \
+python3 -m src.attacks.ngram_coverage_attack.generate \
     --model allenai/OLMo-7B-0724-Instruct-hf \
     --max_tokens 512 \
     --task_prompt_idx 0 \
@@ -71,7 +71,7 @@ python3 -m code.experiments.ours.generate \
     --max_length_to_sequence_length \
     --num_proportion_from_end 0.25;
 
-python3 -m code.experiments.ours.generate \
+python3 -m src.attacks.ngram_coverage_attack.generate \
     --model allenai/OLMo-7B-0724-Instruct-hf \
     --max_tokens 512 \
     --task_prompt_idx 2 \
@@ -83,7 +83,7 @@ python3 -m code.experiments.ours.generate \
     --max_length_to_sequence_length \
     --num_proportion_from_end 0.25;
 
-python3 -m code.experiments.ours.generate \
+python3 -m src.attacks.ngram_coverage_attack.generate \
     --model allenai/OLMo-7B-0724-Instruct-hf \
     --max_tokens 512 \
     --task_prompt_idx 3 \
@@ -97,7 +97,7 @@ python3 -m code.experiments.ours.generate \
 
 # Next Section
 
-python3 -m code.experiments.ours.generate \
+python3 -m src.attacks.ngram_coverage_attack.generate \
     --model allenai/OLMo-7B-0724-Instruct-hf \
     --max_tokens 512 \
     --task_prompt_idx 0 \
@@ -109,7 +109,7 @@ python3 -m code.experiments.ours.generate \
     --max_length_to_sequence_length \
     --num_proportion_from_end 0.5;
 
-python3 -m code.experiments.ours.generate \
+python3 -m src.attacks.ngram_coverage_attack.generate \
     --model allenai/OLMo-7B-0724-Instruct-hf \
     --max_tokens 512 \
     --task_prompt_idx 2 \
@@ -121,7 +121,7 @@ python3 -m code.experiments.ours.generate \
     --max_length_to_sequence_length \
     --num_proportion_from_end 0.5;
 
-python3 -m code.experiments.ours.generate \
+python3 -m src.attacks.ngram_coverage_attack.generate \
     --model allenai/OLMo-7B-0724-Instruct-hf \
     --max_tokens 512 \
     --task_prompt_idx 3 \
@@ -133,7 +133,7 @@ python3 -m code.experiments.ours.generate \
     --max_length_to_sequence_length \
     --num_proportion_from_end 0.5;
 
-python3 -m code.experiments.ours.generate \
+python3 -m src.attacks.ngram_coverage_attack.generate \
     --model allenai/OLMo-7B-0724-Instruct-hf \
     --max_tokens 512 \
     --task_prompt_idx 0 \
@@ -145,7 +145,7 @@ python3 -m code.experiments.ours.generate \
     --max_length_to_sequence_length \
     --num_proportion_from_end 0.75;
 
-python3 -m code.experiments.ours.generate \
+python3 -m src.attacks.ngram_coverage_attack.generate \
     --model allenai/OLMo-7B-0724-Instruct-hf \
     --max_tokens 512 \
     --task_prompt_idx 2 \
@@ -157,7 +157,7 @@ python3 -m code.experiments.ours.generate \
     --max_length_to_sequence_length \
     --num_proportion_from_end 0.75;
 
-python3 -m code.experiments.ours.generate \
+python3 -m src.attacks.ngram_coverage_attack.generate \
     --model allenai/OLMo-7B-0724-Instruct-hf \
     --max_tokens 512 \
     --task_prompt_idx 3 \
@@ -170,7 +170,7 @@ python3 -m code.experiments.ours.generate \
     --num_proportion_from_end 0.75;
 
 # 50s
-python3 -m code.experiments.ours.generate \
+python3 -m src.attacks.ngram_coverage_attack.generate \
     --model allenai/OLMo-7B-0724-Instruct-hf \
     --max_tokens 512 \
     --task_prompt_idx 0 \
@@ -182,7 +182,7 @@ python3 -m code.experiments.ours.generate \
     --max_length_to_sequence_length \
     --num_proportion_from_end 0.1;
 
-python3 -m code.experiments.ours.generate \
+python3 -m src.attacks.ngram_coverage_attack.generate \
     --model allenai/OLMo-7B-0724-Instruct-hf \
     --max_tokens 512 \
     --task_prompt_idx 2 \
@@ -194,7 +194,7 @@ python3 -m code.experiments.ours.generate \
     --max_length_to_sequence_length \
     --num_proportion_from_end 0.1;
 
-python3 -m code.experiments.ours.generate \
+python3 -m src.attacks.ngram_coverage_attack.generate \
     --model allenai/OLMo-7B-0724-Instruct-hf \
     --max_tokens 512 \
     --task_prompt_idx 3 \
@@ -206,7 +206,7 @@ python3 -m code.experiments.ours.generate \
     --max_length_to_sequence_length \
     --num_proportion_from_end 0.1;
 
-python3 -m code.experiments.ours.generate \
+python3 -m src.attacks.ngram_coverage_attack.generate \
     --model allenai/OLMo-7B-0724-Instruct-hf \
     --max_tokens 512 \
     --task_prompt_idx 0 \
@@ -218,7 +218,7 @@ python3 -m code.experiments.ours.generate \
     --max_length_to_sequence_length \
     --num_proportion_from_end 0.25;
 
-python3 -m code.experiments.ours.generate \
+python3 -m src.attacks.ngram_coverage_attack.generate \
     --model allenai/OLMo-7B-0724-Instruct-hf \
     --max_tokens 512 \
     --task_prompt_idx 2 \
@@ -230,7 +230,7 @@ python3 -m code.experiments.ours.generate \
     --max_length_to_sequence_length \
     --num_proportion_from_end 0.25;
 
-python3 -m code.experiments.ours.generate \
+python3 -m src.attacks.ngram_coverage_attack.generate \
     --model allenai/OLMo-7B-0724-Instruct-hf \
     --max_tokens 512 \
     --task_prompt_idx 3 \

@@ -1,5 +1,5 @@
 # New from here
-python3 -m code.experiments.ours.generate \
+python3 -m src.attacks.ngram_coverage_attack.generate \
     --openai \
     --model gpt-3.5-turbo-1106 \
     --num_sequences 50 \
@@ -12,7 +12,7 @@ python3 -m code.experiments.ours.generate \
     --num_proportion_from_end 0.5 \
     --data_split test;
 
-python3 -m code.experiments.ours.generate \
+python3 -m src.attacks.ngram_coverage_attack.generate \
     --openai \
     --model gpt-3.5-turbo-1106 \
     --num_sequences 50 \
@@ -25,7 +25,7 @@ python3 -m code.experiments.ours.generate \
     --num_proportion_from_end 0.75 \
     --data_split test;
 
-python3 -m code.experiments.ours.generate \
+python3 -m src.attacks.ngram_coverage_attack.generate \
     --openai \
     --model gpt-3.5-turbo-1106 \
     --num_sequences 50 \
@@ -38,7 +38,7 @@ python3 -m code.experiments.ours.generate \
     --num_proportion_from_end 0.5 \
     --data_split test;
 
-python3 -m code.experiments.ours.generate \
+python3 -m src.attacks.ngram_coverage_attack.generate \
     --openai \
     --model gpt-3.5-turbo-1106 \
     --num_sequences 50 \
@@ -51,7 +51,7 @@ python3 -m code.experiments.ours.generate \
     --num_proportion_from_end 0.75 \
     --data_split test;
 
-python3 -m code.experiments.ours.generate \
+python3 -m src.attacks.ngram_coverage_attack.generate \
     --openai \
     --model gpt-3.5-turbo-1106 \
     --num_sequences 50 \
@@ -64,7 +64,7 @@ python3 -m code.experiments.ours.generate \
     --num_proportion_from_end 0.5 \
     --data_split test;
 
-python3 -m code.experiments.ours.generate \
+python3 -m src.attacks.ngram_coverage_attack.generate \
     --openai \
     --model gpt-3.5-turbo-1106 \
     --num_sequences 50 \

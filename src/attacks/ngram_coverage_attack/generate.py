@@ -309,7 +309,7 @@ if __name__ == "__main__":
 
 
     """
-    CUDA_VISIBLE_DEVICES=0 python3 -m code.experiments.ours.generate \
+    CUDA_VISIBLE_DEVICES=0 python3 -m src.attacks.ngram_coverage_attack.generate \
         --model openai-community/gpt2-large \
         --start_sentence 1 \
         --num_sentences 3 \

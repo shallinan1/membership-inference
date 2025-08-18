@@ -3,7 +3,7 @@ Pipeline to use [ours] method
 1. Generate
 
     ```
-    python3 -m code.experiments.ours.generate \
+    python3 -m src.attacks.ngram_coverage_attack.generate \
         --openai \
         --model gpt-3.5-turbo-0125 \
         --start_sentence 1 \

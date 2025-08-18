@@ -1,4 +1,4 @@
-python3 -m code.experiments.ours.generate \
+python3 -m src.attacks.ngram_coverage_attack.generate \
     --openai \
     --model gpt-4-0613 \
     --start_sentence 0 \
@@ -11,7 +11,7 @@ python3 -m code.experiments.ours.generate \
     --key_name input \
     --data_split train;
 
-python3 -m code.experiments.ours.generate \
+python3 -m src.attacks.ngram_coverage_attack.generate \
     --openai \
     --model gpt-4-0613 \
     --start_sentence 0 \
@@ -24,7 +24,7 @@ python3 -m code.experiments.ours.generate \
     --key_name input \
     --data_split val;
     
-python3 -m code.experiments.ours.generate \
+python3 -m src.attacks.ngram_coverage_attack.generate \
     --openai \
     --model gpt-4-0613 \
     --start_sentence 0 \
@@ -37,7 +37,7 @@ python3 -m code.experiments.ours.generate \
     --key_name input \
     --data_split test;
 
-python3 -m code.experiments.ours.generate \
+python3 -m src.attacks.ngram_coverage_attack.generate \
     --openai \
     --model gpt-4-0613 \
     --start_sentence 0 \
@@ -51,7 +51,7 @@ python3 -m code.experiments.ours.generate \
     --data_split test;
 
 
-python3 -m code.experiments.ours.generate \
+python3 -m src.attacks.ngram_coverage_attack.generate \
     --openai \
     --model gpt-4-0613 \
     --start_sentence 0 \
@@ -65,7 +65,7 @@ python3 -m code.experiments.ours.generate \
     --data_split test;
 
 
-python3 -m code.experiments.ours.generate \
+python3 -m src.attacks.ngram_coverage_attack.generate \
     --openai \
     --model gpt-4-0613 \
     --start_sentence 0 \
@@ -78,7 +78,7 @@ python3 -m code.experiments.ours.generate \
     --key_name input \
     --data_split test;
 
-python3 -m code.experiments.ours.generate \
+python3 -m src.attacks.ngram_coverage_attack.generate \
     --openai \
     --model gpt-4-0613 \
     --start_sentence 0 \
@@ -92,7 +92,7 @@ python3 -m code.experiments.ours.generate \
     --data_split test;
 
 
-python3 -m code.experiments.ours.generate \
+python3 -m src.attacks.ngram_coverage_attack.generate \
     --openai \
     --model gpt-4-0613 \
     --start_sentence 0 \

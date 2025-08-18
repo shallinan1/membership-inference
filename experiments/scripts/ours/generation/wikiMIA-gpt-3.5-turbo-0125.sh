@@ -1,4 +1,4 @@
-python3 -m code.experiments.ours.generate \
+python3 -m src.attacks.ngram_coverage_attack.generate \
     --openai \
     --model gpt-3.5-turbo-0125 \
     --start_sentence 0 \
@@ -11,7 +11,7 @@ python3 -m code.experiments.ours.generate \
     --key_name input \
     --data_split train;
 
-python3 -m code.experiments.ours.generate \
+python3 -m src.attacks.ngram_coverage_attack.generate \
     --openai \
     --model gpt-3.5-turbo-0125 \
     --start_sentence 0 \
@@ -24,7 +24,7 @@ python3 -m code.experiments.ours.generate \
     --key_name input \
     --data_split val;
     
-python3 -m code.experiments.ours.generate \
+python3 -m src.attacks.ngram_coverage_attack.generate \
     --openai \
     --model gpt-3.5-turbo-0125 \
     --start_sentence 0 \
@@ -37,7 +37,7 @@ python3 -m code.experiments.ours.generate \
     --key_name input \
     --data_split test;
 
-python3 -m code.experiments.ours.generate \
+python3 -m src.attacks.ngram_coverage_attack.generate \
     --openai \
     --model gpt-3.5-turbo-0125 \
     --start_sentence 0 \
@@ -51,7 +51,7 @@ python3 -m code.experiments.ours.generate \
     --data_split test;
 
 
-python3 -m code.experiments.ours.generate \
+python3 -m src.attacks.ngram_coverage_attack.generate \
     --openai \
     --model gpt-3.5-turbo-0125 \
     --start_sentence 0 \
@@ -66,7 +66,7 @@ python3 -m code.experiments.ours.generate \
 
 
 # Use words instead
-python3 -m code.experiments.ours.generate \
+python3 -m src.attacks.ngram_coverage_attack.generate \
     --openai \
     --model gpt-3.5-turbo-0125 \
     --num_sequences 20 \
@@ -80,7 +80,7 @@ python3 -m code.experiments.ours.generate \
     --data_split test;
 
 # Lower temperature 
-python3 -m code.experiments.ours.generate \
+python3 -m src.attacks.ngram_coverage_attack.generate \
     --openai \
     --model gpt-3.5-turbo-0125 \
     --num_sequences 20 \
@@ -94,7 +94,7 @@ python3 -m code.experiments.ours.generate \
     --data_split test;
 
 # Fewer sequences
-python3 -m code.experiments.ours.generate \
+python3 -m src.attacks.ngram_coverage_attack.generate \
     --openai \
     --model gpt-3.5-turbo-0125 \
     --num_sequences 1 \
@@ -108,7 +108,7 @@ python3 -m code.experiments.ours.generate \
     --data_split test;
 
 # Don't constrain the generation to fixed tokens?
-python3 -m code.experiments.ours.generate \
+python3 -m src.attacks.ngram_coverage_attack.generate \
     --openai \
     --model gpt-3.5-turbo-0125 \
     --num_sequences 20 \
@@ -122,7 +122,7 @@ python3 -m code.experiments.ours.generate \
     --data_split test;
 
 # Less words of context
-python3 -m code.experiments.ours.generate \
+python3 -m src.attacks.ngram_coverage_attack.generate \
     --openai \
     --model gpt-3.5-turbo-0125 \
     --num_sequences 20 \
@@ -137,7 +137,7 @@ python3 -m code.experiments.ours.generate \
 
 
 # Less words of context - more generation
-python3 -m code.experiments.ours.generate \
+python3 -m src.attacks.ngram_coverage_attack.generate \
     --openai \
     --model gpt-3.5-turbo-0125 \
     --num_sequences 20 \
@@ -151,7 +151,7 @@ python3 -m code.experiments.ours.generate \
     --data_split test;
 
 # Less words of context - higher tempreature
-python3 -m code.experiments.ours.generate \
+python3 -m src.attacks.ngram_coverage_attack.generate \
     --openai \
     --model gpt-3.5-turbo-0125 \
     --num_sequences 20 \
@@ -165,7 +165,7 @@ python3 -m code.experiments.ours.generate \
     --data_split test;
 
 # Even less words of context - lower temperature
-python3 -m code.experiments.ours.generate \
+python3 -m src.attacks.ngram_coverage_attack.generate \
     --openai \
     --model gpt-3.5-turbo-0125 \
     --num_sequences 20 \
@@ -179,7 +179,7 @@ python3 -m code.experiments.ours.generate \
     --data_split test;
 
 # Even less words of context - higher temperature
-python3 -m code.experiments.ours.generate \
+python3 -m src.attacks.ngram_coverage_attack.generate \
     --openai \
     --model gpt-3.5-turbo-0125 \
     --num_sequences 20 \
