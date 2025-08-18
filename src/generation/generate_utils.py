@@ -1,3 +1,44 @@
+"""
+Prompt formatting utilities for different language models.
+
+This module provides utilities for formatting prompts according to the specific
+requirements of different language models (LLaMA, Gemma, Mistral, etc.). It handles
+model-specific chat templates, instruction formats, and task-specific prompting
+strategies for membership inference evaluation.
+
+Key Features:
+    - Model-specific prompt formatting (LLaMA 2/3/3.1, Gemma, Mistral, Tulu, OLMo)
+    - Chat template handling for instruction-tuned models
+    - Task-specific prompt templates for different datasets
+    - Automatic model type detection from model names
+
+Main Function:
+    make_prompts(): Formats prompts based on model type and task requirements
+
+Task Prompt Dictionary:
+    task_prompts_dict_book: Contains predefined prompts for different datasets:
+    - articles: News article continuation prompts
+    - dolma_v17: Document continuation prompts  
+    - tulu_v1: Instruction-following prompts
+    - pile_external: General text continuation prompts
+    - bookMIA: Novel writing prompts
+    - wikiMIA: Wikipedia paragraph prompts
+
+Usage:
+    from src.generation.generate_utils import make_prompts, task_prompts_dict_book
+    
+    # Format prompts for a specific model
+    formatted_prompts = make_prompts(
+        prompts=["Once upon a time"],
+        task_prompt="Continue the story: ",
+        model_name="llama-2-7b-chat",
+        prompt_key="lightest"
+    )
+    
+    # Get task-specific prompts
+    book_prompts = task_prompts_dict_book["bookMIA"]["instruct-autoregressive"]
+"""
+
 from string import Template
 from typing import List, Optional, Union
 
@@ -87,8 +128,7 @@ def make_prompts(
             prompts = [f"{task_prompt}{' '.join(p.strip().split())}{task_postprompt}" for p in prompts]
     
     elif "llama-3.2" in lower_model_name: # LLama3 models, ie, https://huggingface.co/docs/transformers/main/en/model_doc/llama3
-            print("NOT IMPLEMENTED YET")
-            import sys; sys.exit()
+        raise NotImplementedError(f"LLaMA 3.2 models are not yet supported: {model_name}")
 
     elif "llama-3.1" in lower_model_name: # LLama3 models, ie, https://huggingface.co/docs/transformers/main/en/model_doc/llama3
         if "inst" in lower_model_name:
@@ -113,8 +153,7 @@ def make_prompts(
             task_postprompt = task_postprompt.lstrip()
             prompts = [f"[INST] {task_prompt}{' '.join(p.strip().split())} [/INST]{task_postprompt}" for p in prompts]
         else:
-            print("NOT IMPLEMENTED YET")
-            import sys; sys.exit()
+            raise NotImplementedError(f"Non-instruct Mistral/Mixtral models are not yet supported: {model_name}")
     
     elif "gemma" in lower_model_name: # Gemma models, ie https://huggingface.co/google/gemma-2b-it
         if "it" in lower_model_name:
