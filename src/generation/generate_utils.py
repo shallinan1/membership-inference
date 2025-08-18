@@ -109,10 +109,6 @@ def make_prompts(
         prompts = [prompts]
     lower_model_name = model_name.lower()
 
-    preproc = False # TODO make this an arg
-    if preproc:
-        prompts = [' '.join(p.strip().split()) for p in prompts]
-
     if "tulu" in lower_model_name: # Tulu Models, ie tulu_v1, tulu_v2 https://huggingface.co/allenai/tulu-2-dpo-70b
         task_postprompt = task_postprompt.lstrip()
         prompts = ["<|user|>\n" + task_prompt + p + f"\n<|assistant|>\n{task_postprompt}" for p in prompts]
@@ -349,7 +345,7 @@ extra commentary, formatting, or additional text.\n\nComplete the prefix: """,
                     "task_preprompt": ""
                 },
                 {
-                    "task_prompt": "Continue the Wikipedia paragraph as accurately as possible:\n\nWikipedia paragraph: ", # Blank string ,
+                    "task_prompt": "Continue the Wikipedia paragraph as accurately as possible:\n\nWikipedia paragraph: ",
                     "task_postprompt": "",
                     "task_preprompt": ""
                 }],
