@@ -17,11 +17,9 @@ def main():
     
     # Download files directly from HuggingFace
     splits = ["train", "validation", "test"]
-    file_mapping = {"validation": "val"}
     
     for split in splits:
         filename = f"{split}.jsonl"
-        local_filename = f"{file_mapping.get(split, split)}.jsonl"
         
         print(f"Downloading {filename}...")
         file_path = hf_hub_download(
