@@ -11,10 +11,13 @@ from dataclasses import dataclass
 from unidecode import unidecode
 from sacremoses import MosesDetokenizer
 from transformers import AutoTokenizer
+from dotenv import load_dotenv
+
+load_dotenv()
 
 md = MosesDetokenizer(lang='en')
 API_URL = 'https://api.infini-gram.io/'
-HF_TOKEN = "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"
+HF_TOKEN = os.getenv("HF_TOKEN")
 tokenizer = AutoTokenizer.from_pretrained("meta-llama/Llama-2-7b-hf", token=HF_TOKEN,
                                           add_bos_token=False, add_eos_token=False)
 
