@@ -17,9 +17,9 @@ from tqdm import tqdm
 from typing import Callable
 from unidecode import unidecode
 from sacremoses import MosesDetokenizer
-from code.helper.dj_search.dj_search_exact import Document, Span, Hypothesis
 from datasets import load_dataset, Dataset
 import datasets
+from dataclasses import dataclass
 from datasets.utils.logging import disable_progress_bar
 import re
 from IPython import embed
@@ -45,6 +45,76 @@ detokenize = lambda x: md.detokenize(x)
 #     "I cannot continue this passage",
 #     "I'm not able to provide a response.",
 # ]
+
+@dataclass
+class Document:
+    doc_id: str
+    tokens: List[str]  # [num_tokens]
+
+
+@dataclass
+class Span:
+    start_index: int
+    end_index: int
+    span_text: str
+    occurrence: int
+
+
+class Hypothesis:
+    def __init__(self, target_doc: Document, min_ngram: int) -> None:
+        self.target_doc = target_doc
+        self.min_ngram = min_ngram
+        self.spans = []
+        self.finished = False
+
+    def add_span(self, new_span: Span) -> None:
+        self.spans.append(new_span)
+        if new_span.end_index >= len(self.target_doc.tokens):
+            self.finished = True
+
+    def replace_span(self, new_span: Span) -> None:
+        self.spans = self.spans[:-1] + [new_span]
+        if new_span.end_index >= len(self.target_doc.tokens):
+            self.finished = True
+
+    def get_score(self) -> float:
+        if not self.spans:
+            return 0
+        progress_len = self.spans[-1].end_index if not self.finished else len(self.target_doc.tokens)
+        flags = [False for _ in range(progress_len)]
+        for span in self.spans:
+            span_length = span.end_index - span.start_index
+            flags[span.start_index: span.end_index] = [True] * span_length
+        coverage = len([fa for fa in flags if fa]) / len(flags)
+        return coverage
+
+    def format_span(self) -> str:
+        return ' | '.join([s.span_text for s in self.spans])
+
+    def __hash__(self) -> int:
+        return hash(self.format_span())
+
+    def __eq__(self, other) -> bool:
+        if isinstance(other, Hypothesis):
+            return self.format_span() == other.format_span()
+        return NotImplemented
+
+    def get_avg_span_len(self) -> float:
+        if not self.spans:
+            return 0
+        span_len = [s.end_index - s.start_index for s in self.spans]
+        return sum(span_len) / len(span_len)
+
+    def export_json(self) -> dict:
+        matched_spans = [{'start_index': s.start_index,
+                          'end_index': s.end_index,
+                          'span_text': s.span_text,
+                          'occurrence': s.occurrence} for s in self.spans]
+        return {
+            'matched_spans': matched_spans,
+            'coverage': self.get_score(),
+            'avg_span_len': self.get_avg_span_len(),
+        }
 
 def find_max_common_sublist_length(A: List, B: List):
     n = len(A); m = len(B)
