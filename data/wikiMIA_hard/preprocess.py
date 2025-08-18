@@ -8,29 +8,38 @@ load_dotenv()
 import os
 os.environ['HF_TOKEN'] = os.getenv("HF_TOKEN")
 
-from datasets import load_dataset
-from code.utils import save_to_jsonl
+from huggingface_hub import hf_hub_download
 
 def main():
-    # Load the dataset from HuggingFace
-    dataset = load_dataset("hallisky/wikiMIA-2024-hard")
-    
     # Create output directory
     save_folder = os.path.join("data", "wikiMIA_hard", "split-random-overall")
     os.makedirs(save_folder, exist_ok=True)
     
-    # Convert and save each split
-    train_data = [dict(item) for item in dataset["train"]]
-    val_data = [dict(item) for item in dataset["validation"]]
-    test_data = [dict(item) for item in dataset["test"]]
+    # Download files directly from HuggingFace
+    splits = ["train", "validation", "test"]
+    file_mapping = {"validation": "val"}
     
-    # Save train, val, and test splits
-    save_to_jsonl(train_data, os.path.join(save_folder, "train.jsonl"))
-    save_to_jsonl(test_data, os.path.join(save_folder, "test.jsonl"))
-    save_to_jsonl(val_data, os.path.join(save_folder, "val.jsonl"))
+    for split in splits:
+        filename = f"{split}.jsonl"
+        local_filename = f"{file_mapping.get(split, split)}.jsonl"
+        
+        print(f"Downloading {filename}...")
+        file_path = hf_hub_download(
+            repo_id="hallisky/wikiMIA-2024-hard",
+            filename=filename,
+            repo_type="dataset",
+            local_dir=save_folder,
+            local_dir_use_symlinks=False
+        )
+        
+        # Rename validation to val if needed
+        if split == "validation":
+            os.rename(
+                os.path.join(save_folder, "validation.jsonl"),
+                os.path.join(save_folder, "val.jsonl")
+            )
     
-    print("Data splits saved in folder:", save_folder)
-    print(f"Train: {len(train_data)}, Test: {len(test_data)}, Val: {len(val_data)}")
+    print("Data splits downloaded to folder:", save_folder)
 
 if __name__ == "__main__":
     main()
