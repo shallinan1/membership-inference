@@ -15,14 +15,17 @@ Key Features:
 Main Function:
     make_prompts(): Formats prompts based on model type and task requirements
 
+Prompt Structure:
+    The final prompt is constructed by combining several components:
+    - task_prompt: Task-specific instruction (e.g., "Continue the story:")
+    - task_preprompt: Additional text inserted between task_prompt and main prompt
+    - prompt: The actual input text to continue/complete  
+    - task_postprompt: Text appended after the main prompt content
+    
+    Basic structure: task_prompt + task_preprompt + prompt + task_postprompt
+
 Task Prompt Dictionary:
-    task_prompts_dict_book: Contains predefined prompts for different datasets:
-    - articles: News article continuation prompts
-    - dolma_v17: Document continuation prompts  
-    - tulu_v1: Instruction-following prompts
-    - pile_external: General text continuation prompts
-    - bookMIA: Novel writing prompts
-    - wikiMIA: Wikipedia paragraph prompts
+    task_prompts_dict_book: Contains predefined prompts for different datasets: articles, dolma_v17, tulu_v1, pile_external, bookMIA, wikiMIA
 
 Usage:
     from src.generation.generate_utils import make_prompts, task_prompts_dict_book
