@@ -16,6 +16,12 @@ Usage for testing:
 Requirements:
     - OPENAI_API_KEY environment variable set
     - Configure rate_limits.py with your account's actual rate limits
+
+Important Configuration Notes:
+    - Uses cl100k_base token encoding (standard for GPT-3.5/4 models)
+    - Maximum retry attempts set to 5 for failed API requests
+    - Logging level set to WARNING to reduce noise
+    - Test uses 2 sample requests for basic functionality verification
 """
 
 import os
@@ -60,8 +66,8 @@ async def openai_parallel_generate(requests,
         api_key=OPENAI_API_KEY, 
         max_requests_per_minute=max_requests_per_minute, 
         max_tokens_per_minute=max_tokens_per_minute,  
-        token_encoding_name="cl100k_base",  # Encoding for token counting
-        max_attempts=5,  # Retry failed requests up to 5 times
+        token_encoding_name="cl100k_base",  # OpenAI's standard encoding for GPT-3.5/4 models
+        max_attempts=5,  # Maximum retry attempts for failed API requests
         logging_level=logging.WARNING  # Only log warnings and errors
     )
 
