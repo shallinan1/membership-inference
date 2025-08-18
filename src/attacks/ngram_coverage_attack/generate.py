@@ -1,3 +1,36 @@
+"""
+Text Generation Module for N-Gram Coverage Attack
+
+This module implements the generation component of the N-Gram Coverage Attack method
+for membership inference attacks, as described in:
+"The Surprising Effectiveness of Membership Inference with Simple N-Gram Coverage"
+(https://arxiv.org/abs/2508.09603)
+
+The module generates text continuations using either OpenAI API or vLLM models for
+evaluating membership inference vulnerabilities. It supports two generation pipelines:
+
+1. OpenAI API: Async parallel generation with rate limiting for OpenAI models
+2. vLLM: Local inference for open-source models with advanced sampling control
+
+Pipeline:
+    1. Load and validate input data from JSONL files
+    2. Extract prompts from text snippets (sentence-based or word-based splitting)
+    3. Format prompts using task-specific templates
+    4. Generate text continuations using specified model
+    5. Save results with comprehensive metadata for downstream analysis
+
+Outputs:
+    JSONL file containing original snippets, prompts, generations, and metadata
+    saved to outputs/ours/{task}/generations/{data_split}/
+
+Usage:
+    python -m src.attacks.ngram_coverage_attack.generate \
+        --model MODEL_NAME \
+        --task TASK_NAME \
+        --data_split SPLIT \
+        [additional options]
+"""
+
 import argparse
 import os
 from dotenv import load_dotenv
@@ -25,30 +58,13 @@ from src.experiments.utils import zigzag_append, chunk_list, remove_last_n_words
 
 def main(args):
     """
-    Generate text using either OpenAI or vLLM models for membership inference attack evaluation.
-    
-    This function implements two generation pipelines:
-    1. OpenAI API: Uses async parallel generation with rate limiting for OpenAI models
-    2. vLLM: Uses local vLLM inference for open-source models
-    
-    The function extracts prompts from input text snippets (either sentence-based or word-based),
-    generates continuations using the specified model, and saves results with detailed metadata.
+    Execute the text generation pipeline with parsed command line arguments.
     
     Args:
-        args: Parsed command line arguments containing generation parameters, model settings,
-              and data configuration.
-    
-    Pipeline:
-        1. Load and validate input data
-        2. Extract prompts from text snippets based on sentence/word boundaries
-        3. Format prompts using task-specific templates
-        4. Generate text continuations using specified model
-        5. Save results with comprehensive metadata for downstream analysis
-    
-    Outputs:
-        JSONL file containing original snippets, prompts, generations, and metadata
-        saved to outputs/ours/{task}/generations/{data_split}/
+        args: Parsed command line arguments containing generation parameters,
+              model settings, and data configuration.
     """
+    
     # Seed model and get the model string
     random.seed(args.seed)
     model_str = args.model.split("/")[-1] # Splits to get actual model name
