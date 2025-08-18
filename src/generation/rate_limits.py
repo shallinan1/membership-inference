@@ -1,4 +1,25 @@
-# OpenAI API rate limits and URL configurations
+"""
+OpenAI API rate limits and endpoint configurations.
+
+This module defines rate limits and API endpoints for different OpenAI models.
+These values should be updated based on your actual OpenAI account limits.
+
+Important:
+    - Check your rate limits at: https://platform.openai.com/account/rate-limits
+    - Update the values below to match your account's actual limits
+    - The SAFETY_MARGIN is applied to prevent hitting rate limits during parallel processing
+
+Usage:
+    from src.generation.rate_limits import requests_limits_dict, requests_url_dict
+    
+    # Get rate limits for a specific model
+    limits = requests_limits_dict["gpt-3.5-turbo-0125"]
+    rpm = limits["max_requests_per_minute"]
+    tpm = limits["max_tokens_per_minute"]
+    
+    # Get API endpoint for a model
+    url = requests_url_dict["gpt-3.5-turbo-0125"]
+"""
 
 # Safety margin factor to prevent hitting actual API limits
 SAFETY_MARGIN = 0.75
