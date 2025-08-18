@@ -52,8 +52,40 @@ async def openai_parallel_generate(requests,
     return results
 
 if __name__ == "__main__":
-    # Interactive development and testing environment
-    # Use requests_limits_dict and requests_url_dict to get model-specific settings
+    import asyncio
+    
+    async def test_basic_functionality():
+        """Simple test to verify the function works correctly."""
+        # Test with a couple of simple requests
+        sample_requests = [
+            {"model": "gpt-3.5-turbo", "messages": [{"role": "user", "content": "Say 'Hello World'"}]},
+            {"model": "gpt-3.5-turbo", "messages": [{"role": "user", "content": "Count to 3"}]}
+        ]
+        
+        print("Testing openai_parallel_generate with 2 sample requests...")
+        
+        try:
+            results = await openai_parallel_generate(
+                requests=sample_requests,
+                max_requests_per_minute=requests_limits_dict["gpt-3.5-turbo-0125"]["max_requests_per_minute"],
+                max_tokens_per_minute=requests_limits_dict["gpt-3.5-turbo-0125"]["max_tokens_per_minute"],
+                request_url=requests_url_dict["gpt-3.5-turbo-0125"]
+            )
+            
+            print(f"✓ Successfully processed {len(results)} requests")
+            for i, result in enumerate(results):
+                if result and 'choices' in result:
+                    print(f"  Request {i+1}: {result['choices'][0]['message']['content'][:50]}...")
+                else:
+                    print(f"  Request {i+1}: Error or empty response")
+                    
+        except Exception as e:
+            print(f"✗ Test failed: {e}")
+    
+    # Run the test
+    asyncio.run(test_basic_functionality())
+    
+    # Interactive development environment
     embed()
 
 
