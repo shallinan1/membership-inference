@@ -1,6 +1,6 @@
 """
 Preprocesses the WikiMIA-2024 Hard dataset.
-Downloads the pre-split dataset from HuggingFace and saves train/val/test splits locally.
+Directly downloads the pre-split JSONL files from HuggingFace and saves train/val/test splits locally.
 This dataset contains temporal Wikipedia articles with different versions based on date cutoffs.
 """
 from dotenv import load_dotenv
