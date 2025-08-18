@@ -18,7 +18,7 @@ from code.utils import load_jsonl, save_to_jsonl, convert_to_tulu_v1_format, rem
 import asyncio
 from code.helper.generation.openai_parallel_generate import openai_parallel_generate, requests_limits_dict, requests_url_dict
 from code.helper.generation.vllm_generate import ModelGenerator
-from code.helper.generation.generate_utils import task_prompts_dict_book, make_prompts
+from code.helper.generation.prompt_formatting import task_prompts_dict_book, make_prompts
 import random
 from datetime import datetime
 

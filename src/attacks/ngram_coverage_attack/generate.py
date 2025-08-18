@@ -15,7 +15,7 @@ import pandas as pd
 from IPython import embed
 from tqdm import tqdm
 from src.generation.vllm_generate import ModelGenerator 
-from src.generation.generate_utils import task_prompts_dict_book, make_prompts
+from src.generation.prompt_formatting import task_prompts_dict_book, make_prompts
 import random
 from datetime import datetime
 from src.attacks.ngram_coverage_attack.utils import extract_chunk_sentence

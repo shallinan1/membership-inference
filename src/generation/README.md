@@ -19,5 +19,5 @@ Before using the OpenAI generation utilities, you need to configure the rate lim
 - `openai_parallel_generate.py` - Parallel text generation using OpenAI API
 - `rate_limits.py` - Rate limit configurations for different OpenAI models
 - `api_request_parallel_processor.py` - Core parallel request processing logic
-- `generate_utils.py` - Utility functions for text generation
+- `prompt_formatting.py` - Utility functions for text generation
 - `vllm_generate.py` - Text generation using vLLM

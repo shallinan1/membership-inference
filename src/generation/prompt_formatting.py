@@ -28,7 +28,7 @@ Task Prompt Dictionary:
     task_prompts_dict_book: Contains predefined prompts for different datasets: articles, dolma_v17, tulu_v1, pile_external, bookMIA, wikiMIA
 
 Usage:
-    from src.generation.generate_utils import make_prompts, task_prompts_dict_book
+    from src.generation.prompt_formatting import make_prompts, task_prompts_dict_book
     
     # Format prompts for a specific model
     formatted_prompts = make_prompts(
