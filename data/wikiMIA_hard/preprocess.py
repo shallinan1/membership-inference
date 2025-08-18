@@ -16,11 +16,9 @@ def main():
     os.makedirs(save_folder, exist_ok=True)
     
     # Download files directly from HuggingFace
-    splits = ["train", "validation", "test"]
+    files = ["train.jsonl", "val.jsonl", "test.jsonl"]
     
-    for split in splits:
-        filename = f"{split}.jsonl"
-        
+    for filename in files:
         print(f"Downloading {filename}...")
         file_path = hf_hub_download(
             repo_id="hallisky/wikiMIA-2024-hard",
@@ -29,13 +27,6 @@ def main():
             local_dir=save_folder,
             local_dir_use_symlinks=False
         )
-        
-        # Rename validation to val if needed
-        if split == "validation":
-            os.rename(
-                os.path.join(save_folder, "validation.jsonl"),
-                os.path.join(save_folder, "val.jsonl")
-            )
     
     print("Data splits downloaded to folder:", save_folder)
 
