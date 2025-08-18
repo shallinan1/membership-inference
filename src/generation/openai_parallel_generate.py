@@ -1,6 +1,5 @@
 import os
 from dotenv import load_dotenv
-from openai import OpenAI
 
 # Load environment variables
 load_dotenv()
@@ -11,8 +10,7 @@ from code.helper.generation.api_request_parallel_processor import process_api_re
 from IPython import embed
 from src.generation.rate_limits import requests_limits_dict, requests_url_dict
 
-async def openai_parallel_generate(requests, 
-                                   args, 
+async def openai_parallel_generate(requests,
                                    max_requests_per_minute=10000, 
                                    max_tokens_per_minute=30000000,
                                    request_url="https://api.openai.com/v1/chat/completions"):

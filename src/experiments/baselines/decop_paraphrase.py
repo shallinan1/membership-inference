@@ -93,7 +93,7 @@ def main(args):
             
         print(f'Example prompt\n\n{requests[0]["messages"][0]["content"]}')
         embed()
-        full_generations = asyncio.run(openai_parallel_generate(requests, args))
+        full_generations = asyncio.run(openai_parallel_generate(requests))
 
         indexed_results = {}
         for result in full_generations:

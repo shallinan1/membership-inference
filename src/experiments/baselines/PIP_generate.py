@@ -131,8 +131,7 @@ def main(args):
         request_url = requests_url_dict[args.model]
 
         full_generations = asyncio.run(openai_parallel_generate(
-            requests, 
-            args, 
+            requests,
             max_requests_per_minute=max_requests_per_minute, 
             max_tokens_per_minute=max_tokens_per_minute,
             request_url=request_url

@@ -133,8 +133,7 @@ def main(args):
         print(f"Using rate limits\n------\nMax requests per minute: {max_requests_per_minute}\nMax tokens per minute: {max_tokens_per_minute}")
 
         full_generations = asyncio.run(openai_parallel_generate(
-                requests, 
-                args, 
+                requests,
                 max_requests_per_minute=max_requests_per_minute, 
                 max_tokens_per_minute=max_tokens_per_minute,
                 request_url=request_url
