@@ -1,3 +1,23 @@
+"""
+Parallel OpenAI API request processing utility.
+
+This module provides functionality to process multiple OpenAI API requests in parallel
+with rate limiting, retry logic, and proper error handling. Useful for batch text 
+generation tasks that need to efficiently handle many requests.
+
+Usage in file:
+    from src.generation.openai_parallel_generate import openai_parallel_generate
+    import asyncio
+    restults = asyncio.run(openai_parallel_generate(requests, max_requests_per_minute, max_tokens_per_minute, request_url))
+
+Usage for testing:
+    python3 -m src.generation.openai_parallel_generate
+
+Requirements:
+    - OPENAI_API_KEY environment variable set
+    - Configure rate_limits.py with your account's actual rate limits
+"""
+
 import os
 from dotenv import load_dotenv
 
@@ -6,7 +26,7 @@ load_dotenv()
 OPENAI_API_KEY = os.getenv("OPENAI_API_KEY")
 import time
 import logging
-from code.helper.generation.api_request_parallel_processor import process_api_requests
+from src.generation.api_request_parallel_processor import process_api_requests
 from IPython import embed
 from src.generation.rate_limits import requests_limits_dict, requests_url_dict
 
@@ -71,6 +91,8 @@ if __name__ == "__main__":
                 max_tokens_per_minute=requests_limits_dict["gpt-3.5-turbo-0125"]["max_tokens_per_minute"],
                 request_url=requests_url_dict["gpt-3.5-turbo-0125"]
             )
+
+            print(results)
             
             print(f"✓ Successfully processed {len(results)} requests")
             for i, result in enumerate(results):
