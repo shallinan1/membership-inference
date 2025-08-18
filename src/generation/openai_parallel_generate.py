@@ -14,25 +14,46 @@ async def openai_parallel_generate(requests,
                                    max_requests_per_minute=10000, 
                                    max_tokens_per_minute=30000000,
                                    request_url="https://api.openai.com/v1/chat/completions"):
+    """
+    Generate text using OpenAI API with parallel request processing.
+    
+    Args:
+        requests: List of API request dictionaries to process in parallel
+        max_requests_per_minute: Maximum number of requests per minute (rate limiting)
+        max_tokens_per_minute: Maximum number of tokens per minute (rate limiting) 
+        request_url: OpenAI API endpoint URL (chat/completions or completions)
+        
+    Returns:
+        List of API response results corresponding to input requests
+        
+    Note:
+        Uses rate limiting and retry logic to handle API constraints.
+        Default rate limits should be adjusted based on your OpenAI account limits.
+    """
+    # Track timing for performance monitoring
     start_time = time.time()
+    
+    # Process requests in parallel with rate limiting and retry logic
     results = await process_api_requests(
         requests=requests,
         request_url=request_url,
         api_key=OPENAI_API_KEY, 
         max_requests_per_minute=max_requests_per_minute, 
         max_tokens_per_minute=max_tokens_per_minute,  
-        token_encoding_name="cl100k_base",
-        max_attempts=5, 
-        logging_level=logging.WARNING 
+        token_encoding_name="cl100k_base",  # Encoding for token counting
+        max_attempts=5,  # Retry failed requests up to 5 times
+        logging_level=logging.WARNING  # Only log warnings and errors
     )
 
+    # Report total processing time
     end_time = time.time()
     print(f"Total generation time: {end_time - start_time:.2f} seconds for {len(requests)} samples")
 
     return results
 
 if __name__ == "__main__":
-    # TODO write a couple tests to ensure this works correctly
+    # Interactive development and testing environment
+    # Use requests_limits_dict and requests_url_dict to get model-specific settings
     embed()
 
 
