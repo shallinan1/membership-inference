@@ -43,9 +43,7 @@ CACHE_PATH = os.getenv("CACHE_PATH")
 os.environ["HF_HOME"] = CACHE_PATH
 os.environ["HF_DATASETS_PATH"] = CACHE_PATH
 
-from nltk import sent_tokenize
 import pandas as pd
-from tqdm import tqdm
 from src.generation.vllm_generate import ModelGenerator 
 from src.generation.prompt_formatting import task_prompts_dict_book, make_prompts
 import random
@@ -56,7 +54,6 @@ from src.generation.openai_parallel_generate import openai_parallel_generate, re
 from src.utils import remove_first_sentence_if_needed
 from src.experiments.utils import zigzag_append, chunk_list, remove_last_n_words, bool_to_first_upper
 import logging
-import sys
 
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
@@ -83,12 +80,12 @@ def generate_openai(prompts, chunk_size, args, model_str, token_lengths):
         if "instruct" in args.model or "davinci" in args.model:
             cur_request = cur_request | {
                 "prompt": prompt,
-                # "logprobs": 10
+                # "logprobs": 10 # Uncomment to get logprobs (not needed for this attack)
             }
         else:
             cur_request = cur_request | {
                 "messages": [{"role": "user", "content": prompt}],
-                # "logprobs": True, "top_logprobs": 10
+                # "logprobs": True, "top_logprobs": 10 # Uncomment to get logprobs (not needed for this attack)
             }
         requests.append(cur_request)
     if "instruct" not in args.model:
@@ -188,6 +185,8 @@ def main(args):
             prompt_outputs = [extract_chunk_sentence(text, args.start_sentence, args.num_sentences) for text in passages]        
             prompt_texts, rest_of_texts = zip(*prompt_outputs)
             prompt_texts, rest_of_texts = list(prompt_texts), list(rest_of_texts)
+            token_lengths = [len(encoding.encode(text)) for text in rest_of_texts]
+
         else: # Use words
             import tiktoken
             encoding = tiktoken.encoding_for_model("gpt-3.5-turbo")
@@ -200,8 +199,7 @@ def main(args):
                 prompt_texts, rest_of_texts, token_lengths = map(list, zip(*data))
             else:
                 assert 0 < args.num_proportion_from_end < 1, "No remove tokens set"
-                # Get length of words
-                text_lengths = [len(text.split()) for text in passages]
+                text_lengths = [len(text.split()) for text in passages] # Get length of words
                 remove_lengths = [max(1, min(int(l * args.num_proportion_from_end), l-1)) for l in text_lengths]
                 data = [remove_last_n_words(encoding, text, remove_length, openai=True) for text, remove_length in zip(passages, remove_lengths)]
                 prompt_texts, rest_of_texts, token_lengths = map(list, zip(*data))
@@ -264,8 +262,7 @@ def main(args):
                     prompt_texts, rest_of_texts, token_lengths = map(list, zip(*data))                    
                 else:
                     assert 0 < args.num_proportion_from_end < 1, "No remove tokens set"
-                    # Get length of words
-                    text_lengths = [len(text.split()) for text in passages]
+                    text_lengths = [len(text.split()) for text in passages] # Get length of words
                     remove_lengths = [max(1, min(int(l * args.num_proportion_from_end), l-1)) for l in text_lengths]
                     data = [remove_last_n_words(generator.llm.get_tokenizer(), text, remove_length, openai=False) for text, remove_length in zip(passages, remove_lengths)]
                     prompt_texts, rest_of_texts, token_lengths = map(list, zip(*data))
