@@ -23,6 +23,12 @@ Outputs:
     JSONL file containing original snippets, prompts, generations, and metadata
     saved to outputs/ours/{task}/generations/{data_split}/
 
+Hardcoded Configuration:
+    - OpenAI tokenizer: Uses "gpt-3.5-turbo" encoding for all OpenAI models
+    - vLLM prompt formatting: Uses "lightest" prompt_key for minimal formatting overhead
+    - Data paths: Expects data in "data/{task}/split-random-overall/{split}.jsonl" format
+    - Output paths: Saves to "outputs/ours/{task}/generations/{split}/" directory
+
 Usage:
     python -m src.attacks.ngram_coverage_attack.generate \
         --model MODEL_NAME \
@@ -158,11 +164,36 @@ def generate_openai(prompts, chunk_size, args, model_str, token_lengths):
 
     return prompts, all_text_outputs
 
-def generate_vllm(prompts, chunk_size, args, model_str, cache_path):
-    """Generate text using vLLM. Returns (final_prompts, generations)"""
-    pass
-
 def process_prompts(final_subset, args, openai=False, tokenizer_or_encoder=None):
+    """
+    Extract prompt texts and compute token lengths for generation.
+    
+    This function handles text preprocessing for both OpenAI and vLLM pipelines,
+    supporting both sentence-based and word-based prompt extraction strategies.
+    It also handles special processing for the tulu_v1 conversational dataset.
+    
+    Args:
+        final_subset (pd.DataFrame): Dataset containing text snippets or conversations
+        args: Command line arguments with extraction parameters
+        openai (bool): Whether processing for OpenAI (affects tokenization)
+        tokenizer_or_encoder: Tokenizer (vLLM) or encoding (OpenAI) for token counting
+    
+    Returns:
+        Tuple[List[str], List[str], List[int]]:
+            - prompt_texts: Extracted text portions to use as prompts
+            - rest_of_texts: Remaining text portions (ground truth continuations)
+            - token_lengths: Token counts for each text, used for max_length_to_sequence_length
+    
+    Extraction Methods:
+        - Sentence-based: Extract first N sentences using extract_chunk_sentence()
+        - Word-based: Remove last N words or proportion using remove_last_n_words()
+        - tulu_v1: Extract user/assistant turns from conversational format
+    
+    Note:
+        - For OpenAI: Uses tiktoken encoding without special tokens
+        - For vLLM: Uses model tokenizer with add_special_tokens=False
+        - Word-based extraction supports both absolute counts and proportions
+    """
     if args.task == "tulu_v1": # Special processing for tulu dataset
         assert openai is False # We should only be using this for vLLM models
 
@@ -275,7 +306,7 @@ def main(args):
         if not args.openai: # Add vLLM-specific parameters
             prompt_kwargs.update({
                 "model_name": model_str,
-                "prompt_key": "lightest"
+                "prompt_key": "lightest"  # Minimal prompt formatting for vLLM models
             })
         
         unmerged_prompts.append(make_prompts(**prompt_kwargs))
