@@ -55,6 +55,11 @@ import asyncio
 from src.generation.openai_parallel_generate import openai_parallel_generate, requests_limits_dict, requests_url_dict
 from src.utils import remove_first_sentence_if_needed
 from src.experiments.utils import zigzag_append, chunk_list, remove_last_n_words, bool_to_first_upper
+import logging
+import sys
+
+logging.basicConfig(level=logging.INFO)
+logger = logging.getLogger(__name__)
 
 def main(args):
     """
@@ -64,12 +69,13 @@ def main(args):
         args: Parsed command line arguments containing generation parameters,
               model settings, and data configuration.
     """
-    
+
     # Seed model and get the model string
     random.seed(args.seed)
     model_str = args.model.split("/")[-1] # Splits to get actual model name
     if model_str not in task_prompts_dict_book[args.task]:
-        print("Valid model not passed in. Try again")
+        logger.error(f"Model '{model_str}' not supported for task '{args.task}'. Available models: {list(task_prompts_dict_book[args.task].keys())}")
+        return
 
     # Set up the task prompts
     args.task_prompt_idx = sorted(args.task_prompt_idx)
@@ -81,7 +87,7 @@ def main(args):
     # Load the data
     data_path = f"data/{args.task}/split-random-overall/{args.data_split}.jsonl"
     final_subset = pd.read_json(data_path, lines=True)
-    print(f"Length: {len(final_subset)}")
+    logger.info(f"Loaded {len(final_subset)} samples from {data_path}")
     if args.key_name is not None:
         final_subset["snippet"] = final_subset[args.key_name]
     if args.remove_bad_first: # Remove ill-formatted first sentence
@@ -96,7 +102,7 @@ def main(args):
         args.start_word, args.num_words_from_end, args.num_proportion_from_end = -1, -1, -1
 
     if args.temperature == 0: # Reduce num_sequences if using greedy decoding
-        print("GREEDY decoding - setting num_sequences to 1")
+        logger.info("Using greedy decoding - setting num_sequences to 1")
         args.num_sequences = 1
     
     if args.openai: # OpenAI models
@@ -110,7 +116,7 @@ def main(args):
             encoding = tiktoken.encoding_for_model("gpt-3.5-turbo")
             if args.num_words_from_end >= 1:
                 if args.num_proportion_from_end != 0:
-                    print("Overriding num_proportion_from_end")
+                    logger.warning("Overriding num_proportion_from_end since num_words_from_end is specified")
                     args.num_proportion_from_end = -1
 
                 data = [remove_last_n_words(encoding, text, args.num_words_from_end, openai=True) for text in passages]
@@ -163,14 +169,14 @@ def main(args):
                 }
             requests.append(cur_request)
         if "instruct" not in args.model:
-            print(f"Example prompt\n\n{requests[0]['messages'][0]['content']}")
+            logger.info(f"Example prompt:\n{requests[0]['messages'][0]['content']}")
         else:
-            print(f"Example prompt\n\n{requests[0]['prompt']}")
+            logger.info(f"Example prompt:\n{requests[0]['prompt']}")
 
         max_requests_per_minute = requests_limits_dict[args.model]["max_requests_per_minute"]
         max_tokens_per_minute = requests_limits_dict[args.model]["max_tokens_per_minute"]
         request_url = requests_url_dict[args.model]
-        print(f"Using rate limits\n------\nMax requests per minute: {max_requests_per_minute}\nMax tokens per minute: {max_tokens_per_minute}")
+        logger.info(f"Using OpenAI rate limits - Max requests/min: {max_requests_per_minute}, Max tokens/min: {max_tokens_per_minute}")
 
         full_generations = asyncio.run(openai_parallel_generate(
                 requests,
@@ -190,7 +196,7 @@ def main(args):
 
         if len(unknown_id_generations) != 0:
             len_unknown = len(unknown_id_generations)
-            print("Error on ids of ", len_unknown)
+            logger.warning(f"Failed to extract request IDs for {len_unknown} generations, attempting recovery")
             for i in range(len(requests)):
                 if i not in indexed_results:
                     indexed_results[i] = unknown_id_generations.pop()
@@ -240,7 +246,7 @@ def main(args):
             else:
                 if args.num_words_from_end >= 1:
                     if args.num_proportion_from_end != 0:
-                        print("Overriding num_proportion_from_end")
+                        logger.warning("Overriding num_proportion_from_end since num_words_from_end is specified")
                         args.num_proportion_from_end = -1
 
                     data = [remove_last_n_words(generator.llm.get_tokenizer(), text, args.num_words_from_end, openai=False) for text in passages]
@@ -306,7 +312,7 @@ _promptIdx{'-'.join(map(str, args.task_prompt_idx))}_len{len(final_subset)}_{dat
     columns = [col for col in final_subset.columns if col != 'snippet'] + ['snippet']
     final_subset = final_subset[columns]
     final_subset.to_json(file_path, index=False, lines=True, orient='records')
-    print(f"Saved to {file_path}")
+    logger.info(f"Saved {len(final_subset)} samples to {file_path}")
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(
