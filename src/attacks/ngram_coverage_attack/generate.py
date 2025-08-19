@@ -41,7 +41,7 @@ Usage:
         --task_prompt_idx 0 \
         [additional options]
 """
-
+# TODO support YAML file loading
 import argparse
 import os
 from dotenv import load_dotenv
@@ -284,6 +284,7 @@ def main(args):
         logger.info("Using greedy decoding - setting num_sequences to 1")
         args.num_sequences = 1
 
+    # Set up the tokenizer/encoder
     if args.openai:
         import tiktoken
         tokenizer_or_encoder = tiktoken.encoding_for_model("gpt-3.5-turbo")
@@ -297,8 +298,11 @@ def main(args):
         )
         tokenizer_or_encoder = generator.llm.get_tokenizer()
 
+    # Process the prompts
     prompt_texts, rest_of_texts, token_lengths = process_prompts(final_subset, args, args.openai, tokenizer_or_encoder)
     assert None not in prompt_texts
+
+    # Format the prompts
     unmerged_prompts = []
     for cur_task_prompt in cur_task_prompts:
         prompt_kwargs = {
@@ -317,16 +321,16 @@ def main(args):
         unmerged_prompts.append(make_prompts(**prompt_kwargs))
     prompts = zigzag_append(unmerged_prompts) # Make indices match up
 
-    if args.openai:
+    # Generate the text
+    if args.openai: # OpenAI models
         final_prompts, all_text_outputs = generate_openai(prompts, chunk_size, args, model_str, token_lengths)
-    else:
+    else: # vLLM models
         if args.max_length_to_sequence_length:
             cur_max_tokens = [element for element in token_lengths for _ in range(chunk_size)]
         else:
             assert args.max_tokens >= 1
             cur_max_tokens = args.max_tokens
 
-        # Generation
         final_prompts, all_text_outputs, all_prompt_logprobs, all_output_logprobs = generator.generate_vllm(
             prompts=prompts,
             temperature=args.temperature,
@@ -337,6 +341,7 @@ def main(args):
             n=args.num_sequences
         )
 
+    # Save the results back to the original df
     final_subset["prompt"] = chunk_list(final_prompts, chunk_size) #TODO double check this (final_prompts) for openai
     final_subset["generation"] = chunk_list(all_text_outputs, chunk_size)
     final_subset["model"] = [model_str] * len(final_subset)
@@ -344,10 +349,9 @@ def main(args):
 
     # Convert current datetime to string in 'YYYY-MM-DD HH:MM:SS' format
     date_str = datetime.now().strftime("%Y-%m-%d-%H:%M:%S").strip()
-    minTokStr = "minTok" + str(args.min_tokens) + "_"
     
-    # Save DataFrame to CSV with detailed info in the filename
-    file_name = f"""{model_str}_maxTok{args.max_tokens}_{minTokStr}numSeq{args.num_sequences}\
+    # Save DataFrame to CSV with detailed info in the filename # TODO fix this
+    file_name = f"""{model_str}_maxTok{args.max_tokens}_minTokStr{args.min_tokens}_numSeq{args.num_sequences}\
 _topP{args.top_p}_temp{args.temperature}_numSent{args.num_sentences}_startSent{args.start_sentence}\
 _numWordFromEnd{args.num_words_from_end}-{args.num_proportion_from_end}_maxLenSeq{bool_to_first_upper(args.max_length_to_sequence_length)}\
 _useSent{bool_to_first_upper(not args.prompt_with_words_not_sent)}-rmvBad{bool_to_first_upper(args.remove_bad_first)}\
