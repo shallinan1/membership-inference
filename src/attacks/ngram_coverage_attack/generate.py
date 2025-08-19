@@ -34,6 +34,11 @@ Usage:
         --model MODEL_NAME \
         --task TASK_NAME \
         --data_split SPLIT \
+        --start_sentence 1 \
+        --num_sentences 3 \
+        --num_sequences 20 \
+        --max_tokens 512 \
+        --task_prompt_idx 0 \
         [additional options]
 """
 
@@ -310,7 +315,6 @@ def main(args):
             })
         
         unmerged_prompts.append(make_prompts(**prompt_kwargs))
-
     prompts = zigzag_append(unmerged_prompts) # Make indices match up
 
     if args.openai:
@@ -418,14 +422,3 @@ if __name__ == "__main__":
                         help="Custom column name to use as text source (defaults to 'snippet')")
 
     main(parser.parse_args())
-
-
-    """
-    CUDA_VISIBLE_DEVICES=0 python3 -m src.attacks.ngram_coverage_attack.generate \
-        --model openai-community/gpt2-large \
-        --start_sentence 1 \
-        --num_sentences 3 \
-        --num_sequences 20 \
-        --max_tokens 512 \
-        --task_prompt_idx 0;
-    """
