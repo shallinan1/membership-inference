@@ -59,7 +59,34 @@ logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
 def generate_openai(prompts, chunk_size, args, model_str, token_lengths):
-    """Generate text using OpenAI API. Returns (final_prompts, generations)"""
+    """
+    Generate text using OpenAI API with async parallel processing and rate limiting.
+    
+    This function handles the OpenAI-specific generation pipeline including:
+    - Building API requests with proper formatting for different model types
+    - Managing rate limits and parallel execution
+    - Handling request ID tracking and recovery
+    - Extracting generated text from API responses
+    
+    Args:
+        prompts (List[str]): List of formatted prompts ready for generation
+        chunk_size (int): Number of prompt templates used (for organizing results)
+        args: Command line arguments containing generation parameters
+        model_str (str): Model name for API requests
+        token_lengths (List[int]): Token lengths for each text snippet, used when
+                                 args.max_length_to_sequence_length is True
+    
+    Returns:
+        Tuple[List[str], List[List[str]]]: 
+            - prompts: Original prompts passed to the API
+            - all_text_outputs: Generated text sequences, organized as list of lists
+                              where each inner list contains multiple generations per prompt
+    
+    Note:
+        - Automatically detects model type (instruct/davinci vs chat) for proper formatting
+        - Uses async parallel generation with configurable rate limits
+        - Includes recovery mechanism for requests with missing IDs
+    """
     requests = []
     for i, prompt in enumerate(prompts):
         if args.max_length_to_sequence_length:
@@ -135,6 +162,48 @@ def generate_vllm(prompts, chunk_size, args, model_str, cache_path):
     """Generate text using vLLM. Returns (final_prompts, generations)"""
     pass
 
+def process_prompts(final_subset, args, openai=False, tokenizer_or_encoder=None):
+    if args.task == "tulu_v1": # Special processing for tulu dataset
+        assert openai is False # We should only be using this for vLLM models
+
+        # Num turns = 1 by default for now
+        prompt_texts = final_subset.messages.apply(lambda x: x[0]['content']).tolist()
+        rest_of_texts = final_subset.messages.apply(lambda x: x[1]['content']).tolist()
+        
+        # Check that the first message is from the user and the second is from the assistant
+        assert all(x[0]['role'] == 'user' and x[1]['role'] == 'assistant' for x in final_subset.messages), \
+            "Expected first message to be from 'user' and second from 'assistant' in each conversation."
+
+        final_subset["snippet"] = [p + "\n" + r for p, r in zip(prompt_texts, rest_of_texts)]
+        args.start_sentence, args.num_sentence = -1, -1
+
+        # tokenizer_or_encoder should be a tokenizer from vllm here
+        token_lengths = [len(tokenizer_or_encoder.encode(text, add_special_tokens=False)) for text in rest_of_texts]
+    else:
+        passages = final_subset.snippet.tolist()
+        if not args.prompt_with_words_not_sent: # Use sentences
+            prompt_outputs = [extract_chunk_sentence(text, args.start_sentence, args.num_sentences) for text in passages]        
+            prompt_texts, rest_of_texts = zip(*prompt_outputs)
+            prompt_texts, rest_of_texts = list(prompt_texts), list(rest_of_texts)
+            token_lengths = [len(tokenizer_or_encoder.encode(text)) for text in rest_of_texts] if openai else \
+                [len(tokenizer_or_encoder.encode(text, add_special_tokens=False)) for text in rest_of_texts]
+        else:
+            if args.num_words_from_end >= 1:
+                if args.num_proportion_from_end != 0:
+                    logger.warning("Overriding num_proportion_from_end since num_words_from_end is specified")
+                    args.num_proportion_from_end = -1
+
+                data = [remove_last_n_words(tokenizer_or_encoder, text, args.num_words_from_end, openai=openai) for text in passages]
+                prompt_texts, rest_of_texts, token_lengths = map(list, zip(*data))
+            else:
+                assert 0 < args.num_proportion_from_end < 1, "No remove tokens set"
+                text_lengths = [len(text.split()) for text in passages] # Get length of words
+                remove_lengths = [max(1, min(int(l * args.num_proportion_from_end), l-1)) for l in text_lengths]
+                data = [remove_last_n_words(tokenizer_or_encoder, text, remove_length, openai=openai) for text, remove_length in zip(passages, remove_lengths)]
+                prompt_texts, rest_of_texts, token_lengths = map(list, zip(*data))
+
+    return prompt_texts, rest_of_texts, token_lengths
+
 def main(args):
     """
     Execute the text generation pipeline with parsed command line arguments.
@@ -156,7 +225,7 @@ def main(args):
     cur_task_prompts = []
     for cur_prompt_idx in args.task_prompt_idx:
         cur_task_prompts.append(task_prompts_dict_book[args.task][model_str][cur_prompt_idx])
-    chunk_size = len(cur_task_prompts) # TODO different chunk sizes
+    chunk_size = len(cur_task_prompts)  # Number of prompt templates - used to map from prompt index back to original text index
 
     # Load the data
     data_path = f"data/{args.task}/split-random-overall/{args.data_split}.jsonl"
@@ -179,49 +248,10 @@ def main(args):
         logger.info("Using greedy decoding - setting num_sequences to 1")
         args.num_sequences = 1
 
-    if args.openai: # OpenAI models
-        passages = final_subset.snippet.tolist()
-        if not args.prompt_with_words_not_sent: # Use sentences
-            prompt_outputs = [extract_chunk_sentence(text, args.start_sentence, args.num_sentences) for text in passages]        
-            prompt_texts, rest_of_texts = zip(*prompt_outputs)
-            prompt_texts, rest_of_texts = list(prompt_texts), list(rest_of_texts)
-            token_lengths = [len(encoding.encode(text)) for text in rest_of_texts]
-
-        else: # Use words
-            import tiktoken
-            encoding = tiktoken.encoding_for_model("gpt-3.5-turbo")
-            if args.num_words_from_end >= 1:
-                if args.num_proportion_from_end != 0:
-                    logger.warning("Overriding num_proportion_from_end since num_words_from_end is specified")
-                    args.num_proportion_from_end = -1
-
-                data = [remove_last_n_words(encoding, text, args.num_words_from_end, openai=True) for text in passages]
-                prompt_texts, rest_of_texts, token_lengths = map(list, zip(*data))
-            else:
-                assert 0 < args.num_proportion_from_end < 1, "No remove tokens set"
-                text_lengths = [len(text.split()) for text in passages] # Get length of words
-                remove_lengths = [max(1, min(int(l * args.num_proportion_from_end), l-1)) for l in text_lengths]
-                data = [remove_last_n_words(encoding, text, remove_length, openai=True) for text, remove_length in zip(passages, remove_lengths)]
-                prompt_texts, rest_of_texts, token_lengths = map(list, zip(*data))
-
-        assert None not in prompt_texts
-        unmerged_prompts = []
-        for cur_task_prompt in cur_task_prompts:
-            unmerged_prompts.append(make_prompts(
-                prompt_texts, 
-                cur_task_prompt["task_prompt"], 
-                cur_task_prompt["task_preprompt"],
-                cur_task_prompt["task_postprompt"],
-            ))
-        prompts = zigzag_append(unmerged_prompts) # Make indices match up
-        final_prompts, all_text_outputs = generate_openai(prompts, chunk_size, args, model_str, token_lengths)
-
-        final_subset["prompt"] = chunk_list(prompts, chunk_size)
-        final_subset["generation"] = chunk_list(all_text_outputs, chunk_size)
-        final_subset["model"] = [model_str] * len(final_subset)
-        final_subset["snippet_no_prompt"] = rest_of_texts
-
-    else: # vLLM models
+    if args.openai:
+        import tiktoken
+        tokenizer_or_encoder = tiktoken.encoding_for_model("gpt-3.5-turbo")
+    else:
         generator = ModelGenerator(
             model=args.model,
             tokenizer=args.model if not args.tokenizer else args.tokenizer,
@@ -229,57 +259,32 @@ def main(args):
             hf_token=args.hf_token,
             cache_dir=CACHE_PATH,
         )
+        tokenizer_or_encoder = generator.llm.get_tokenizer()
 
-        if args.task == "tulu_v1": # Special processing for tulu dataset
-            # Num turns = 1 by default for now
-            prompt_texts = final_subset.messages.apply(lambda x: x[0]['content']).tolist()
-            rest_of_texts = final_subset.messages.apply(lambda x: x[1]['content']).tolist()
-            
-            # Check that the first message is from the user and the second is from the assistant
-            assert all(x[0]['role'] == 'user' and x[1]['role'] == 'assistant' for x in final_subset.messages), \
-                "Expected first message to be from 'user' and second from 'assistant' in each conversation."
+    prompt_texts, rest_of_texts, token_lengths = process_prompts(final_subset, args, args.openai, tokenizer_or_encoder)
+    assert None not in prompt_texts
+    unmerged_prompts = []
+    for cur_task_prompt in cur_task_prompts:
+        prompt_kwargs = {
+            "prompts": prompt_texts,
+            "task_prompt": cur_task_prompt["task_prompt"],
+            "task_preprompt": cur_task_prompt["task_preprompt"],
+            "task_postprompt": cur_task_prompt["task_postprompt"],
+        }
+        
+        if not args.openai: # Add vLLM-specific parameters
+            prompt_kwargs.update({
+                "model_name": model_str,
+                "prompt_key": "lightest"
+            })
+        
+        unmerged_prompts.append(make_prompts(**prompt_kwargs))
 
-            final_subset["snippet"] = [p + "\n" + r for p, r in zip(prompt_texts, rest_of_texts)]
-            args.start_sentence, args.num_sentence = -1, -1
+    prompts = zigzag_append(unmerged_prompts) # Make indices match up
 
-            tokenizer = generator.llm.get_tokenizer()
-            token_lengths = [len(tokenizer.encode(text, add_special_tokens=False)) for text in rest_of_texts]
-        else:
-            passages = final_subset.snippet.tolist()
-
-            if not args.prompt_with_words_not_sent:
-                prompt_outputs = [extract_chunk_sentence(text, args.start_sentence, args.num_sentences) for text in passages]
-                prompt_texts, rest_of_texts = zip(*prompt_outputs)
-                prompt_texts= list(prompt_texts)
-                rest_of_texts = list(rest_of_texts)
-            else:
-                if args.num_words_from_end >= 1:
-                    if args.num_proportion_from_end != 0:
-                        logger.warning("Overriding num_proportion_from_end since num_words_from_end is specified")
-                        args.num_proportion_from_end = -1
-
-                    data = [remove_last_n_words(generator.llm.get_tokenizer(), text, args.num_words_from_end, openai=False) for text in passages]
-                    prompt_texts, rest_of_texts, token_lengths = map(list, zip(*data))                    
-                else:
-                    assert 0 < args.num_proportion_from_end < 1, "No remove tokens set"
-                    text_lengths = [len(text.split()) for text in passages] # Get length of words
-                    remove_lengths = [max(1, min(int(l * args.num_proportion_from_end), l-1)) for l in text_lengths]
-                    data = [remove_last_n_words(generator.llm.get_tokenizer(), text, remove_length, openai=False) for text, remove_length in zip(passages, remove_lengths)]
-                    prompt_texts, rest_of_texts, token_lengths = map(list, zip(*data))
-
-        assert None not in prompt_texts
-        unmerged_prompts = []
-        for cur_task_prompt in cur_task_prompts:
-            unmerged_prompts.append(make_prompts(
-                prompt_texts, 
-                cur_task_prompt["task_prompt"], 
-                cur_task_prompt["task_preprompt"],
-                cur_task_prompt["task_postprompt"],
-                model_name=model_str,
-                prompt_key="lightest"
-            ))
-        prompts = zigzag_append(unmerged_prompts) # Make indices match up
-
+    if args.openai:
+        final_prompts, all_text_outputs = generate_openai(prompts, chunk_size, args, model_str, token_lengths)
+    else:
         if args.max_length_to_sequence_length:
             cur_max_tokens = [element for element in token_lengths for _ in range(chunk_size)]
         else:
@@ -297,10 +302,10 @@ def main(args):
             n=args.num_sequences
         )
 
-        final_subset["prompt"] = chunk_list(final_prompts, chunk_size)
-        final_subset["generation"] = chunk_list(all_text_outputs, chunk_size)
-        final_subset["model"] = [model_str] * len(final_subset)
-        final_subset["snippet_no_prompt"] = rest_of_texts
+    final_subset["prompt"] = chunk_list(final_prompts, chunk_size) #TODO double check this (final_prompts) for openai
+    final_subset["generation"] = chunk_list(all_text_outputs, chunk_size)
+    final_subset["model"] = [model_str] * len(final_subset)
+    final_subset["snippet_no_prompt"] = rest_of_texts
 
     # Convert current datetime to string in 'YYYY-MM-DD HH:MM:SS' format
     date_str = datetime.now().strftime("%Y-%m-%d-%H:%M:%S").strip()
