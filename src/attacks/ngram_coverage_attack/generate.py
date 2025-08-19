@@ -61,6 +61,83 @@ import sys
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
+def generate_openai(prompts, chunk_size, args, model_str, token_lengths):
+    """Generate text using OpenAI API. Returns (final_prompts, generations)"""
+    requests = []
+    for i, prompt in enumerate(prompts):
+        if args.max_length_to_sequence_length:
+            cur_max_tokens = token_lengths[i // chunk_size]
+        else:
+            assert args.max_tokens >= 1
+            cur_max_tokens = args.max_tokens
+        request_id = i
+        cur_request = {
+            "model": args.model,
+            "max_tokens": cur_max_tokens,
+            "temperature": args.temperature,
+            "seed": args.seed,
+            "top_p": args.top_p,
+            "n": args.num_sequences, # Hardcode this
+            "metadata": {"request_id": request_id},
+        }
+        if "instruct" in args.model or "davinci" in args.model:
+            cur_request = cur_request | {
+                "prompt": prompt,
+                # "logprobs": 10
+            }
+        else:
+            cur_request = cur_request | {
+                "messages": [{"role": "user", "content": prompt}],
+                # "logprobs": True, "top_logprobs": 10
+            }
+        requests.append(cur_request)
+    if "instruct" not in args.model:
+        logger.info(f"Example prompt:\n{requests[0]['messages'][0]['content']}")
+    else:
+        logger.info(f"Example prompt:\n{requests[0]['prompt']}")
+
+    max_requests_per_minute = requests_limits_dict[args.model]["max_requests_per_minute"]
+    max_tokens_per_minute = requests_limits_dict[args.model]["max_tokens_per_minute"]
+    request_url = requests_url_dict[args.model]
+    logger.info(f"Using OpenAI rate limits - Max requests/min: {max_requests_per_minute}, Max tokens/min: {max_tokens_per_minute}")
+
+    full_generations = asyncio.run(openai_parallel_generate(
+            requests,
+            max_requests_per_minute=max_requests_per_minute, 
+            max_tokens_per_minute=max_tokens_per_minute,
+            request_url=request_url
+            ))
+        
+    indexed_results = {}
+    unknown_id_generations = [] # Special case where the request_id is not returned
+    for result in full_generations:
+        try:
+            request_id = result[2]["request_id"] # Extract request_id from metadata
+            indexed_results[request_id] = result[1]  # API response is the second element
+        except:
+            unknown_id_generations.append(result[1])
+
+    if len(unknown_id_generations) != 0:
+        len_unknown = len(unknown_id_generations)
+        logger.warning(f"Failed to extract request IDs for {len_unknown} generations, attempting recovery")
+        for i in range(len(requests)):
+            if i not in indexed_results:
+                indexed_results[i] = unknown_id_generations.pop()
+
+    all_text_outputs = []
+    for i in range(len(full_generations)):
+        cur_results = indexed_results[i]
+        if "instruct" in args.model or "davinci" in args.model:
+            all_text_outputs.append([cur["text"] for cur in cur_results["choices"]])
+        else:
+            all_text_outputs.append([cur["message"]["content"] for cur in cur_results["choices"]])
+
+    return prompts, all_text_outputs
+
+def generate_vllm(prompts, chunk_size, args, model_str, cache_path):
+    """Generate text using vLLM. Returns (final_prompts, generations)"""
+    pass
+
 def main(args):
     """
     Execute the text generation pipeline with parsed command line arguments.
@@ -104,7 +181,7 @@ def main(args):
     if args.temperature == 0: # Reduce num_sequences if using greedy decoding
         logger.info("Using greedy decoding - setting num_sequences to 1")
         args.num_sequences = 1
-    
+
     if args.openai: # OpenAI models
         passages = final_subset.snippet.tolist()
         if not args.prompt_with_words_not_sent: # Use sentences
@@ -139,77 +216,8 @@ def main(args):
                 cur_task_prompt["task_postprompt"],
             ))
         prompts = zigzag_append(unmerged_prompts) # Make indices match up
+        final_prompts, all_text_outputs = generate_openai(prompts, chunk_size, args, model_str, token_lengths)
 
-        requests = []
-        for i, prompt in enumerate(prompts):
-            if args.max_length_to_sequence_length:
-                cur_max_tokens = token_lengths[i // chunk_size]
-            else:
-                assert args.max_tokens >= 1
-                cur_max_tokens = args.max_tokens
-            request_id = i
-            cur_request = {
-                "model": args.model,
-                "max_tokens": cur_max_tokens,
-                "temperature": args.temperature,
-                "seed": args.seed,
-                "top_p": args.top_p,
-                "n": args.num_sequences, # Hardcode this
-                "metadata": {"request_id": request_id},
-            }
-            if "instruct" in args.model or "davinci" in args.model:
-                cur_request = cur_request | {
-                    "prompt": prompt,
-                    # "logprobs": 10
-                }
-            else:
-                cur_request = cur_request | {
-                    "messages": [{"role": "user", "content": prompt}],
-                    # "logprobs": True, "top_logprobs": 10
-                }
-            requests.append(cur_request)
-        if "instruct" not in args.model:
-            logger.info(f"Example prompt:\n{requests[0]['messages'][0]['content']}")
-        else:
-            logger.info(f"Example prompt:\n{requests[0]['prompt']}")
-
-        max_requests_per_minute = requests_limits_dict[args.model]["max_requests_per_minute"]
-        max_tokens_per_minute = requests_limits_dict[args.model]["max_tokens_per_minute"]
-        request_url = requests_url_dict[args.model]
-        logger.info(f"Using OpenAI rate limits - Max requests/min: {max_requests_per_minute}, Max tokens/min: {max_tokens_per_minute}")
-
-        full_generations = asyncio.run(openai_parallel_generate(
-                requests,
-                max_requests_per_minute=max_requests_per_minute, 
-                max_tokens_per_minute=max_tokens_per_minute,
-                request_url=request_url
-                ))
-            
-        indexed_results = {}
-        unknown_id_generations = [] # Special case where the request_id is not returned
-        for result in full_generations:
-            try:
-                request_id = result[2]["request_id"] # Extract request_id from metadata
-                indexed_results[request_id] = result[1]  # API response is the second element
-            except:
-                unknown_id_generations.append(result[1])
-
-        if len(unknown_id_generations) != 0:
-            len_unknown = len(unknown_id_generations)
-            logger.warning(f"Failed to extract request IDs for {len_unknown} generations, attempting recovery")
-            for i in range(len(requests)):
-                if i not in indexed_results:
-                    indexed_results[i] = unknown_id_generations.pop()
-
-        all_text_outputs = []
-        for i in range(len(full_generations)):
-            cur_results = indexed_results[i]
-            if "instruct" in args.model or "davinci" in args.model:
-                all_text_outputs.append([cur["text"] for cur in cur_results["choices"]])
-            else:
-                all_text_outputs.append([cur["message"]["content"] for cur in cur_results["choices"]])
-
-        # TODO gpt-3.5-turbo-instruct is it different?
         final_subset["prompt"] = chunk_list(prompts, chunk_size)
         final_subset["generation"] = chunk_list(all_text_outputs, chunk_size)
         final_subset["model"] = [model_str] * len(final_subset)
