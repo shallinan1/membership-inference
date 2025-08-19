@@ -236,7 +236,10 @@ def main(args):
             # Num turns = 1 by default for now
             prompt_texts = final_subset.messages.apply(lambda x: x[0]['content']).tolist()
             rest_of_texts = final_subset.messages.apply(lambda x: x[1]['content']).tolist()
-            # TODO some assertion to make sure these roles are correct
+            
+            # Check that the first message is from the user and the second is from the assistant
+            assert all(x[0]['role'] == 'user' and x[1]['role'] == 'assistant' for x in final_subset.messages), \
+                "Expected first message to be from 'user' and second from 'assistant' in each conversation."
 
             final_subset["snippet"] = [p + "\n" + r for p, r in zip(prompt_texts, rest_of_texts)]
             args.start_sentence, args.num_sentence = -1, -1
@@ -301,9 +304,6 @@ def main(args):
         final_subset["generation"] = chunk_list(all_text_outputs, chunk_size)
         final_subset["model"] = [model_str] * len(final_subset)
         final_subset["snippet_no_prompt"] = rest_of_texts
-
-        # final_subset["logprobs"] = all_output_logprobs
-        # final_subset["logprobs_prompt"] = all_prompt_logprobs
 
     # Convert current datetime to string in 'YYYY-MM-DD HH:MM:SS' format
     date_str = datetime.now().strftime("%Y-%m-%d-%H:%M:%S").strip()
