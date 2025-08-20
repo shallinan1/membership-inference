@@ -2,39 +2,46 @@
 N-gram Coverage Computation for Membership Inference Attack
 
 This module implements the coverage computation component of the N-Gram Coverage Attack 
-method for membership inference attacks.
+method for membership inference attacks against language models.
 
 The module analyzes generated text continuations by computing exact n-gram matches
 against source documents and calculating coverage statistics for membership inference.
+It uses dynamic programming for efficient longest common substring/subsequence computation
+and supports parallel processing for large-scale analysis.
 
 Pipeline:
-    1. Load generated text continuations from step 1 (generate.py)
-    2. Tokenize and process both generated texts and source documents
+    1. Load generated text continuations from JSONL file
+    2. Tokenize both generated texts and source documents using NLTK
     3. Find exact n-gram matches using sliding window approach
     4. Calculate coverage percentage (portion of text covered by matching n-grams)
-    5. Compute longest common substring and subsequence metrics
-    6. Save results with metadata for creativity index calculation
+    5. Compute longest common substring (character-level) and subsequence (word-level) metrics
+    6. Save results with metadata for downstream analysis
 
 Outputs:
-    JSONL file containing coverage statistics, span information, and length metrics
-    saved to outputs/ours/{task}/coverages/{data_split}/
+    JSONL file containing:
+    - Coverage statistics (percentage of text matching source)
+    - Matched span information (start/end indices, text, occurrence count)
+    - Length metrics (character and word counts)
+    - Longest common substring/subsequence lengths
 
-Analysis Modes:
-    - Single document: Compare generations against original snippet only
-    - Multi-document: Compare against entire corpus (for bookMIA with source_docs)
+Configuration:
+    - Tokenization: NLTK casual tokenizer for word-level processing
+    - Detokenization: Moses detokenizer for English text reconstruction
+    - Parallel processing: Configurable worker count (default max 4 CPUs)
 
-Hardcoded Configuration:
-    - Tokenization: Uses NLTK casual tokenizer for all text processing
-    - Detokenization: Uses Moses detokenizer for English text reconstruction
-    - Parallel processing: Limited to 4 CPU cores max to prevent memory issues
+Dependencies:
+    - Environment variable CACHE_PATH for HuggingFace cache location
+    - NLTK tokenizers and Moses detokenizer
+    - pylcs for efficient longest common substring computation
 
 Usage:
-    python -m src.attacks.ngram_coverage_attack.compute_ngram_coverage \
-        --task TASK_NAME \
-        --gen_data PATH_TO_GENERATIONS \
-        --output_dir OUTPUT_DIRECTORY \
-        --min_ngram N \
-        [--source_docs DATASET_NAME] \
+    python -m src.attacks.ngram_coverage_attack.compute_ngram_coverage \\
+        --task TASK_NAME \\
+        --gen_data PATH_TO_GENERATIONS.jsonl \\
+        --output_dir OUTPUT_DIRECTORY \\
+        --min_ngram 3 \\
+        [--subset 1000] \\
+        [--generation_field "generation"] \\
         [--parallel]
 """
 
@@ -77,17 +84,42 @@ detokenize = lambda x: md.detokenize(x)
 
 @dataclass
 class Document:
+    """Represents a tokenized document for n-gram analysis.
+    
+    Attributes:
+        doc_id: Unique identifier for the document
+        tokens: List of string tokens from tokenization
+    """
     doc_id: str
     tokens: List[str]  # [num_tokens]
 
 @dataclass
 class Span:
+    """Represents a matched text span in the source document.
+    
+    Attributes:
+        start_index: Token index where the span begins (inclusive)
+        end_index: Token index where the span ends (exclusive)
+        span_text: The actual text content of the span
+        occurrence: Number of times this span appears in source documents
+    """
     start_index: int
     end_index: int
     span_text: str
     occurrence: int
 
 class Hypothesis:
+    """Tracks n-gram coverage hypothesis for a target document.
+    
+    Maintains a collection of matched spans and computes coverage statistics
+    for membership inference analysis.
+    
+    Attributes:
+        target_doc: The document being analyzed
+        min_ngram: Minimum n-gram size for matching
+        spans: List of matched Span objects
+        finished: Whether processing has reached document end
+    """
     def __init__(self, target_doc: Document, min_ngram: int) -> None:
         self.target_doc = target_doc
         self.min_ngram = min_ngram
@@ -143,7 +175,19 @@ class Hypothesis:
             'avg_span_len': self.get_avg_span_len(),
         }
 
-def find_max_common_sublist_length(A: List, B: List):
+def find_max_common_sublist_length(A: List, B: List) -> int:
+    """Compute the length of the longest common contiguous sublist using dynamic programming.
+    
+    Uses space-optimized DP with O(m) space complexity and O(n*m) time complexity.
+    
+    Args:
+        A: First list of comparable elements
+        B: Second list of comparable elements
+    
+    Returns:
+        Length of the longest common contiguous sublist
+    """
+
     n = len(A); m = len(B)
     
     # Auxiliary dp[] list
@@ -164,11 +208,32 @@ def find_max_common_sublist_length(A: List, B: List):
  
     return maxm  # Return the maximum length
 
-def process_single_sublist_pair(g_list_tokenized, source_docs_tokenized):
+
+def process_single_sublist_pair(g_list_tokenized: List[List[str]], 
+                               source_docs_tokenized: List[List[str]]) -> List[int]:
+    """Process multiple generated texts against source documents for longest sublist.
+    
+    Args:
+        g_list_tokenized: List of tokenized generated texts
+        source_docs_tokenized: List of tokenized source documents
+    
+    Returns:
+        List of maximum sublist lengths for each generated text
+    """
+
     return [longest_sublist(g, source_docs_tokenized) for g in g_list_tokenized]
 
 def longest_sublist(text_tokenized: List[str], 
-                    source_docs_tokenized: List[List[str]] ):
+                   source_docs_tokenized: List[List[str]]) -> int:
+    """Find the longest common sublist between text and any source document.
+    
+    Args:
+        text_tokenized: Tokenized text to analyze
+        source_docs_tokenized: List of tokenized source documents to compare against
+    
+    Returns:
+        Maximum length of common sublist found across all source documents
+    """
     longest_sublist_overall = 0
     for s in source_docs_tokenized:
         match_length = find_max_common_sublist_length(text_tokenized, s)
@@ -176,10 +241,32 @@ def longest_sublist(text_tokenized: List[str],
     
     return longest_sublist_overall
 
-def process_single_substring_pair(g_list, source_docs):
+def process_single_substring_pair(g_list: List[str], 
+                                 source_docs: List[str]) -> List[int]:
+    """Process multiple generated texts against source documents for longest substring.
+    
+    Args:
+        g_list: List of generated text strings
+        source_docs: List of source document strings
+    
+    Returns:
+        List of maximum substring lengths for each generated text
+    """
+
     return [longest_substring(g, source_docs) for g in g_list]
 
-def longest_substring(text: str, source_docs: List[str]):
+def longest_substring(text: str, source_docs: List[str]) -> int:
+    """Find the longest common substring between text and any source document.
+    
+    Uses the pylcs library for efficient computation.
+    
+    Args:
+        text: Text string to analyze
+        source_docs: List of source document strings to compare against
+    
+    Returns:
+        Maximum length of common substring found across all source documents
+    """
     longest_substring_overall = 0
     for s in source_docs:
         match_length = lcs_string_length(text, s)
@@ -187,7 +274,33 @@ def longest_substring(text: str, source_docs: List[str]):
     
     return longest_substring_overall
 
-def find_exact_match(detokenize: Callable, doc: Document, min_ngram: int, source_data: Dataset, num_cpus: int):
+
+def find_exact_match(detokenize: Callable[[List[str]], str], 
+                    doc: Document, 
+                    min_ngram: int, 
+                    source_data: Dataset, 
+                    num_cpus: int) -> dict:
+    """Find all exact n-gram matches between document and source data.
+    
+    Uses a sliding window approach to identify matching n-grams and builds
+    a coverage hypothesis by extending or replacing spans.
+    
+    Args:
+        detokenize: Function to convert tokens back to text
+        doc: Target document to analyze
+        min_ngram: Minimum n-gram size for matching
+        source_data: HuggingFace Dataset containing source documents
+        num_cpus: Number of CPUs to use for parallel filtering
+    
+    Returns:
+        Dictionary containing:
+            - matched_spans: List of span dictionaries with position and text
+            - coverage: Percentage of document covered by matches (0.0 to 1.0)
+            - avg_span_len: Average length of matched spans in tokens
+    
+    Raises:
+        ValueError: If pointer arithmetic enters invalid state
+    """
     hypothesis = Hypothesis(doc, min_ngram)
 
     first_pointer, second_pointer = 0, min_ngram
@@ -228,7 +341,21 @@ def find_exact_match(detokenize: Callable, doc: Document, min_ngram: int, source
     hypothesis.finished = True
     return hypothesis.export_json()
 
-def process_single_doc(t_idx, all_gens, min_ngram, source_docs):
+def process_single_doc(t_idx: int, 
+                      all_gens: List[dict], 
+                      min_ngram: int, 
+                      source_docs: Dataset) -> List[dict]:
+    """Process all generations for a single target document.
+    
+    Args:
+        t_idx: Index of the target document
+        all_gens: List of generation dictionaries containing "text" field
+        min_ngram: Minimum n-gram size for matching
+        source_docs: Dataset containing source documents for comparison
+    
+    Returns:
+        List of dictionaries with original generation data plus coverage metrics
+    """
     outputs = []
     for t_doc in tqdm(all_gens, leave=False, position=1):
         tokenized_text = tokenize_func(unidecode(t_doc["text"]))
@@ -249,22 +376,24 @@ def process_single_doc(t_idx, all_gens, min_ngram, source_docs):
     return outputs
 
 def dj_search(generation_texts_list: List[List[str]],
-              source_docs, 
+              source_docs: List[Dataset], 
               min_ngram: int, 
               subset: int = None, 
-              num_cpus: int = 1):
-    """
-    Perform a document search by processing generated texts and finding matches in source documents.
-
+              num_cpus: int = 1) -> List[List[dict]]:
+    """Perform document search with n-gram matching across multiple generations.
+    
+    Coordinates parallel or sequential processing of generated texts against
+    source documents to compute coverage statistics.
+    
     Args:
-        generation_texts_list (List[List[str]]): A list of lists containing generated text strings to be processed.
-        source_docs: A collection of source documents to match against the generated texts.
-        min_ngram (int): The minimum n-gram length for considering a match.
-        subset (int, optional): The number of items to process from the generation_texts_list. Defaults to None (process all).
-        num_cpus (int, optional): The number of CPU cores to use for multiprocessing. Defaults to 1.
-
+        generation_texts_list: Nested list of generated text strings
+        source_docs: List of HuggingFace Datasets containing source documents
+        min_ngram: Minimum n-gram size for matching
+        subset: Maximum number of items to process (None for all)
+        num_cpus: Number of CPUs for parallel processing (1 for sequential)
+    
     Returns:
-        None: The function writes the output to the specified output file.
+        Nested list of dictionaries containing coverage analysis results
     """
     data = [[{"text": g} for g in generation_texts] for generation_texts in generation_texts_list]
     data = data[:subset] if subset is not None else data
@@ -286,7 +415,27 @@ def dj_search(generation_texts_list: List[List[str]],
 
     return all_outputs
 
-def main(args):
+def main(args: argparse.Namespace) -> None:
+    """Main entry point for n-gram coverage computation.
+    
+    Loads generated texts, computes coverage statistics against source documents,
+    calculates longest common substring/subsequence metrics, and saves results
+    to JSONL format.
+    
+    Args:
+        args: Command-line arguments containing:
+            - gen_data: Path to input JSONL file
+            - output_dir: Directory for output files
+            - min_ngram: Minimum n-gram size
+            - subset: Max examples to process
+            - generation_field: Field name containing generations
+            - parallel: Whether to use multiprocessing
+    
+    Side Effects:
+        - Creates output directory if it doesn't exist
+        - Writes results to JSONL file in output directory
+        - Prints execution time and output filename
+    """
     start_time = time.time()
     os.makedirs(args.output_dir, exist_ok=True)  # Ensure the output directory exists
 
