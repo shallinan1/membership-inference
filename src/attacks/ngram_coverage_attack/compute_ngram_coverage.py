@@ -73,7 +73,7 @@ from multiprocessing import Pool, cpu_count
 import time
 import logging
 from pylcs import lcs_string_length
-from .utils import (
+from src.attacks.ngram_coverage_attack.utils import (
     find_max_common_sublist_length,
     longest_sublist,
     longest_substring,
@@ -271,11 +271,6 @@ def process_single_doc(t_idx: int,
         # Add it to the existing dict which stores the text
         t_doc.update(output)
         outputs.append(t_doc)
-
-    # avg_coverage = np.average([x['coverage'] for x in outputs]) if outputs else 0
-    # std = np.std([x['coverage'] for x in outputs]) if outputs else 0
-    # avg_len = np.average([x['avg_span_len'] for x in outputs]) if outputs else 0
-    # print(f'average {min_ngram}-ngram coverage: {avg_coverage:.3f}, std: {std:.3f}, average length: {avg_len}')
 
     return outputs
 
