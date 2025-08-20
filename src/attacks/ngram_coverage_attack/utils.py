@@ -1,13 +1,30 @@
 """
-Utilities for text processing and chunking in the n-gram coverage attack.
+Utilities for text processing and similarity computation in the n-gram coverage attack.
 
-This module provides functions for extracting specific portions of text based on
-sentence boundaries while preserving the original formatting (newlines).
+This module provides two main categories of functionality:
 
-Requirements:
-    Before using this module, you must download the NLTK punkt tokenizer:
-    >>> import nltk
-    >>> nltk.download('punkt')
+1. Text Processing (for generation in step 1):
+   - Sentence-based text extraction with formatting preservation
+   - Newline tracking for text reconstruction
+   - Prompt generation from text snippets
+
+2. Similarity Computation (for n-gram coverage computation in step 2):
+   - Longest common substring computation (character-level)
+   - Longest common subsequence computation (token-level)
+   - Dynamic programming algorithms for efficient text similarity
+   - Multiprocessing wrappers for large-scale analysis
+
+Dependencies:
+    - NLTK punkt tokenizer: nltk.download('punkt')
+    - pylcs library for efficient longest common substring computation
+
+Usage:
+    Text extraction for prompt generation:
+    >>> prompt, rest = extract_chunk_sentence(text, start_idx=0, num_sentences=2)
+    
+    Similarity computation:
+    >>> max_length = find_max_common_sublist_length(tokens_a, tokens_b)
+    >>> substring_len = longest_substring(text, source_docs)
 """
 
 from nltk import sent_tokenize
