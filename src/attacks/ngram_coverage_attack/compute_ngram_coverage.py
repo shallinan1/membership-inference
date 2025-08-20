@@ -51,14 +51,12 @@ class Document:
     doc_id: str
     tokens: List[str]  # [num_tokens]
 
-
 @dataclass
 class Span:
     start_index: int
     end_index: int
     span_text: str
     occurrence: int
-
 
 class Hypothesis:
     def __init__(self, target_doc: Document, min_ngram: int) -> None:
@@ -221,9 +219,6 @@ def process_single_doc(t_idx, all_gens, min_ngram, source_docs):
 
     return outputs
 
-# def process_single_doc_star(args):
-#     return process_single_doc(*args)
-
 def dj_search(generation_texts_list: List[List[str]],
               source_docs, 
               min_ngram: int, 
@@ -253,7 +248,6 @@ def dj_search(generation_texts_list: List[List[str]],
 
         with Pool(num_cpus) as pool:
             all_outputs = list(pool.starmap(process_single_doc, tqdm(combinations, total=len(combinations), position=0)))
-            # all_outputs = list(tqdm(pool.imap(process_single_doc_star, combinations), total=len(combinations), desc="Processing in parallel", position=0)) # This was slower
 
     else:
         print("Launching search iteratively")
@@ -319,37 +313,13 @@ def main(args):
                 source_docs.append(Dataset.from_dict({"text": all_book_snippets_cleaned}))
 
             args.output_file = args.output_file.replace(".jsonl", "_alldoc.jsonl")
-    elif args.task == "tulu_v1":
-        assert args.source_docs is None
-        source_docs = [Dataset.from_dict({"text": [unidecode(g["snippet_no_prompt"])]}) for g in generations]
-        args.output_file = args.output_file.replace(".jsonl", "_onedoc.jsonl")
-        print(args.output_file)
-    
-    elif args.task == "pile_external":
+    else:
         assert args.source_docs is None
         source_docs = [Dataset.from_dict({"text": [unidecode(g["snippet_no_prompt"])]}) for g in generations]
         args.output_file = args.output_file.replace(".jsonl", "_onedoc.jsonl")
         print(args.output_file)
 
-    elif "wikiMIA" in args.task:
-        assert args.source_docs is None
-        source_docs = [Dataset.from_dict({"text": [unidecode(g["snippet_no_prompt"])]}) for g in generations]
-        args.output_file = args.output_file.replace(".jsonl", "_onedoc.jsonl")
-        print(args.output_file)
-
-    elif args.task == "dolma_v17":
-        assert args.source_docs is None
-        source_docs = [Dataset.from_dict({"text": [unidecode(g["snippet_no_prompt"])]}) for g in generations]
-        args.output_file = args.output_file.replace(".jsonl", "_onedoc.jsonl")
-        print(args.output_file)
-
-    elif args.task == "articles":
-        assert args.source_docs is None
-        source_docs = [Dataset.from_dict({"text": [unidecode(g["snippet_no_prompt"])]}) for g in generations]
-        args.output_file = args.output_file.replace(".jsonl", "_onedoc.jsonl")
-        print(args.output_file)
-
-    num_workers = min(cpu_count(), 4) if args.parallel else 1 # Set to 16 since it will get killed with too many cpus
+    num_workers = min(cpu_count(), 4) if args.parallel else 1 # Set to 4 since it will get killed with too many cpus
     all_outputs = dj_search(generation_texts, source_docs, args.min_ngram, args.subset, num_workers)
 
     execution_time = time.time() - start_time
