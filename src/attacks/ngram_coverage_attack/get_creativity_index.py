@@ -5,9 +5,10 @@ This module implements the creativity index computation component of the N-Gram 
 Attack method for membership inference attacks against language models.
 
 The module processes coverage analysis results by computing creativity indices across
-multiple n-gram ranges and normalizes coverage statistics for comparative analysis.
-It extends the n-gram coverage computation with weighted metrics that account for
-varying n-gram lengths and unique span detection.
+multiple n-gram ranges. Note: This implementation computes creativity as the sum of coverage
+values (not 1-coverage for all coverages), meaning HIGHER values indicate MORE copying from source text.
+This consistent directionality is intentional: higher coverage values indicate a higher likelihood of membership, 
+which is the standard convention in membership inference attacks (MIA).
 
 Pipeline:
     1. Load coverage analysis results from JSONL file (output of compute_ngram_coverage.py)
@@ -111,12 +112,13 @@ def compute_ci_statistic(
     unique_coverages: bool = False
 ) -> List[Dict[str, float]]:
     """
-    Compute creativity index statistics by summing coverage across n-gram ranges.
-    
     The creativity index is calculated by summing n-gram coverage scores across
     a range from min_ngram to max_ngram. Higher coverage indicates more copying
     from source text, while lower coverage suggests more creative generation.
-    
+
+    This function computes a modified creativity index statistic by summing coverage across n-gram ranges.
+    This is to ensure that higher values correspond to more copying from a source text (needed to maintain consistency with other attacks).
+
     Args:
         outputs: List of generation outputs with 'text' and 'matched_spans' fields
         min_ngram: Starting n-gram size for creativity index calculation
@@ -126,9 +128,9 @@ def compute_ci_statistic(
         
     Returns:
         List of dictionaries containing creativity indices:
-        - creativities_gen_length: Sum of coverage relative to generated text lengths
-        - creativities_ref_length: Sum of coverage relative to reference text lengths
-        - creativities_total_length: Sum of harmonic mean coverages
+        - creativities_gen_length: Sum of coverage relative to generated text lengths (higher = more copying)
+        - creativities_ref_length: Sum of coverage relative to reference text lengths (higher = more copying)
+        - creativities_total_length: Sum of harmonic mean coverages (higher = more copying)
     """
     total_coverages = []
     ngram_list = list(range(min_ngram, max_ngram + 1))
@@ -147,7 +149,7 @@ def main(args: argparse.Namespace) -> None:
     Main function to compute creativity indices from n-gram coverage analysis.
     
     Loads coverage analysis results, computes additional coverage metrics with
-    unique span filtering, calculates creativity indices across n-gram ranges,
+    unique span filtering, calculates modified creativity indices across n-gram ranges,
     and saves enriched results to JSONL format.
     
     Args:
@@ -193,7 +195,10 @@ def main(args: argparse.Namespace) -> None:
     save_to_jsonl(data, output_file)
 
 if __name__ == "__main__":
-    parser = argparse.ArgumentParser(description="Compute creativity indices from n-gram coverage analysis results for membership inference attack evaluation.")
+    parser = argparse.ArgumentParser(
+        description="Compute modified creativity indices from n-gram coverage analysis results for "
+                   "membership inference attack evaluation."
+    )
     parser.add_argument("--coverage_path", type=str, help="Path to the input JSONL file.")
     parser.add_argument("--output_dir", type=str, default = "experiments/ours/outputs/bookMIA/cis/")
     parser.add_argument("--min_ngram", type=int, default=LOW_CI_BOUND, help="Minimum n-gram for coverage calculation.")
