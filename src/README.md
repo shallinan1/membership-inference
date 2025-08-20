@@ -50,7 +50,7 @@ Generations will be stored in the `code/experiments/ours/[dataset]/generations/[
 3. Get creativity index from coverages
 
     ```
-    python3 -m code.experiments.ours.get_creativity_index \
+    python3 -m code.experiments.ours.compute_creativity_index \
     --coverage_path /gscratch/xlab/hallisky/membership-inference/outputs/ours/tulu_v1/coverages/val/tulu-7b-finalized_maxTok512_minTok0_numSeq20_topP0.95_temp1.0_numSent1_startSent-1_numWord-1_startWord-1_useSentF_promptIdx0_len92_2025-02-17-19:30:08_2_onedoc.jsonl \
     --output_dir  /gscratch/xlab/hallisky/membership-inference/outputs/ours/tulu_v1/creativities/val/ \
     --min_ngram 2 \

@@ -69,7 +69,7 @@ Coverages will be stored in `outputs/ours/{task}/coverages/{split}/`
 ### 3. Calculate Creativity Indices
 
 ```bash
-python -m src.attacks.ngram_coverage_attack.get_creativity_index \
+python -m src.attacks.ngram_coverage_attack.compute_creativity_index \
     --coverage_path outputs/ours/bookMIA/coverages/train/MODEL_FILE_4.jsonl \
     --output_dir outputs/ours/bookMIA/creativities/train/ \
     --min_ngram 2 \
@@ -107,7 +107,7 @@ Final outputs contain:
 
 - `generate.py`: Text generation using OpenAI API or vLLM models
 - `compute_ngram_coverage.py`: N-gram matching and coverage analysis
-- `get_creativity_index.py`: Creativity score computation from coverage stats
+- `compute_creativity_index.py`: Creativity score computation from coverage stats
 - `run_scores.py`: Evaluation metrics and ROC analysis
 - `utils.py`: Text processing utilities and sentence extraction
 

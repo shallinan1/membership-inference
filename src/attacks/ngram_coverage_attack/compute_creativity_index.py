@@ -34,7 +34,7 @@ Hardcoded Configuration:
     - Output naming: Appends "_CI{min_ngram}-{max_ngram}" suffix to input filename
 
 Usage:
-    python -m src.attacks.ngram_coverage_attack.get_creativity_index \
+    python -m src.attacks.ngram_coverage_attack.compute_creativity_index \
         --coverage_path PATH_TO_COVERAGE.jsonl \
         --output_dir OUTPUT_DIRECTORY \
         --min_ngram 1 \

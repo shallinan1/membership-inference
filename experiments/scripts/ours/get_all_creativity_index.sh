@@ -16,7 +16,7 @@ for file_path in "$DIRECTORY"*.jsonl; do
     output_file="${OUTPUT_DIR}${filename}_CI${MIN_NGRAM}-${MAX_NGRAM}.jsonl"
 
     if [ ! -f "$output_file" ]; then
-        cmd="python3 -m code.experiments.ours.get_creativity_index \
+        cmd="python3 -m code.experiments.ours.compute_creativity_index \
             --coverage_path $file_path \
             --output_dir $OUTPUT_DIR \
             --min_ngram $MIN_NGRAM \
