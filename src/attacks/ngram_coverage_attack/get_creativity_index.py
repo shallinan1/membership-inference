@@ -42,6 +42,7 @@ from nltk.tokenize.casual import casual_tokenize
 import os
 from tqdm import tqdm
 import argparse
+from typing import List, Dict, Any
 from src.utils.io_utils import load_jsonl, save_to_jsonl
 import nltk
 
@@ -53,7 +54,13 @@ HIGH_CI_BOUND=12
 tokenize_func = lambda x: nltk.tokenize.casual.casual_tokenize(x)
 
 # TODO checking for subsets too
-def get_ngram_coverage(text, spans, min_gram, ref_length, unique_coverages=False):
+def get_ngram_coverage(
+    text: str, 
+    spans: List[Dict[str, Any]], 
+    min_gram: int, 
+    ref_length: int, 
+    unique_coverages: bool = False
+) -> Dict[str, float]:
     tokens = casual_tokenize(unidecode(text))
     flags = [False for _ in tokens]
     seen = set()
@@ -80,7 +87,13 @@ def get_ngram_coverage(text, spans, min_gram, ref_length, unique_coverages=False
         "coverages_total_length": coverage_total
         }
 
-def compute_ci_statistic(outputs, min_ngram, max_ngram, ref_length, unique_coverages=False):
+def compute_ci_statistic(
+    outputs: List[Dict[str, Any]], 
+    min_ngram: int, 
+    max_ngram: int, 
+    ref_length: int, 
+    unique_coverages: bool = False
+) -> List[Dict[str, float]]:
     total_coverages = []
     ngram_list = list(range(min_ngram, max_ngram + 1))
     for output in outputs:
@@ -93,7 +106,7 @@ def compute_ci_statistic(outputs, min_ngram, max_ngram, ref_length, unique_cover
 
     return total_coverages
 
-def main(args):
+def main(args: argparse.Namespace) -> None:
     data = load_jsonl(args.coverage_path)
     CREATIVITY_CONSTANT = args.max_ngram - args.min_ngram + 1
     os.makedirs(args.output_dir, exist_ok=True)
@@ -133,7 +146,7 @@ def main(args):
     save_to_jsonl(data, output_file)
 
 if __name__ == "__main__":
-    parser = argparse.ArgumentParser(description="Process JSONL file and compute statistics.")
+    parser = argparse.ArgumentParser(description="Compute creativity indices from n-gram coverage analysis results for membership inference attack evaluation.")
     parser.add_argument("--coverage_path", type=str, help="Path to the input JSONL file.")
     parser.add_argument("--output_dir", type=str, default = "experiments/ours/outputs/bookMIA/cis/")
     parser.add_argument("--min_ngram", type=int, default=LOW_CI_BOUND, help="Minimum n-gram for coverage calculation.")
