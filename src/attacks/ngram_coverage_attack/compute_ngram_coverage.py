@@ -36,7 +36,6 @@ Dependencies:
 
 Usage:
     python -m src.attacks.ngram_coverage_attack.compute_ngram_coverage \\
-        --task TASK_NAME \\
         --gen_data PATH_TO_GENERATIONS.jsonl \\
         --output_dir OUTPUT_DIRECTORY \\
         --min_ngram 3 \\
@@ -44,6 +43,7 @@ Usage:
         [--generation_field "generation"] \\
         [--parallel]
 """
+# TODO figure out better way to save this instead of one_doc.jsonl
 import os
 from dotenv import load_dotenv
 
@@ -379,7 +379,7 @@ def main(args: argparse.Namespace) -> None:
     generation_texts_length_chars = [[len(g) for g in g_list] for g_list in generation_texts]
     generation_texts_length_words = [[len(g) for g in g_list] for g_list in generation_texts_word_tokenized]
 
-    if num_workers > 1:
+    if num_workers > 1: # Multi-processing
         combinations_substring = [(g_list, source["text"]) for g_list, source in zip(generation_texts, source_docs)]
         with Pool(num_workers) as pool:
             longest_substring_chars = list(pool.starmap(process_single_substring_pair, tqdm(combinations_substring, total=len(combinations_substring), desc="maximum substring", position=0))) 
@@ -388,7 +388,7 @@ def main(args: argparse.Namespace) -> None:
 
         with Pool(num_workers) as pool:
             longest_sublist_words = list(pool.starmap(process_single_sublist_pair, tqdm(combinations_sublist,total=len(combinations_sublist), desc="maximum sublist", position=0)))
-    else:
+    else: # Single thread
         # TODO check this
         longest_substring_chars = [[longest_substring(g,source["text"]) for g in g_list] for g_list,source in tqdm(zip(generation_texts, source_docs))]
         longest_sublist_words = [[longest_sublist(g, source_doc_word_tokenized) for g in g_list_tokenized] 
@@ -407,13 +407,10 @@ def main(args: argparse.Namespace) -> None:
             cur_generation[field_name] = value
 
     save_to_jsonl(generations, args.output_file)
-
     # TODO use num_sequences to potentially unmerge these and get stats wrt each prompt
     
 if __name__ == '__main__':
     parser = argparse.ArgumentParser(description="N-gram coverage attack tool for analyzing text generation and detecting potential membership inference vulnerabilities by comparing generated texts against source documents using exact n-gram matching and longest common subsequence analysis.")
-    parser.add_argument('--task', type=str, default='bookMIA',
-                        help="Type of corpus to analyze (bookMIA, tulu_v1, pile_external, wikiMIA, dolma_v17, articles). Determines how source documents are loaded and processed.")
     parser.add_argument('--gen_data', type=str, required=True,
                         help="Path to JSONL file containing generated text data to analyze for potential membership inference vulnerabilities")
     parser.add_argument('--output_dir', type=str, required=True,
