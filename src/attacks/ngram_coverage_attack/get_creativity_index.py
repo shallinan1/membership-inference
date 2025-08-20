@@ -33,7 +33,7 @@ Usage:
     python -m src.attacks.ngram_coverage_attack.get_creativity_index \
         --coverage_path PATH_TO_COVERAGE.jsonl \
         --output_dir OUTPUT_DIRECTORY \
-        --min_ngram 2 \
+        --min_ngram 1 \
         --max_ngram 12
 """
 
@@ -47,10 +47,13 @@ import argparse
 from src.utils.io_utils import load_jsonl, save_to_jsonl
 import re
 import nltk
-tokenize_func = lambda x: nltk.tokenize.casual.casual_tokenize(x)
 
+# Define constants for the argparser
 LOW_CI_BOUND=2
 HIGH_CI_BOUND=12
+
+# Define global tokenization function
+tokenize_func = lambda x: nltk.tokenize.casual.casual_tokenize(x)
 
 # TODO checking for subsets too
 def get_ngram_coverage(text, spans, min_gram, ref_length, unique_coverages=False):
