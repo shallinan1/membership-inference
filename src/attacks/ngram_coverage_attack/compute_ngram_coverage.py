@@ -24,7 +24,7 @@ Outputs:
     - Length metrics (character and word counts)
     - Longest common substring/subsequence lengths
 
-Configuration:
+Hardcoded Configuration:
     - Tokenization: NLTK casual tokenizer for word-level processing
     - Detokenization: Moses detokenizer for English text reconstruction
     - Parallel processing: Configurable worker count (default max 4 CPUs)
@@ -302,7 +302,6 @@ def dj_search(generation_texts_list: List[List[str]],
     if num_cpus > 1:
         combinations = [(t_idx, all_gens, min_ngram, source_docs) for t_idx, all_gens in enumerate(data)]
         logger.info(f"Launching search in parallel with {num_cpus} on {len(combinations)} inputs")
-
         with Pool(num_cpus) as pool:
             all_outputs = list(pool.starmap(process_single_doc, tqdm(combinations, total=len(combinations), position=0)))
     else:
@@ -357,6 +356,7 @@ def main(args: argparse.Namespace) -> None:
     logger.info(f"Output file: {args.output_file}")
 
     num_workers = min(cpu_count(), 4) if args.parallel else 1 # Set to 4 since it will get killed with too many cpus
+    # Run the n-gram coverage computation
     all_outputs = dj_search(generation_texts, source_docs, args.min_ngram, args.subset, num_workers)
 
     execution_time = time.time() - start_time
@@ -384,7 +384,6 @@ def main(args: argparse.Namespace) -> None:
         with Pool(num_workers) as pool:
             longest_sublist_words = list(pool.starmap(process_single_sublist_pair, tqdm(combinations_sublist,total=len(combinations_sublist), desc="maximum sublist", position=0)))
     else: # Single thread
-        # TODO check this
         longest_substring_chars = [[longest_substring(g,source["text"]) for g in g_list] for g_list,source in tqdm(zip(generation_texts, source_docs))]
         longest_sublist_words = [[longest_sublist(g, source_doc_word_tokenized) for g in g_list_tokenized] 
                                  for g_list_tokenized, source_doc_word_tokenized in tqdm(zip(generation_texts_word_tokenized, source_docs_word_tokenized))]
