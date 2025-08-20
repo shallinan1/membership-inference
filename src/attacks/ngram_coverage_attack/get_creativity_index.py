@@ -12,17 +12,20 @@ which is the standard convention in membership inference attacks (MIA).
 
 Pipeline:
     1. Load coverage analysis results from JSONL file (output of compute_ngram_coverage.py)
-    2. Compute additional coverage metrics with unique span filtering
-    3. Calculate creativity indices by summing coverage across n-gram ranges
-    4. Generate both standard and unique-span versions of all metrics
-    5. Save enriched results with creativity statistics for downstream analysis
+    2. Compute additional coverage metrics in two variants:
+       - Standard: All matching spans counted (including duplicates)
+       - Unique: Each unique span text counted only once per generation
+    3. Calculate modified creativity indices by summing coverage across n-gram ranges for both variants
+    4. Save enriched results with both standard and unique-filtered metrics
 
 Outputs:
     JSONL file containing:
     - Original coverage data from previous pipeline stage
     - Additional coverage metrics (gen_length, ref_length, total_length variants)
     - Creativity indices across configurable n-gram ranges
-    - Both standard and unique-span filtered versions of all metrics
+    - All metrics provided in two variants:
+      * Standard fields: "coverages_*", "creativities_*" (all matching spans)
+      * Unique fields: "coverages_*_unique", "creativities_*_unique" (deduplicated spans)
 
 Hardcoded Configuration:
     - Default n-gram bounds: LOW_CI_BOUND=2, HIGH_CI_BOUND=12 for creativity index calculation
@@ -70,7 +73,7 @@ def get_ngram_coverage(
         spans: List of matched span dictionaries with start_index, end_index, and span_text
         min_gram: Minimum n-gram length to consider for coverage calculation
         ref_length: Reference text length for normalization
-        unique_coverages: If True, only count unique spans once
+        unique_coverages: If True, each unique span text is counted only once (deduplication)
         
     Returns:
         Dictionary containing coverage percentages:
@@ -104,7 +107,7 @@ def get_ngram_coverage(
         "coverages_total_length": coverage_total
         }
 
-def compute_ci_statistic(
+def compute_modified_creativity_index(
     outputs: List[Dict[str, Any]], 
     min_ngram: int, 
     max_ngram: int, 
@@ -157,7 +160,6 @@ def main(args: argparse.Namespace) -> None:
               min_ngram, and max_ngram parameters
     """
     data = load_jsonl(args.coverage_path)
-    CREATIVITY_CONSTANT = args.max_ngram - args.min_ngram + 1
     os.makedirs(args.output_dir, exist_ok=True)
 
     for cur_data in tqdm(data, desc="Adding more coverages"):
@@ -183,9 +185,8 @@ def main(args: argparse.Namespace) -> None:
     
     for cur_data in tqdm(data, desc = "Iterating through original data"):
         length_ref = len(tokenize_func(unidecode(cur_data["snippet_no_prompt"])))
-        cur_creativity = compute_ci_statistic(cur_data["coverage"], args.min_ngram, args.max_ngram, length_ref, unique_coverages=False)
-        cur_creativity_unique = compute_ci_statistic(cur_data["coverage"], args.min_ngram, args.max_ngram, length_ref, unique_coverages=True)
-        # cur_data["creativity"] = [CREATIVITY_CONSTANT - c for c in cur_creativity]
+        cur_creativity = compute_modified_creativity_index(cur_data["coverage"], args.min_ngram, args.max_ngram, length_ref, unique_coverages=False)
+        cur_creativity_unique = compute_modified_creativity_index(cur_data["coverage"], args.min_ngram, args.max_ngram, length_ref, unique_coverages=True)
         
         for creativity_key in ["creativities_gen_length", "creativities_ref_length", "creativities_total_length"]:
             cur_data[creativity_key] = [c[creativity_key] for c in cur_creativity]
@@ -199,10 +200,30 @@ if __name__ == "__main__":
         description="Compute modified creativity indices from n-gram coverage analysis results for "
                    "membership inference attack evaluation."
     )
-    parser.add_argument("--coverage_path", type=str, help="Path to the input JSONL file.")
-    parser.add_argument("--output_dir", type=str, default = "experiments/ours/outputs/bookMIA/cis/")
-    parser.add_argument("--min_ngram", type=int, default=LOW_CI_BOUND, help="Minimum n-gram for coverage calculation.")
-    parser.add_argument("--max_ngram", type=int, default=HIGH_CI_BOUND, help="Maximum n-gram for coverage calculation.")
+    parser.add_argument(
+        "--coverage_path", 
+        type=str, 
+        required=True,
+        help="Path to the input JSONL file containing coverage analysis results from compute_ngram_coverage.py"
+    )
+    parser.add_argument(
+        "--output_dir", 
+        type=str, 
+        default="experiments/ours/outputs/bookMIA/cis/",
+        help="Directory where creativity index results will be saved (default: %(default)s)"
+    )
+    parser.add_argument(
+        "--min_ngram", 
+        type=int, 
+        default=LOW_CI_BOUND,
+        help="Minimum n-gram size for creativity index calculation (default: %(default)s)"
+    )
+    parser.add_argument(
+        "--max_ngram", 
+        type=int, 
+        default=HIGH_CI_BOUND,
+        help="Maximum n-gram size for creativity index calculation (default: %(default)s)"
+    )
     
     args = parser.parse_args()
     main(args)
