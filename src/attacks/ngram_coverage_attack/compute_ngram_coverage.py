@@ -52,6 +52,7 @@ os.environ["HF_DATASETS_PATH"] = CACHE_PATH
 import nltk
 import json
 import argparse
+from src.utils.io_utils import save_to_jsonl
 import numpy as np
 from tqdm import tqdm
 from typing import Callable
@@ -341,15 +342,19 @@ def main(args):
         longest_sublist_words = [[longest_sublist(g, source_doc_word_tokenized) for g in g_list_tokenized] 
                                  for g_list_tokenized, source_doc_word_tokenized in tqdm(zip(generation_texts_word_tokenized, source_docs_word_tokenized))]
 
-    for cur_generation, gen_text_length_char, gen_text_length_word, longest_substring_char, longest_sublist_word in zip(generations, generation_texts_length_chars, generation_texts_length_words, longest_substring_chars, longest_sublist_words):
-        cur_generation["gen_text_length_char"] = gen_text_length_char
-        cur_generation["gen_text_length_word"] = gen_text_length_word
-        cur_generation["longest_substring_char"] = longest_substring_char
-        cur_generation["longest_sublist_word"] = longest_sublist_word
+    # Add computed metrics to each generation entry
+    metrics = {
+        "gen_text_length_char": generation_texts_length_chars,
+        "gen_text_length_word": generation_texts_length_words,
+        "longest_substring_char": longest_substring_chars,
+        "longest_sublist_word": longest_sublist_words
+    }
+    
+    for cur_generation, *metric_values in zip(generations, *metrics.values()):
+        for field_name, value in zip(metrics.keys(), metric_values):
+            cur_generation[field_name] = value
 
-    with open(args.output_file, 'w') as f:
-        json.dump(generations, f, indent=4)
-        f.flush()
+    save_to_jsonl(generations, args.output_file)
 
     # TODO use num_sequences to potentially unmerge these and get stats wrt each prompt
     
