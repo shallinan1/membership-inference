@@ -13,10 +13,10 @@ which is the standard convention in membership inference attacks (MIA).
 Pipeline:
     1. Load coverage analysis results from JSONL file (output of compute_ngram_coverage.py)
     2. Compute additional coverage metrics in two variants:
-       - Standard: All matching spans counted (including duplicates)
-       - Unique: Each unique span text counted only once per generation
+       - Standard: All matching spans counted (including overlapping/duplicate spans)
+       - Unique: Each unique span text counted only once per generation (deduplicated by text content)
     3. Calculate modified creativity indices by summing coverage across n-gram ranges for both variants
-    4. Save enriched results with both standard and unique-filtered metrics
+    4. Save enriched results with both standard and unique-filtered metrics to JSONL
 
 Outputs:
     JSONL file containing:
@@ -48,14 +48,13 @@ from tqdm import tqdm
 import argparse
 from typing import List, Dict, Any
 from src.utils.io_utils import load_jsonl, save_to_jsonl
-import nltk
 
 # Define constants for the argparser
-LOW_CI_BOUND=2
-HIGH_CI_BOUND=12
+LOW_CI_BOUND: int = 2
+HIGH_CI_BOUND: int = 12
 
 # Define global tokenization function
-tokenize_func = lambda x: nltk.tokenize.casual.casual_tokenize(x)
+tokenize_func = lambda x: nltk.casual_tokenize(x)
 
 # TODO checking for subsets too
 def get_ngram_coverage(
@@ -162,6 +161,7 @@ def main(args: argparse.Namespace) -> None:
     data = load_jsonl(args.coverage_path)
     os.makedirs(args.output_dir, exist_ok=True)
 
+    # Compute the coverages
     for cur_data in tqdm(data, desc="Adding more coverages"):
         length_ref = len(tokenize_func(unidecode(cur_data["snippet_no_prompt"])))
         cur_coverages = []
@@ -183,6 +183,7 @@ def main(args: argparse.Namespace) -> None:
             cur_data[coverage_key] = [c[coverage_key] for c in cur_coverages]
             cur_data[coverage_key + "_unique"] = [c[coverage_key] for c in cur_coverages_unique]
     
+    # Compute the modified creativity indices
     for cur_data in tqdm(data, desc = "Iterating through original data"):
         length_ref = len(tokenize_func(unidecode(cur_data["snippet_no_prompt"])))
         cur_creativity = compute_modified_creativity_index(cur_data["coverage"], args.min_ngram, args.max_ngram, length_ref, unique_coverages=False)
@@ -192,6 +193,7 @@ def main(args: argparse.Namespace) -> None:
             cur_data[creativity_key] = [c[creativity_key] for c in cur_creativity]
             cur_data[creativity_key + "_unique"] = [c[creativity_key] for c in cur_creativity_unique]
 
+    # Save the outputs
     output_file = os.path.join(args.output_dir, os.path.basename(args.coverage_path).replace('.jsonl', f"_CI{args.min_ngram}-{args.max_ngram}.jsonl"))
     save_to_jsonl(data, output_file)
 
