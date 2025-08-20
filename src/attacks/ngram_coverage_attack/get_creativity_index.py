@@ -39,13 +39,10 @@ Usage:
 
 from unidecode import unidecode
 from nltk.tokenize.casual import casual_tokenize
-import numpy as np
 import os
-import json
 from tqdm import tqdm
 import argparse
 from src.utils.io_utils import load_jsonl, save_to_jsonl
-import re
 import nltk
 
 # Define constants for the argparser
@@ -88,8 +85,8 @@ def compute_ci_statistic(outputs, min_ngram, max_ngram, ref_length, unique_cover
     ngram_list = list(range(min_ngram, max_ngram + 1))
     for output in outputs:
         coverages = []
-        for min_ngram in ngram_list:
-            coverage_dict = get_ngram_coverage(output['text'], output['matched_spans'], min_ngram, ref_length, unique_coverages)
+        for cur_ngram in ngram_list:
+            coverage_dict = get_ngram_coverage(output['text'], output['matched_spans'], cur_ngram, ref_length, unique_coverages)
             coverages.append(coverage_dict)
 
         total_coverages.append({key.replace("coverages", "creativities"): sum(d[key] for d in coverages) for key in coverages[0]})
