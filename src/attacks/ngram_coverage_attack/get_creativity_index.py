@@ -61,6 +61,22 @@ def get_ngram_coverage(
     ref_length: int, 
     unique_coverages: bool = False
 ) -> Dict[str, float]:
+    """
+    Compute n-gram coverage statistics for a given text and its matched spans.
+    
+    Args:
+        text: The generated text to analyze
+        spans: List of matched span dictionaries with start_index, end_index, and span_text
+        min_gram: Minimum n-gram length to consider for coverage calculation
+        ref_length: Reference text length for normalization
+        unique_coverages: If True, only count unique spans once
+        
+    Returns:
+        Dictionary containing coverage percentages:
+        - coverages_gen_length: Coverage relative to generated text length
+        - coverages_ref_length: Coverage relative to reference text length  
+        - coverages_total_length: Harmonic mean of generated and reference lengths
+    """
     tokens = casual_tokenize(unidecode(text))
     flags = [False for _ in tokens]
     seen = set()
@@ -94,6 +110,26 @@ def compute_ci_statistic(
     ref_length: int, 
     unique_coverages: bool = False
 ) -> List[Dict[str, float]]:
+    """
+    Compute creativity index statistics by summing coverage across n-gram ranges.
+    
+    The creativity index is calculated by summing n-gram coverage scores across
+    a range from min_ngram to max_ngram. Higher coverage indicates more copying
+    from source text, while lower coverage suggests more creative generation.
+    
+    Args:
+        outputs: List of generation outputs with 'text' and 'matched_spans' fields
+        min_ngram: Starting n-gram size for creativity index calculation
+        max_ngram: Ending n-gram size for creativity index calculation
+        ref_length: Reference text length for coverage normalization
+        unique_coverages: If True, only count unique spans once
+        
+    Returns:
+        List of dictionaries containing creativity indices:
+        - creativities_gen_length: Sum of coverage relative to generated text lengths
+        - creativities_ref_length: Sum of coverage relative to reference text lengths
+        - creativities_total_length: Sum of harmonic mean coverages
+    """
     total_coverages = []
     ngram_list = list(range(min_ngram, max_ngram + 1))
     for output in outputs:
@@ -107,6 +143,17 @@ def compute_ci_statistic(
     return total_coverages
 
 def main(args: argparse.Namespace) -> None:
+    """
+    Main function to compute creativity indices from n-gram coverage analysis.
+    
+    Loads coverage analysis results, computes additional coverage metrics with
+    unique span filtering, calculates creativity indices across n-gram ranges,
+    and saves enriched results to JSONL format.
+    
+    Args:
+        args: Command-line arguments containing coverage_path, output_dir,
+              min_ngram, and max_ngram parameters
+    """
     data = load_jsonl(args.coverage_path)
     CREATIVITY_CONSTANT = args.max_ngram - args.min_ngram + 1
     os.makedirs(args.output_dir, exist_ok=True)
