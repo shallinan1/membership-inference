@@ -44,7 +44,6 @@ Usage:
         [--generation_field "generation"] \\
         [--parallel]
 """
-
 import os
 from dotenv import load_dotenv
 
@@ -72,7 +71,11 @@ from datasets.utils.logging import disable_progress_bar
 from typing import List
 from multiprocessing import Pool, cpu_count
 import time
+import logging
 from pylcs import lcs_string_length
+
+logging.basicConfig(level=logging.INFO)
+logger = logging.getLogger(__name__)
 
 datasets.logging.set_verbosity_error()
 disable_progress_bar() # Disable filter progress bar
@@ -402,13 +405,12 @@ def dj_search(generation_texts_list: List[List[str]],
 
     if num_cpus > 1:
         combinations = [(t_idx, all_gens, min_ngram, source_docs) for t_idx, all_gens in enumerate(data)]
-        print(f"Launching search in parallel with {num_cpus} on {len(combinations)} inputs")
+        logger.info(f"Launching search in parallel with {num_cpus} on {len(combinations)} inputs")
 
         with Pool(num_cpus) as pool:
             all_outputs = list(pool.starmap(process_single_doc, tqdm(combinations, total=len(combinations), position=0)))
-
     else:
-        print("Launching search iteratively")
+        logger.info("Launching search iteratively")
         for t_idx, all_gens in tqdm(enumerate(data), desc='target gens', total=len(data)):         
             outputs = process_single_doc(t_idx, all_gens, min_ngram, source_docs)
             all_outputs.append(outputs)
@@ -456,14 +458,14 @@ def main(args: argparse.Namespace) -> None:
     # We only use the original snippet for the source docs, but we could use more documents as well (need to modify source_docs to do so)
     source_docs = [Dataset.from_dict({"text": [unidecode(g["snippet_no_prompt"])]}) for g in generations]
     args.output_file = args.output_file.replace(".jsonl", "_onedoc.jsonl")
-    print(args.output_file)
+    logger.info(f"Output file: {args.output_file}")
 
     num_workers = min(cpu_count(), 4) if args.parallel else 1 # Set to 4 since it will get killed with too many cpus
     all_outputs = dj_search(generation_texts, source_docs, args.min_ngram, args.subset, num_workers)
 
     execution_time = time.time() - start_time
     minutes, seconds = int(execution_time // 60), int(execution_time % 60)
-    print(f"Program executed in {minutes}:{seconds} ({execution_time:.4f} seconds)")
+    logger.info(f"Program executed in {minutes}:{seconds:02d} ({execution_time:.4f} seconds)")
 
     assert len(all_outputs) == len(generations)
     for cur_generation, cur_all_output in zip(generations, all_outputs):
