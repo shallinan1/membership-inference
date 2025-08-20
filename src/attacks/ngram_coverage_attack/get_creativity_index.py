@@ -1,16 +1,53 @@
+"""
+Creativity Index Computation for N-Gram Coverage Attack
+
+This module implements the creativity index computation component of the N-Gram Coverage 
+Attack method for membership inference attacks against language models.
+
+The module processes coverage analysis results by computing creativity indices across
+multiple n-gram ranges and normalizes coverage statistics for comparative analysis.
+It extends the n-gram coverage computation with weighted metrics that account for
+varying n-gram lengths and unique span detection.
+
+Pipeline:
+    1. Load coverage analysis results from JSONL file (output of compute_ngram_coverage.py)
+    2. Compute additional coverage metrics with unique span filtering
+    3. Calculate creativity indices by summing coverage across n-gram ranges
+    4. Generate both standard and unique-span versions of all metrics
+    5. Save enriched results with creativity statistics for downstream analysis
+
+Outputs:
+    JSONL file containing:
+    - Original coverage data from previous pipeline stage
+    - Additional coverage metrics (gen_length, ref_length, total_length variants)
+    - Creativity indices across configurable n-gram ranges
+    - Both standard and unique-span filtered versions of all metrics
+
+Hardcoded Configuration:
+    - Default n-gram bounds: LOW_CI_BOUND=2, HIGH_CI_BOUND=12 for creativity index calculation
+    - Tokenization: NLTK casual tokenizer for word-level processing
+    - Min-gram filtering: Uses min_gram=1 for comprehensive coverage in additional metrics
+    - Output naming: Appends "_CI{min_ngram}-{max_ngram}" suffix to input filename
+
+Usage:
+    python -m src.attacks.ngram_coverage_attack.get_creativity_index \
+        --coverage_path PATH_TO_COVERAGE.jsonl \
+        --output_dir OUTPUT_DIRECTORY \
+        --min_ngram 2 \
+        --max_ngram 12
+"""
+
 from unidecode import unidecode
 from nltk.tokenize.casual import casual_tokenize
 import numpy as np
 import os
 import json
 from tqdm import tqdm
-from IPython import embed
 import argparse
-from code.utils import load_json
+from src.utils.io_utils import load_jsonl, save_to_jsonl
 import re
 import nltk
 tokenize_func = lambda x: nltk.tokenize.casual.casual_tokenize(x)
-from unidecode import unidecode
 
 LOW_CI_BOUND=2
 HIGH_CI_BOUND=12
@@ -57,7 +94,7 @@ def compute_ci_statistic(outputs, min_ngram, max_ngram, ref_length, unique_cover
     return total_coverages
 
 def main(args):
-    data = load_json(args.coverage_path)
+    data = load_jsonl(args.coverage_path)
     CREATIVITY_CONSTANT = args.max_ngram - args.min_ngram + 1
     os.makedirs(args.output_dir, exist_ok=True)
 
@@ -93,9 +130,7 @@ def main(args):
             cur_data[creativity_key + "_unique"] = [c[creativity_key] for c in cur_creativity_unique]
 
     output_file = os.path.join(args.output_dir, os.path.basename(args.coverage_path).replace('.jsonl', f"_CI{args.min_ngram}-{args.max_ngram}.jsonl"))
-    with open(output_file, 'w') as f:
-        json.dump(data, f, indent=4)
-        f.flush()
+    save_to_jsonl(data, output_file)
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="Process JSONL file and compute statistics.")
@@ -106,11 +141,3 @@ if __name__ == "__main__":
     
     args = parser.parse_args()
     main(args)
-
-    """
-    python3 -m code.experiments.ours.get_creativity_index \
-    --coverage_path /gscratch/xlab/hallisky/membership-inference/outputs/ours/tulu_v1/coverages/val/tulu-7b-finalized_maxTok512_minTok0_numSeq20_topP0.95_temp1.0_numSent1_startSent-1_numWord-1_startWord-1_useSentF_promptIdx0_len92_2025-02-17-19:30:08_2_onedoc.jsonl \
-    --output_dir  /gscratch/xlab/hallisky/membership-inference/outputs/ours/tulu_v1/creativities/val/ \
-    --min_ngram 1 \
-    --max_ngram 12
-    """
