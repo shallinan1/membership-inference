@@ -57,34 +57,22 @@ from tqdm import tqdm
 from typing import Callable
 from unidecode import unidecode
 from sacremoses import MosesDetokenizer
-from datasets import load_dataset, Dataset
+from datasets import Dataset
 import datasets
 from dataclasses import dataclass
 from datasets.utils.logging import disable_progress_bar
-import re
-from IPython import embed
 from typing import List
 from multiprocessing import Pool, cpu_count
 import time
+from pylcs import lcs_string_length
 
 datasets.logging.set_verbosity_error()
 disable_progress_bar() # Disable filter progress bar
 md = MosesDetokenizer(lang='en')
-from pylcs import lcs_string_length
 
+# Define global tokenization and detokenization functions
 tokenize_func = lambda x: nltk.tokenize.casual.casual_tokenize(x)
 detokenize = lambda x: md.detokenize(x)
-
-# BAD_START_STRINGS = [
-#     "I cannot create",
-#     "I cannot provide",
-#     "I cannot generate",
-#     "I'm sorry, but I can't",
-#     "I'm sorry, this doesn't",
-#     "I can't create content",
-#     "I cannot continue this passage",
-#     "I'm not able to provide a response.",
-# ]
 
 @dataclass
 class Document:
@@ -299,22 +287,17 @@ def dj_search(generation_texts_list: List[List[str]],
 
 def main(args):
     start_time = time.time()
-
-    # Ensure the output directory exists
-    os.makedirs(args.output_dir, exist_ok=True)
+    os.makedirs(args.output_dir, exist_ok=True)  # Ensure the output directory exists
 
     # Make the name of the output file the same as the input file but in the args.output_dir
-    input_filename = os.path.basename(args.gen_data)  # Extract filename from source_docs path
+    input_filename = os.path.basename(args.gen_data)
     args.output_file = os.path.join(args.output_dir, input_filename).replace(".jsonl", f"_{args.min_ngram}.jsonl")
 
-    # Load the input data from a JSONL file
     generations = []
-    with open(args.gen_data, 'r') as f:
+    with open(args.gen_data, 'r') as f:  # Load the input data from a JSONL file
         for line in f:
             generations.append(json.loads(line.strip()))
-
     generation_texts = [g[args.generation_field] for g in generations]
-    # generation_texts = [[text for text in text_list if not any(text.startswith(bad_start) for bad_start in BAD_START_STRINGS)] for text_list in generation_texts]
 
     # Merge the list of lists
     num_sequences = len(generation_texts[0][0])
@@ -329,8 +312,7 @@ def main(args):
     all_outputs = dj_search(generation_texts, source_docs, args.min_ngram, args.subset, num_workers)
 
     execution_time = time.time() - start_time
-    minutes = int(execution_time // 60)
-    seconds = int(execution_time % 60)
+    minutes, seconds = int(execution_time // 60), int(execution_time % 60)
     print(f"Program executed in {minutes}:{seconds} ({execution_time:.4f} seconds)")
 
     assert len(all_outputs) == len(generations)
@@ -370,7 +352,6 @@ def main(args):
         f.flush()
 
     # TODO use num_sequences to potentially unmerge these and get stats wrt each prompt
-    # embed()
     
 if __name__ == '__main__':
     parser = argparse.ArgumentParser(description="N-gram coverage attack tool for analyzing text generation and detecting potential membership inference vulnerabilities by comparing generated texts against source documents using exact n-gram matching and longest common subsequence analysis.")
