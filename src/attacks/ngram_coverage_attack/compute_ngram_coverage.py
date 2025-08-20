@@ -1,3 +1,43 @@
+"""
+N-gram Coverage Computation for Membership Inference Attack
+
+This module implements the coverage computation component of the N-Gram Coverage Attack 
+method for membership inference attacks.
+
+The module analyzes generated text continuations by computing exact n-gram matches
+against source documents and calculating coverage statistics for membership inference.
+
+Pipeline:
+    1. Load generated text continuations from step 1 (generate.py)
+    2. Tokenize and process both generated texts and source documents
+    3. Find exact n-gram matches using sliding window approach
+    4. Calculate coverage percentage (portion of text covered by matching n-grams)
+    5. Compute longest common substring and subsequence metrics
+    6. Save results with metadata for creativity index calculation
+
+Outputs:
+    JSONL file containing coverage statistics, span information, and length metrics
+    saved to outputs/ours/{task}/coverages/{data_split}/
+
+Analysis Modes:
+    - Single document: Compare generations against original snippet only
+    - Multi-document: Compare against entire corpus (for bookMIA with source_docs)
+
+Hardcoded Configuration:
+    - Tokenization: Uses NLTK casual tokenizer for all text processing
+    - Detokenization: Uses Moses detokenizer for English text reconstruction
+    - Parallel processing: Limited to 4 CPU cores max to prevent memory issues
+
+Usage:
+    python -m src.attacks.ngram_coverage_attack.compute_ngram_coverage \
+        --task TASK_NAME \
+        --gen_data PATH_TO_GENERATIONS \
+        --output_dir OUTPUT_DIRECTORY \
+        --min_ngram N \
+        [--source_docs DATASET_NAME] \
+        [--parallel]
+"""
+
 import os
 from dotenv import load_dotenv
 
@@ -387,24 +427,3 @@ if __name__ == '__main__':
 
     args = parser.parse_args()
     main(args)
-
-
-"""
-Example commands to run:
-
-python3 -m src.attacks.ngram_coverage_attack.compute_ngram_coverage \
-    --task bookMIA \
-    --output_dir /gscratch/xlab/hallisky/membership-inference/outputs/ours/bookMIA/coverages/train \
-    --gen_data /gscratch/xlab/hallisky/membership-inference/outputs/ours/bookMIA/generations/train/gpt-3.5-turbo-0125_maxTok512_minTok0_numSeq20_topP0.95_temp1.0_numSent5_startSent1_numWord-1_startWord-1_useSentF_promptIdx5_len494_2025-01-11-23:06:39.jsonl \
-    --min_ngram 4 \
-    --parallel \
-    --source_docs swj0419/BookMIA;
-
-python3 -m src.attacks.ngram_coverage_attack.compute_ngram_coverage \
-    --task bookMIA \
-    --output_dir /gscratch/xlab/hallisky/membership-inference/outputs/ours/bookMIA/coverages/train \
-    --gen_data /gscratch/xlab/hallisky/membership-inference/outputs/ours/bookMIA/generations/train/gpt-3.5-turbo-0125_maxTok512_minTok0_numSeq20_topP0.95_temp1.0_numSent5_startSent1_numWord-1_startWord-1_useSentF_promptIdx5_len494_2025-01-11-23:06:39.jsonl \
-    --min_ngram 4 \
-    --parallel;
-
-"""
