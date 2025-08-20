@@ -320,44 +320,10 @@ def main(args):
     num_sequences = len(generation_texts[0][0])
     generation_texts = [sum(g, []) for g in generation_texts]
 
-    if args.task == "bookMIA":
-        if args.source_docs is None: # Case when we want to reference only against the original text
-            source_docs = [Dataset.from_dict({"text": [unidecode(g["snippet_no_prompt"])]}) for g in generations]
-            args.output_file = args.output_file.replace(".jsonl", "_onedoc.jsonl")
-        else:
-            # For each book index in the generations, all snippets from the dataset should be the source data
-            ds = load_dataset(args.source_docs)
-            df = ds["train"].to_pandas()
-
-            # Jane Eyre is loaded incorrectly??
-            problematic_rows = df[df['snippet'].str.contains('\x00', regex=False)].index
-
-            # Function to clean the 'snippet' by replacing '\x00' with an empty string
-            def clean_snippet(snippet):
-                if isinstance(snippet, bytes):  # Decode if snippet is in bytes
-                    snippet = snippet.decode('utf-8', errors='ignore')
-                return re.sub(r'\x14', '',re.sub(r'\x00', '', snippet))
-
-            # Replace '\x00' with regex in problematic rows
-            for idx in problematic_rows:
-                df.at[idx, 'snippet'] = clean_snippet(df.at[idx, 'snippet'])
-
-            # Make the source docs by iterating through through the generations
-            source_docs = []
-            for g in generations:
-                cur_book_id, cur_snippet_id = g["book_id"], g["snippet_id"]
-                # All snippets excluding original one
-                all_book_snippets = df[(df["book_id"] == cur_book_id) & (df["snippet_id"] != cur_snippet_id)].snippet.to_list()
-                all_book_snippets.append(g["snippet_no_prompt"]) # Add original snippet
-                all_book_snippets_cleaned = [unidecode(x) for x in all_book_snippets]
-                source_docs.append(Dataset.from_dict({"text": all_book_snippets_cleaned}))
-
-            args.output_file = args.output_file.replace(".jsonl", "_alldoc.jsonl")
-    else:
-        assert args.source_docs is None
-        source_docs = [Dataset.from_dict({"text": [unidecode(g["snippet_no_prompt"])]}) for g in generations]
-        args.output_file = args.output_file.replace(".jsonl", "_onedoc.jsonl")
-        print(args.output_file)
+    # We only use the original snippet for the source docs, but we could use more documents as well (need to modify source_docs to do so)
+    source_docs = [Dataset.from_dict({"text": [unidecode(g["snippet_no_prompt"])]}) for g in generations]
+    args.output_file = args.output_file.replace(".jsonl", "_onedoc.jsonl")
+    print(args.output_file)
 
     num_workers = min(cpu_count(), 4) if args.parallel else 1 # Set to 4 since it will get killed with too many cpus
     all_outputs = dj_search(generation_texts, source_docs, args.min_ngram, args.subset, num_workers)
@@ -412,8 +378,6 @@ if __name__ == '__main__':
                         help="Type of corpus to analyze (bookMIA, tulu_v1, pile_external, wikiMIA, dolma_v17, articles). Determines how source documents are loaded and processed.")
     parser.add_argument('--gen_data', type=str, required=True,
                         help="Path to JSONL file containing generated text data to analyze for potential membership inference vulnerabilities")
-    parser.add_argument('--source_docs', type=str,
-                        help="Path to source document dataset (HuggingFace dataset name or path). Required for bookMIA with multiple documents, optional for single-document tasks")
     parser.add_argument('--output_dir', type=str, required=True,
                         help="Directory where analysis results will be saved. Output filename will be derived from input filename with ngram size suffix")
     parser.add_argument("--min_ngram", type=int, default=3,
